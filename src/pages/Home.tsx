@@ -4,14 +4,12 @@ import AboutSection from "@/components/homepage-components/AboutSection";
 import FeaturesSection from "@/components/homepage-components/FeaturesSection";
 import CtaSection from "@/components/homepage-components/CtaSection";
 
-// Legacy copy of the original /Home page (from src/pages/Home.tsx)
-// Kept only for reference after migrating to the App Router.
 
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-black text-white">
       {/* Fixed background with hero gradient */}
-      <div className="fixed inset-0 bg-gradient-to-br from-winered via-[#8B0000] to-winered overflow-hidden">
+      <div className="fixed inset-0 bg-gradient-to-br from-winered via-[#A41111] to-[#8B0000] overflow-hidden">
         {/* Decorative background elements */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-10 left-10 w-72 h-72 bg-white rounded-full blur-3xl"></div>
