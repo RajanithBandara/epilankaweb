@@ -37,9 +37,18 @@ export default function SignUp() {
             } else {
                 alert("Signup failed. Try again.");
             }
-        } catch (err: never) {
-            console.error("Signup error:", err?.response?.data || err.message);
-            alert(err?.response?.data?.detail || "Signup failed.");
+        } catch (err: unknown) {
+            if (axios.isAxiosError(err)) {
+                const message = err.response?.data?.detail || err.response?.data?.message || err.message || "Signup failed.";
+                console.error("Signup error:", err.response?.data || err.message);
+                alert(message);
+            } else if (err instanceof Error) {
+                console.error("Signup error:", err.message);
+                alert("Signup failed.");
+            } else {
+                console.error("Signup error: Unknown error");
+                alert("Signup failed.");
+            }
         } finally {
             setLoading(false);
         }
