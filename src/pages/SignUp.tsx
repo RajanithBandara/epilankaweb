@@ -27,7 +27,7 @@ export default function SignUp() {
             const res = await axios.post(
                 `${apiBase}users/register`,
                 { username, email, password },
-                { headers: { "Content-Type": "application/json" } }
+                { headers: { "Content-Type": "application/json", "x-api-key": process.env.SECRET_KEY } }
             );
 
             console.log("API Response:", res.data);
