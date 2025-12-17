@@ -39,6 +39,7 @@ function MapComponent() {
                     },
                     headers: {
                         "Content-Type": "application/json",
+                        "x-api-key": process.env.SECRET_KEY
                     },
                 }
             );
