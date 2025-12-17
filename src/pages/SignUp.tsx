@@ -25,7 +25,7 @@ export default function SignUp() {
 
         try {
             const res = await axios.post(
-                `${apiBase}/users/register`,
+                `${apiBase}users/register`,
                 { username, email, password },
                 { headers: { "Content-Type": "application/json" } }
             );
