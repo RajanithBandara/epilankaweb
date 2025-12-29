@@ -10,12 +10,21 @@ export async function POST(req: Request) {
             {
                 headers: {
                     'x-api-key': process.env.NEXT_PUBLIC_SECRET_KEY!,
-
                 },
             }
         );
 
-        return Response.json(response.data);
+        // Set the token as an HTTP-only cookie (recommended for security)
+        const headers = new Headers();
+        headers.append(
+            'Set-Cookie',
+            `access_token=${response.data.access_token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=1800`
+        );
+
+        return new Response(JSON.stringify(response.data), {
+            status: 200,
+            headers: headers,
+        });
     } catch (err: unknown) {
         const axiosError = err as { response?: { data?: { message?: string }; status?: number } };
         return Response.json(
