@@ -1,49 +1,50 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, FormEvent } from 'react';
 import axios from 'axios';
+import { useRouter } from 'next/navigation';
 
 function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const router = useRouter();
 
-    const handleLogin = async (e: React.FormEvent) => {
+    async function handleLogin(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
         setError('');
         setLoading(true);
 
         try {
-            // ✅ Call Next.js API route (proxy)
             const response = await axios.post('/api/login', {
                 email,
-                password,
+                password
+            }, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             });
 
-            console.log('Login successful:', response.data);
+            localStorage.setItem('user_id', response.data.user_id);
+            localStorage.setItem('username', response.data.username);
+            localStorage.setItem('email', response.data.email);
 
-            // If you return token (not httpOnly)
-            if (response.data.token) {
-                localStorage.setItem('token', response.data.token);
-            }
+            document.cookie = `token=${response.data.access_token}; path=/; max-age=86400; SameSite=Strict`;
 
-            window.location.href = '/';
-        } catch (err) {
-            console.error('Login error:', err);
-
-            if (axios.isAxiosError(err)) {
-                setError(
-                    err.response?.data?.message ||
-                    'Login failed. Please check your credentials.'
-                );
+            router.push('/dashboard');
+            router.refresh();
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                setError(error.response?.data?.message || 'Login failed');
             } else {
-                setError('An unexpected error occurred. Please try again.');
+                setError('An unexpected error occurred');
             }
+            console.error('Error during login:', error);
         } finally {
             setLoading(false);
         }
-    };
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-black text-white px-6">
