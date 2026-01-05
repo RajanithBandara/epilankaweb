@@ -116,6 +116,33 @@ export default function DiseaseReportPage() {
         }
     };
 
+    const upvoteReport = async (reportId: string) => {
+        try {
+            const userId = localStorage.getItem('user_id');
+            if (!userId) {
+                setError("Please log in to vote");
+                return;
+            }
+
+            if (!locationData?.nearest_area?.district_name) {
+                setError("Location data not available");
+                return;
+            }
+
+            await axios.post('/api/reports/upvote', {
+                reportid: reportId,
+                userid: userId,
+                location: locationData.nearest_area.district_name
+            });
+
+            await fetchReportHistory();
+        } catch (err) {
+            console.error("Upvote error:", err);
+            setError("User has already voted for this report");
+        }
+    };
+
+
     return (
         <div className="min-h-screen bg-background flex items-center justify-center px-4 py-8">
             <Card className="w-full max-w-2xl border border-border shadow-lg">
@@ -267,6 +294,30 @@ export default function DiseaseReportPage() {
                                 </div>
                             </AlertDescription>
                         </Alert>
+                                    {/* Vote Button */}
+                                    <div className="mb-3">
+                                        <Button
+                                            type="button"
+                                            onClick={() => upvoteReport(report.report_id)}
+                                            className="w-full h-10 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white text-sm font-medium rounded-xl shadow-md hover:shadow-lg transition-all"
+                                        >
+                                            <ThumbsUp className="w-4 h-4 mr-2" />
+                                            I have the same problem
+                                        </Button>
+                                    </div>
+
+                                    {/* Location Footer */}
+                                    {report.district_info && (
+                                        <div className="flex items-center gap-2 pt-3 border-t border-white/20">
+                                            <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                                                {report.district_info.district_name} · {report.district_info.distance_km.toFixed(1)} km away
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
                     )}
                 </CardContent>
             </Card>
