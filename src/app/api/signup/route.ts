@@ -1,8 +1,9 @@
 import axios from "axios";
 
 export async function POST(req: Request) {
+    const body = await req.json();
+
     try {
-        const body = await req.json();
 
         const response = await axios.post(
             `${process.env.NEXT_PUBLIC_API_URL}/users/register`,
