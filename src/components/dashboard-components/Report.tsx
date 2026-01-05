@@ -1,18 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { MapPin, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { MapPin, Loader2, CheckCircle2, AlertCircle, Activity, Send, ThumbsUp } from "lucide-react";
 import { useLocation } from "@/contexts/LocationContext";
+import axios from "axios";
 
 interface ExtractedData {
     disease_name: string | null;
@@ -41,6 +35,50 @@ interface SubmitResponse {
     };
 }
 
+interface HistoryReport {
+    report_id: string;
+    user_id: string | number;
+    description: string;
+    district_info: {
+        district_name: string;
+        province_name: string;
+        distance_km: number;
+    } | null;
+    extracted_data: ExtractedData | null;
+    status: string | null;
+    created_at: string;
+}
+
+const getSeverityColor = (severity: string) => {
+    switch (severity.toLowerCase()) {
+        case "high":
+        case "severe":
+            return "bg-red-500/20 text-red-700 dark:text-red-300 border-red-500/30";
+        case "medium":
+        case "moderate":
+            return "bg-orange-500/20 text-orange-700 dark:text-orange-300 border-orange-500/30";
+        case "low":
+        case "mild":
+            return "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-500/30";
+        default:
+            return "bg-gray-500/20 text-gray-700 dark:text-gray-300 border-gray-500/30";
+    }
+};
+
+const getStatusColor = (status: string | null) => {
+    switch (status?.toLowerCase()) {
+        case "verified":
+        case "confirmed":
+            return "bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30";
+        case "pending":
+            return "bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30";
+        case "investigating":
+            return "bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30";
+        default:
+            return "bg-gray-500/20 text-gray-700 dark:text-gray-300 border-gray-500/30";
+    }
+};
+
 export default function DiseaseReportPage() {
     const [description, setDescription] = useState("");
     const [loading, setLoading] = useState(false);
@@ -50,7 +88,6 @@ export default function DiseaseReportPage() {
     const [history, setHistory] = useState<HistoryReport[]>([]);
     const [historyLoading, setHistoryLoading] = useState(false);
 
-    // Get cached location data from context
     const { locationData, isLoading: locationLoading, error: locationError } = useLocation();
 
     const analyzeAndSubmit = async () => {
@@ -70,7 +107,6 @@ export default function DiseaseReportPage() {
         setSubmitResponse(null);
 
         try {
-            // Get authentication token and user ID
             const getCookie = (name: string) => {
                 const value = `; ${document.cookie}`;
                 const parts = value.split(`; ${name}=`);
@@ -85,7 +121,6 @@ export default function DiseaseReportPage() {
                 throw new Error("Authentication required. Please log in again.");
             }
 
-            // Call the API with all required data (extraction + submission combined)
             const response = await fetch("/api/extract-disease-info", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -104,13 +139,12 @@ export default function DiseaseReportPage() {
                 throw new Error(data.error || "Failed to process report");
             }
 
-            // Set the extracted data and submission response
             setExtractedData(data.extracted_data);
             if (data.submission) {
                 setSubmitResponse(data.submission);
                 await fetchReportHistory();
             }
-            setDescription(""); // Clear form on success
+            setDescription("");
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred";
             setError(errorMessage);
@@ -173,156 +207,185 @@ export default function DiseaseReportPage() {
 
 
     return (
-        <div className="min-h-screen bg-background flex items-center justify-center px-4 py-8">
-            <Card className="w-full max-w-2xl border border-border shadow-lg">
-                <CardHeader>
-                    <CardTitle className="text-2xl font-semibold tracking-tight">
-                        🏥 Disease Report Analyzer
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">
-                        AI-powered disease report extraction and submission
-                    </p>
-                </CardHeader>
-
-                <CardContent className="space-y-4">
-                    {/* Location Status */}
-                    {locationLoading ? (
-                        <Alert>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            <AlertDescription>Fetching your location...</AlertDescription>
-                        </Alert>
-                    ) : locationError ? (
-                        <Alert variant="destructive">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>{locationError}</AlertDescription>
-                        </Alert>
-                    ) : locationData?.nearest_area ? (
-                        <Alert className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
-                            <MapPin className="h-4 w-4 text-green-600" />
-                            <AlertDescription className="text-green-800 dark:text-green-200">
-                                <strong>Location Ready:</strong> {locationData.nearest_area.district_name}, {locationData.nearest_area.province_name}
-                                {" "}({locationData.nearest_area.distance.toFixed(2)} km away)
-                            </AlertDescription>
-                        </Alert>
-                    ) : null}
-
-                    {/* Report Input */}
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">
-                            Disease Report Description
-                        </label>
-                        <Textarea
-                            placeholder="Example: 5 children in our school have dengue fever with high fever and rashes since last Monday..."
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            rows={6}
-                            className="resize-none"
-                            disabled={loading || locationLoading}
-                        />
-                    </div>
-
-                    {/* Submit Button */}
-                    <Button
-                        onClick={analyzeAndSubmit}
-                        disabled={loading || locationLoading || !locationData}
-                        className="w-full"
-                        size="lg"
-                    >
-                        {loading ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Processing Report...
-                            </>
-                        ) : (
-                            <>
-                                <CheckCircle2 className="mr-2 h-4 w-4" />
-                                Analyze & Submit Report
-                            </>
-                        )}
-                    </Button>
-
-                    {/* Error Display */}
-                    {error && (
-                        <Alert variant="destructive">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                    )}
-
-                    {/* Extracted Data Preview */}
-                    {extractedData && !submitResponse && (
-                        <div className="space-y-3 pt-4 border-t">
-                            <div className="flex items-center gap-2">
-                                <h3 className="text-sm font-medium">
-                                    ✅ AI Extracted Data
-                                </h3>
-                                <Badge variant={extractedData.confidence === "high" ? "default" : "secondary"}>
-                                    {extractedData.confidence} confidence
-                                </Badge>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3 text-sm">
-                                <div>
-                                    <span className="font-medium">Disease:</span>
-                                    <p className="text-muted-foreground">{extractedData.disease_name || "Unknown"}</p>
-                                </div>
-                                <div>
-                                    <span className="font-medium">Type:</span>
-                                    <p className="text-muted-foreground">{extractedData.disease_type}</p>
-                                </div>
-                                <div>
-                                    <span className="font-medium">Cases:</span>
-                                    <p className="text-muted-foreground">{extractedData.cases_reported || "N/A"}</p>
-                                </div>
-                                <div>
-                                    <span className="font-medium">Severity:</span>
-                                    <p className="text-muted-foreground">{extractedData.severity}</p>
-                                </div>
-                                {extractedData.age_group && (
-                                    <div>
-                                        <span className="font-medium">Age Group:</span>
-                                        <p className="text-muted-foreground">{extractedData.age_group}</p>
-                                    </div>
-                                )}
-                                {extractedData.time_period && (
-                                    <div>
-                                        <span className="font-medium">Time Period:</span>
-                                        <p className="text-muted-foreground">{extractedData.time_period}</p>
-                                    </div>
-                                )}
-                            </div>
-
-                            {extractedData.symptoms.length > 0 && (
-                                <div>
-                                    <span className="text-sm font-medium">Symptoms:</span>
-                                    <div className="flex flex-wrap gap-2 mt-2">
-                                        {extractedData.symptoms.map((symptom, i) => (
-                                            <Badge key={i} variant="outline">
-                                                {symptom}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-slate-950 dark:via-blue-950/30 dark:to-purple-950/30">
+            {/* iOS-style Header */}
+            <div className="sticky top-0 z-50 backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 border-b border-white/20 shadow-lg shadow-black/5">
+                <div className="max-w-4xl mx-auto px-6 py-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                            <Activity className="w-6 h-6 text-white" />
                         </div>
-                    )}
+                        <div>
+                            <h1 className="text-xl font-semibold text-slate-900 dark:text-white">Health Reports</h1>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">AI-Powered Disease Tracking</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                    {/* Submission Success */}
-                    {submitResponse && (
-                        <Alert className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                            <AlertDescription className="space-y-2">
-                                <p className="font-semibold text-green-800 dark:text-green-200">
-                                    ✅ Report Submitted Successfully!
+            <div className="max-w-4xl mx-auto px-6 py-6 space-y-4">
+                {/* Location Status - iOS Style */}
+                {locationLoading ? (
+                    <div className="backdrop-blur-xl bg-white/60 dark:bg-slate-900/60 border border-white/20 rounded-3xl p-4 shadow-lg shadow-black/5">
+                        <div className="flex items-center gap-3">
+                            <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Locating...</span>
+                        </div>
+                    </div>
+                ) : locationError ? (
+                    <div className="backdrop-blur-xl bg-red-500/10 dark:bg-red-500/20 border border-red-500/20 rounded-3xl p-4 shadow-lg shadow-red-500/5">
+                        <div className="flex items-center gap-3">
+                            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                            <span className="text-sm font-medium text-red-700 dark:text-red-300">{locationError}</span>
+                        </div>
+                    </div>
+                ) : locationData?.nearest_area ? (
+                    <div className="backdrop-blur-xl bg-gradient-to-r from-green-500/10 to-emerald-500/10 dark:from-green-500/20 dark:to-emerald-500/20 border border-green-500/20 rounded-3xl p-4 shadow-lg shadow-green-500/5">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                                <MapPin className="w-5 h-5 text-green-600 dark:text-green-400" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-sm font-semibold text-green-900 dark:text-green-100">
+                                    {locationData.nearest_area.district_name}, {locationData.nearest_area.province_name}
                                 </p>
-                                <div className="text-sm text-green-700 dark:text-green-300 space-y-1">
-                                    <p><strong>Report ID:</strong> #{submitResponse.data.report_id}</p>
-                                    <p><strong>Disease:</strong> {submitResponse.data.extracted_data.disease_name || "Unknown"}</p>
-                                    <p><strong>Type:</strong> {submitResponse.data.extracted_data.disease_type}</p>
-                                    <p><strong>Location:</strong> {submitResponse.data.nearest_location.district_name}, {submitResponse.data.nearest_location.province_name}</p>
+                                <p className="text-xs text-green-700 dark:text-green-300">
+                                    {locationData.nearest_area.distance.toFixed(2)} km from your location
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                ) : null}
+
+                {/* Main Input Card - Glass Morphism */}
+                <div className="backdrop-blur-xl bg-white/60 dark:bg-slate-900/60 border border-white/20 rounded-3xl shadow-2xl shadow-black/10 overflow-hidden">
+                    <div className="p-6 space-y-4">
+                        {/* Input Area */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                Report Health Incident
+                            </label>
+                            <div className="relative">
+                                <Textarea
+                                    placeholder="Describe the disease symptoms, number of cases, affected age group, and when symptoms started..."
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    rows={5}
+                                    className="resize-none backdrop-blur-xl bg-white/80 dark:bg-slate-800/80 border-white/40 dark:border-slate-700/40 rounded-2xl text-base placeholder:text-slate-400 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all shadow-inner"
+                                    disabled={loading || locationLoading}
+                                />
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 pl-1">
+                                Be specific with symptoms, location details, and timeline
+                            </p>
+                        </div>
+
+                        {/* Submit Button - iOS Style */}
+                        <Button
+                            onClick={analyzeAndSubmit}
+                            disabled={loading || locationLoading || !locationData}
+                            className="w-full h-14 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-2xl shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-300 disabled:opacity-50 disabled:shadow-none"
+                        >
+                            {loading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                    Analyzing...
+                                </>
+                            ) : (
+                                <>
+                                    <Send className="mr-2 h-5 w-5" />
+                                    Submit Report
+                                </>
+                            )}
+                        </Button>
+
+                        {/* Error Message */}
+                        {error && (
+                            <div className="backdrop-blur-xl bg-red-500/10 dark:bg-red-500/20 border border-red-500/20 rounded-2xl p-4">
+                                <div className="flex items-start gap-3">
+                                    <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5" />
+                                    <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
                                 </div>
-                            </AlertDescription>
-                        </Alert>
+                            </div>
+                        )}
+
+                        {/* Success Message */}
+                        {submitResponse && (
+                            <div className="backdrop-blur-xl bg-gradient-to-r from-green-500/10 to-emerald-500/10 dark:from-green-500/20 dark:to-emerald-500/20 border border-green-500/20 rounded-2xl p-4 space-y-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                                        <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-green-900 dark:text-green-100">Report Submitted</p>
+                                        <p className="text-xs text-green-700 dark:text-green-300">ID: #{submitResponse.data.report_id}</p>
+                                    </div>
+                                </div>
+                                <div className="pl-13 grid grid-cols-2 gap-2 text-xs">
+                                    <div>
+                                        <span className="text-green-700 dark:text-green-400 font-medium">Disease:</span>
+                                        <p className="text-green-900 dark:text-green-200">{submitResponse.data.extracted_data.disease_name || "Unknown"}</p>
+                                    </div>
+                                    <div>
+                                        <span className="text-green-700 dark:text-green-400 font-medium">Type:</span>
+                                        <p className="text-green-900 dark:text-green-200">{submitResponse.data.extracted_data.disease_type}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Extracted Data Preview */}
+                        {extractedData && !submitResponse && (
+                            <div className="backdrop-blur-xl bg-gradient-to-r from-blue-500/5 to-purple-500/5 dark:from-blue-500/10 dark:to-purple-500/10 border border-blue-500/20 rounded-2xl p-4 space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <CheckCircle2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                        <span className="font-semibold text-slate-900 dark:text-white">Analysis Complete</span>
+                                    </div>
+                                    <Badge className={`text-xs font-medium rounded-full px-3 py-1 ${extractedData.confidence === "high" ? "bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30" : "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-500/30"}`}>
+                                        {extractedData.confidence} confidence
+                                    </Badge>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="backdrop-blur-xl bg-white/50 dark:bg-slate-800/50 rounded-xl p-3 border border-white/40">
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1">Disease</p>
+                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{extractedData.disease_name || "Unknown"}</p>
+                                    </div>
+                                    <div className="backdrop-blur-xl bg-white/50 dark:bg-slate-800/50 rounded-xl p-3 border border-white/40">
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1">Cases</p>
+                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{extractedData.cases_reported || "N/A"}</p>
+                                    </div>
+                                    <div className="backdrop-blur-xl bg-white/50 dark:bg-slate-800/50 rounded-xl p-3 border border-white/40">
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1">Type</p>
+                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{extractedData.disease_type}</p>
+                                    </div>
+                                    <div className="backdrop-blur-xl bg-white/50 dark:bg-slate-800/50 rounded-xl p-3 border border-white/40">
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1">Severity</p>
+                                        <Badge className={`text-xs ${getSeverityColor(extractedData.severity)} rounded-full px-2 py-0.5`}>
+                                            {extractedData.severity}
+                                        </Badge>
+                                    </div>
+                                </div>
+
+                                {extractedData.symptoms.length > 0 && (
+                                    <div>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-2">Symptoms Detected</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {extractedData.symptoms.map((symptom, i) => (
+                                                <span key={i} className="text-xs px-3 py-1 backdrop-blur-xl bg-white/60 dark:bg-slate-800/60 border border-white/40 rounded-full text-slate-700 dark:text-slate-300 font-medium">
+                                                    {symptom}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Recent Reports Section */}
                 <div className="space-y-3">
                     <div className="flex items-center justify-between px-1">
                         <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -430,8 +493,8 @@ export default function DiseaseReportPage() {
                             ))}
                         </div>
                     )}
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         </div>
     );
 }

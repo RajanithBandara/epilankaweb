@@ -10,6 +10,7 @@ export async function POST(req: Request) {
             {
                 headers: {
                     'x-api-key': process.env.NEXT_PUBLIC_SECRET_KEY!,
+                    'Content-Type': 'application/json',
                 },
             }
         );
