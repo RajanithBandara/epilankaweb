@@ -47,6 +47,8 @@ export default function DiseaseReportPage() {
     const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
     const [submitResponse, setSubmitResponse] = useState<SubmitResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [history, setHistory] = useState<HistoryReport[]>([]);
+    const [historyLoading, setHistoryLoading] = useState(false);
 
     // Get cached location data from context
     const { locationData, isLoading: locationLoading, error: locationError } = useLocation();
@@ -106,6 +108,7 @@ export default function DiseaseReportPage() {
             setExtractedData(data.extracted_data);
             if (data.submission) {
                 setSubmitResponse(data.submission);
+                await fetchReportHistory();
             }
             setDescription(""); // Clear form on success
         } catch (err) {
@@ -115,6 +118,32 @@ export default function DiseaseReportPage() {
             setLoading(false);
         }
     };
+
+    const fetchReportHistory = useCallback(async () => {
+        if (!locationData?.nearest_area?.district_name) return;
+
+        try {
+            setHistoryLoading(true);
+            const district = locationData.nearest_area.district_name;
+
+            const response = await axios.get('/api/reports/location', {
+                params: { district_name: district }
+            });
+
+            setHistory(response.data.reports || []);
+        } catch (err) {
+            console.error("History fetch error:", err);
+            setHistory([]);
+        } finally {
+            setHistoryLoading(false);
+        }
+    }, [locationData?.nearest_area?.district_name]);
+
+    useEffect(() => {
+        if (locationData?.nearest_area?.district_name) {
+            fetchReportHistory();
+        }
+    }, [locationData?.nearest_area?.district_name, fetchReportHistory]);
 
     const upvoteReport = async (reportId: string) => {
         try {
@@ -294,6 +323,88 @@ export default function DiseaseReportPage() {
                                 </div>
                             </AlertDescription>
                         </Alert>
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between px-1">
+                        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                            Recent Reports
+                        </h2>
+                        {locationData?.nearest_area && (
+                            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                                {locationData.nearest_area.district_name}
+                            </span>
+                        )}
+                    </div>
+
+                    {historyLoading ? (
+                        <div className="backdrop-blur-xl bg-white/60 dark:bg-slate-900/60 border border-white/20 rounded-3xl p-6 shadow-lg">
+                            <div className="flex items-center justify-center gap-3">
+                                <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                                <span className="text-sm text-slate-600 dark:text-slate-400">Loading reports...</span>
+                            </div>
+                        </div>
+                    ) : history.length === 0 ? (
+                        <div className="backdrop-blur-xl bg-white/60 dark:bg-slate-900/60 border border-white/20 rounded-3xl p-8 shadow-lg">
+                            <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+                                No reports found for this area
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {history.map((report) => (
+                                <div
+                                    key={report.report_id}
+                                    className="backdrop-blur-xl bg-white/60 dark:bg-slate-900/60 border border-white/20 rounded-3xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.01]"
+                                >
+                                    {/* Header */}
+                                    <div className="flex items-start justify-between mb-3">
+                                        <div className="flex-1">
+                                            <h3 className="font-semibold text-slate-900 dark:text-white mb-1">
+                                                {report.extracted_data?.disease_name || "Unverified Report"}
+                                            </h3>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                {new Date(report.created_at).toLocaleDateString('en-US', {
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                    year: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                            </p>
+                                        </div>
+                                        <Badge className={`text-xs rounded-full px-3 py-1 ${getStatusColor(report.status)}`}>
+                                            {report.status || "pending"}
+                                        </Badge>
+                                    </div>
+
+                                    {/* Description */}
+                                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-3 line-clamp-2">
+                                        {report.description}
+                                    </p>
+
+                                    {/* Stats Grid */}
+                                    {report.extracted_data && (
+                                        <div className="grid grid-cols-3 gap-2 mb-3">
+                                            <div className="backdrop-blur-xl bg-white/50 dark:bg-slate-800/50 rounded-xl p-2 border border-white/40">
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">Cases</p>
+                                                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                                                    {report.extracted_data.cases_reported || "N/A"}
+                                                </p>
+                                            </div>
+                                            <div className="backdrop-blur-xl bg-white/50 dark:bg-slate-800/50 rounded-xl p-2 border border-white/40">
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">Type</p>
+                                                <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">
+                                                    {report.extracted_data.disease_type}
+                                                </p>
+                                            </div>
+                                            <div className="backdrop-blur-xl bg-white/50 dark:bg-slate-800/50 rounded-xl p-2 border border-white/40">
+                                                <p className="text-xs text-slate-500 dark:text-slate-400">Severity</p>
+                                                <Badge className={`text-xs ${getSeverityColor(report.extracted_data.severity)} rounded-full px-2 py-0.5 mt-1`}>
+                                                    {report.extracted_data.severity}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Vote Button */}
                                     <div className="mb-3">
                                         <Button
