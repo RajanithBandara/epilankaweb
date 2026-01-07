@@ -11,7 +11,7 @@ export async function POST(req: Request) {
             body,
             {
                 headers: {
-                    "x-api-key": process.env.INTERNAL_API_KEY!,
+                    "x-api-key": process.env.NEXT_PUBLIC_SECRET_KEY!,
                     "Content-Type": "application/json",
                 },
             }
@@ -29,6 +29,7 @@ export async function POST(req: Request) {
         });
     } catch (err: unknown) {
         const axiosError = err as { response?: { data?: { message?: string }; status?: number } };
+        console.error('Login error:', axiosError.response?.data || err);
         return Response.json(
             {
                 message:
