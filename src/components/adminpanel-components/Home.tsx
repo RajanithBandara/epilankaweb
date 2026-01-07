@@ -1,4 +1,3 @@
-// filepath: src/components/adminpanel-components/Home.tsx
 'use client';
 
 export default function HomeDash() {
