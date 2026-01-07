@@ -37,7 +37,7 @@ export default function UserSettings() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-    const API_BASE = 'http://localhost:8000/users';
+    const API_BASE = process.env.NEXT_PUBLIC_API_URL;
     const API_KEY = process.env.NEXT_PUBLIC_SECRET_KEY;
 
     // Configure axios defaults
