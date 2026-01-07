@@ -12,6 +12,7 @@ const navItems = [
     { label: "Home", href: "/dashboard" },
     { label: "Map", href: "/dashboard/map" },
     { label: "Reports", href: "/dashboard/report" },
+    { label: "Settings", href: "/dashboard/settings"}
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
