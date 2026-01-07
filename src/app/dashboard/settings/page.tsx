@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import axios from 'axios';
-import { User, Mail, Lock, Camera, Check, X } from 'lucide-react';
+import { User, Lock, Camera, Check, X } from 'lucide-react';
 
 interface UserData {
     _id: string;
@@ -37,12 +37,6 @@ export default function UserSettings() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL;
-    const API_KEY = process.env.NEXT_PUBLIC_SECRET_KEY;
-
-    // Configure axios defaults
-    axios.defaults.headers.common['x-api-key'] = API_KEY;
-
     const showAlert = (message: string, type: 'success' | 'error' = 'success') => {
         setAlert({ message, type });
         setTimeout(() => setAlert(null), 4000);
@@ -65,7 +59,7 @@ export default function UserSettings() {
         return null;
     };
 
-    const loadSettings = async () => {
+    const loadSettings = useCallback(async () => {
         const userId = getUserId();
 
         if (!userId) {
@@ -75,7 +69,7 @@ export default function UserSettings() {
 
         setLoading(true);
         try {
-            const response = await axios.get(`${API_BASE}/settings/${userId}`);
+            const response = await axios.get(`/api/settings/${userId}`);
 
             setUserData(response.data.user);
             setNewUsername(response.data.user.username);
@@ -87,7 +81,7 @@ export default function UserSettings() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     const updateProfile = async () => {
         const userId = getUserId();
@@ -108,7 +102,7 @@ export default function UserSettings() {
 
         setLoading(true);
         try {
-            await axios.put(`${API_BASE}/profile/${userId}`, body);
+            await axios.put(`/api/profile/${userId}`, body);
             showAlert('Profile updated successfully!');
             loadSettings();
         } catch (error) {
@@ -145,7 +139,7 @@ export default function UserSettings() {
 
         setLoading(true);
         try {
-            await axios.post(`${API_BASE}/change-password/${userId}`, {
+            await axios.post(`/api/change-password/${userId}`, {
                 current_password: currentPassword,
                 new_password: newPassword,
             });
@@ -176,7 +170,7 @@ export default function UserSettings() {
 
         setLoading(true);
         try {
-            await axios.post(`${API_BASE}/profilepic/${userId}`, formData, {
+            await axios.post(`/api/profilepic/${userId}`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -210,10 +204,9 @@ export default function UserSettings() {
         }
     };
 
-    // Load settings automatically on component mount
     useEffect(() => {
         loadSettings();
-    }, []);
+    }, [loadSettings]);
 
     if (!getUserId()) {
         return (
