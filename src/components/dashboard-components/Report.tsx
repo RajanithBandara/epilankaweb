@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Loader2, CheckCircle2, AlertCircle, Activity, Send, ThumbsUp } from "lucide-react";
+import { MapPin, Loader2, CheckCircle2, AlertCircle, Send, ThumbsUp, Sparkles } from "lucide-react";
 import { useLocation } from "@/contexts/LocationContext";
 import axios from "axios";
 
@@ -53,15 +53,15 @@ const getSeverityColor = (severity: string) => {
     switch (severity.toLowerCase()) {
         case "high":
         case "severe":
-            return "bg-red-500/20 text-red-700 dark:text-red-300 border-red-500/30";
+            return "bg-red-50 text-red-700 border-red-200";
         case "medium":
         case "moderate":
-            return "bg-orange-500/20 text-orange-700 dark:text-orange-300 border-orange-500/30";
+            return "bg-orange-50 text-orange-700 border-orange-200";
         case "low":
         case "mild":
-            return "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-500/30";
+            return "bg-yellow-50 text-yellow-700 border-yellow-200";
         default:
-            return "bg-gray-500/20 text-gray-700 dark:text-gray-300 border-gray-500/30";
+            return "bg-gray-50 text-gray-700 border-gray-200";
     }
 };
 
@@ -69,13 +69,13 @@ const getStatusColor = (status: string | null) => {
     switch (status?.toLowerCase()) {
         case "verified":
         case "confirmed":
-            return "bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30";
+            return "bg-green-50 text-green-700 border-green-200";
         case "pending":
-            return "bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30";
+            return "bg-blue-50 text-blue-700 border-blue-200";
         case "investigating":
-            return "bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/30";
+            return "bg-purple-50 text-purple-700 border-purple-200";
         default:
-            return "bg-gray-500/20 text-gray-700 dark:text-gray-300 border-gray-500/30";
+            return "bg-gray-50 text-gray-700 border-gray-200";
     }
 };
 
@@ -205,91 +205,102 @@ export default function DiseaseReportPage() {
         }
     };
 
-
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-slate-950 dark:via-blue-950/30 dark:to-purple-950/30">
-            {/* iOS-style Header */}
-            <div className="sticky top-0 z-50 backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 border-b border-white/20 shadow-lg shadow-black/5">
-                <div className="max-w-4xl mx-auto px-6 py-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                            <Activity className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                            <h1 className="text-xl font-semibold text-slate-900 dark:text-white">Health Reports</h1>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">AI-Powered Disease Tracking</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div className="min-h-screen rounded-xl flex items-center justify-center bg-[#F8FAFC] px-6 py-12">
+            <style jsx>{`
+                @keyframes shine {
+                    0% { transform: translateX(-100%); }
+                    100% { transform: translateX(100%); }
+                }
+                @keyframes pulse-glow {
+                    0%, 100% { opacity: 0.5; }
+                    50% { opacity: 1; }
+                }
+                @keyframes slide-up {
+                    from {
+                        opacity: 0;
+                        transform: translateY(20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+            `}</style>
 
-            <div className="max-w-4xl mx-auto px-6 py-6 space-y-4">
-                {/* Location Status - iOS Style */}
+            <div className="w-full max-w-2xl space-y-6 animate-[slide-up_0.5s_ease-out]">
+                {/* Header */}
+                <div className="text-center mb-8">
+                    <h1 className="text-3xl font-extrabold mb-2 text-[#1E3A8A]">
+                        Health Incident Report
+                    </h1>
+                    <p className="text-sm text-gray-600">AI-powered community health monitoring</p>
+                </div>
+
+                {/* Location Status */}
                 {locationLoading ? (
-                    <div className="backdrop-blur-xl bg-white/60 dark:bg-slate-900/60 border border-white/20 rounded-3xl p-4 shadow-lg shadow-black/5">
-                        <div className="flex items-center gap-3">
-                            <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
-                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Locating...</span>
-                        </div>
+                    <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white shadow-md p-4 animate-pulse">
+                        <Loader2 className="h-5 w-5 animate-spin text-[#1E3A8A]" />
+                        <span className="text-sm text-gray-700">Detecting location...</span>
                     </div>
                 ) : locationError ? (
-                    <div className="backdrop-blur-xl bg-red-500/10 dark:bg-red-500/20 border border-red-500/20 rounded-3xl p-4 shadow-lg shadow-red-500/5">
-                        <div className="flex items-center gap-3">
-                            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
-                            <span className="text-sm font-medium text-red-700 dark:text-red-300">{locationError}</span>
-                        </div>
+                    <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 shadow-md p-4">
+                        <AlertCircle className="h-5 w-5 text-red-600" />
+                        <span className="text-sm text-red-700">{locationError}</span>
                     </div>
                 ) : locationData?.nearest_area ? (
-                    <div className="backdrop-blur-xl bg-gradient-to-r from-green-500/10 to-emerald-500/10 dark:from-green-500/20 dark:to-emerald-500/20 border border-green-500/20 rounded-3xl p-4 shadow-lg shadow-green-500/5">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                                <MapPin className="w-5 h-5 text-green-600 dark:text-green-400" />
-                            </div>
-                            <div className="flex-1">
-                                <p className="text-sm font-semibold text-green-900 dark:text-green-100">
-                                    {locationData.nearest_area.district_name}, {locationData.nearest_area.province_name}
-                                </p>
-                                <p className="text-xs text-green-700 dark:text-green-300">
-                                    {locationData.nearest_area.distance.toFixed(2)} km from your location
-                                </p>
-                            </div>
+                    <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white shadow-md hover:shadow-lg p-4 transition-all duration-300">
+                        <MapPin className="h-5 w-5 text-[#1E3A8A]" />
+                        <div className="flex-1 text-sm">
+                            <span className="font-semibold text-gray-800">{locationData.nearest_area.district_name}</span>
+                            <span className="text-gray-600">, {locationData.nearest_area.province_name}</span>
                         </div>
                     </div>
                 ) : null}
 
-                {/* Main Input Card - Glass Morphism */}
-                <div className="backdrop-blur-xl bg-white/60 dark:bg-slate-900/60 border border-white/20 rounded-3xl shadow-2xl shadow-black/10 overflow-hidden">
-                    <div className="p-6 space-y-4">
-                        {/* Input Area */}
-                        <div className="space-y-2">
-                            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                                Report Health Incident
-                            </label>
-                            <div className="relative">
-                                <Textarea
-                                    placeholder="Describe the disease symptoms, number of cases, affected age group, and when symptoms started..."
-                                    value={description}
-                                    onChange={(e) => setDescription(e.target.value)}
-                                    rows={5}
-                                    className="resize-none backdrop-blur-xl bg-white/80 dark:bg-slate-800/80 border-white/40 dark:border-slate-700/40 rounded-2xl text-base placeholder:text-slate-400 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all shadow-inner"
-                                    disabled={loading || locationLoading}
-                                />
+                {/* Main Report Card */}
+                <div className="relative rounded-2xl border border-gray-200 bg-white shadow-xl p-8 overflow-hidden group">
+                    {/* Animated shining border effect */}
+                    <div
+                        className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                        style={{
+                            background: 'linear-gradient(90deg, transparent, rgba(30, 58, 138, 0.15), transparent)',
+                            animation: 'shine 3s ease-in-out infinite'
+                        }}
+                    />
+
+                    {/* Corner glow effect */}
+                    <div className="absolute -top-20 -right-20 w-40 h-40 bg-[#1E3A8A]/5 rounded-full blur-3xl animate-[pulse-glow_4s_ease-in-out_infinite]" />
+                    <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-[#0EA5A4]/5 rounded-full blur-3xl animate-[pulse-glow_5s_ease-in-out_infinite]" />
+
+                    <div className="relative space-y-6">
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                                <Sparkles className="h-4 w-4 text-[#1E3A8A]" />
+                                <label className="block text-sm font-medium text-gray-800">Report Health Incident</label>
                             </div>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 pl-1">
-                                Be specific with symptoms, location details, and timeline
+                            <Textarea
+                                placeholder="Describe symptoms, number of cases, affected age group, and timeline..."
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                rows={5}
+                                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-300 focus:outline-none focus:border-[#1E3A8A] focus:ring-2 focus:ring-blue-100 text-gray-800 placeholder:text-gray-500 resize-none transition-all duration-300"
+                                disabled={loading || locationLoading}
+                            />
+                            <p className="text-xs text-gray-500">
+                                Be specific with symptoms, location, and timeline for accurate analysis
                             </p>
                         </div>
 
-                        {/* Submit Button - iOS Style */}
                         <Button
                             onClick={analyzeAndSubmit}
                             disabled={loading || locationLoading || !locationData}
-                            className="w-full h-14 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-2xl shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-300 disabled:opacity-50 disabled:shadow-none"
+                            className="w-full bg-[#1E3A8A] hover:bg-[#1e40af] text-white font-bold py-3 rounded-lg shadow-md hover:shadow-lg transition disabled:opacity-60"
                         >
                             {loading ? (
                                 <>
                                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                    Analyzing...
+                                    Analyzing with AI...
                                 </>
                             ) : (
                                 <>
@@ -299,70 +310,68 @@ export default function DiseaseReportPage() {
                             )}
                         </Button>
 
-                        {/* Error Message */}
+                        {/* Error */}
                         {error && (
-                            <div className="backdrop-blur-xl bg-red-500/10 dark:bg-red-500/20 border border-red-500/20 rounded-2xl p-4">
-                                <div className="flex items-start gap-3">
-                                    <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5" />
-                                    <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+                            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm shadow-md animate-[slide-up_0.3s_ease-out]">
+                                <div className="flex items-start gap-2">
+                                    <AlertCircle className="h-4 w-4 mt-0.5" />
+                                    <span>{error}</span>
                                 </div>
                             </div>
                         )}
 
-                        {/* Success Message */}
+                        {/* Success */}
                         {submitResponse && (
-                            <div className="backdrop-blur-xl bg-gradient-to-r from-green-500/10 to-emerald-500/10 dark:from-green-500/20 dark:to-emerald-500/20 border border-green-500/20 rounded-2xl p-4 space-y-3">
+                            <div className="space-y-4 rounded-xl border border-green-200 bg-green-50 shadow-md p-5 animate-[slide-up_0.3s_ease-out]">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                                        <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
-                                    </div>
+                                    <CheckCircle2 className="h-6 w-6 text-green-600" />
                                     <div>
-                                        <p className="font-semibold text-green-900 dark:text-green-100">Report Submitted</p>
-                                        <p className="text-xs text-green-700 dark:text-green-300">ID: #{submitResponse.data.report_id}</p>
+                                        <p className="font-semibold text-green-800">Report Submitted Successfully</p>
+                                        <p className="text-xs text-green-600">ID: #{submitResponse.data.report_id}</p>
                                     </div>
                                 </div>
-                                <div className="pl-13 grid grid-cols-2 gap-2 text-xs">
-                                    <div>
-                                        <span className="text-green-700 dark:text-green-400 font-medium">Disease:</span>
-                                        <p className="text-green-900 dark:text-green-200">{submitResponse.data.extracted_data.disease_name || "Unknown"}</p>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="rounded-lg bg-white border border-gray-200 shadow-sm p-3">
+                                        <span className="text-xs text-gray-600">Disease</span>
+                                        <p className="font-semibold text-gray-800 mt-1">{submitResponse.data.extracted_data.disease_name || "Unknown"}</p>
                                     </div>
-                                    <div>
-                                        <span className="text-green-700 dark:text-green-400 font-medium">Type:</span>
-                                        <p className="text-green-900 dark:text-green-200">{submitResponse.data.extracted_data.disease_type}</p>
+                                    <div className="rounded-lg bg-white border border-gray-200 shadow-sm p-3">
+                                        <span className="text-xs text-gray-600">Type</span>
+                                        <p className="font-semibold text-gray-800 mt-1">{submitResponse.data.extracted_data.disease_type}</p>
                                     </div>
                                 </div>
                             </div>
                         )}
 
-                        {/* Extracted Data Preview */}
+                        {/* Analysis Preview */}
                         {extractedData && !submitResponse && (
-                            <div className="backdrop-blur-xl bg-gradient-to-r from-blue-500/5 to-purple-500/5 dark:from-blue-500/10 dark:to-purple-500/10 border border-blue-500/20 rounded-2xl p-4 space-y-4">
+                            <div className="space-y-4 rounded-xl border border-gray-200 bg-white shadow-md p-5 animate-[slide-up_0.3s_ease-out]">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <CheckCircle2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                                        <span className="font-semibold text-slate-900 dark:text-white">Analysis Complete</span>
+                                        <CheckCircle2 className="h-5 w-5 text-[#1E3A8A]" />
+                                        <span className="text-sm font-semibold text-gray-800">Analysis Complete</span>
                                     </div>
-                                    <Badge className={`text-xs font-medium rounded-full px-3 py-1 ${extractedData.confidence === "high" ? "bg-green-500/20 text-green-700 dark:text-green-300 border-green-500/30" : "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-500/30"}`}>
+                                    <Badge className="bg-gray-100 text-gray-700 border-gray-300 text-xs">
                                         {extractedData.confidence} confidence
                                     </Badge>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
-                                    <div className="backdrop-blur-xl bg-white/50 dark:bg-slate-800/50 rounded-xl p-3 border border-white/40">
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1">Disease</p>
-                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{extractedData.disease_name || "Unknown"}</p>
+                                    <div className="rounded-lg bg-gray-50 border border-gray-200 shadow-sm p-3">
+                                        <p className="text-xs text-gray-600">Disease</p>
+                                        <p className="text-sm font-semibold text-gray-800 mt-1">{extractedData.disease_name || "Unknown"}</p>
                                     </div>
-                                    <div className="backdrop-blur-xl bg-white/50 dark:bg-slate-800/50 rounded-xl p-3 border border-white/40">
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1">Cases</p>
-                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{extractedData.cases_reported || "N/A"}</p>
+                                    <div className="rounded-lg bg-gray-50 border border-gray-200 shadow-sm p-3">
+                                        <p className="text-xs text-gray-600">Cases</p>
+                                        <p className="text-sm font-semibold text-gray-800 mt-1">{extractedData.cases_reported || "N/A"}</p>
                                     </div>
-                                    <div className="backdrop-blur-xl bg-white/50 dark:bg-slate-800/50 rounded-xl p-3 border border-white/40">
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1">Type</p>
-                                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{extractedData.disease_type}</p>
+                                    <div className="rounded-lg bg-gray-50 border border-gray-200 shadow-sm p-3">
+                                        <p className="text-xs text-gray-600">Type</p>
+                                        <p className="text-sm font-semibold text-gray-800 mt-1">{extractedData.disease_type}</p>
                                     </div>
-                                    <div className="backdrop-blur-xl bg-white/50 dark:bg-slate-800/50 rounded-xl p-3 border border-white/40">
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1">Severity</p>
-                                        <Badge className={`text-xs ${getSeverityColor(extractedData.severity)} rounded-full px-2 py-0.5`}>
+                                    <div className="rounded-lg bg-gray-50 border border-gray-200 shadow-sm p-3">
+                                        <p className="text-xs text-gray-600">Severity</p>
+                                        <Badge className={`text-xs mt-1 ${getSeverityColor(extractedData.severity)}`}>
                                             {extractedData.severity}
                                         </Badge>
                                     </div>
@@ -370,12 +379,12 @@ export default function DiseaseReportPage() {
 
                                 {extractedData.symptoms.length > 0 && (
                                     <div>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-2">Symptoms Detected</p>
+                                        <p className="text-xs text-gray-600 mb-2">Detected Symptoms</p>
                                         <div className="flex flex-wrap gap-2">
                                             {extractedData.symptoms.map((symptom, i) => (
-                                                <span key={i} className="text-xs px-3 py-1 backdrop-blur-xl bg-white/60 dark:bg-slate-800/60 border border-white/40 rounded-full text-slate-700 dark:text-slate-300 font-medium">
+                                                <Badge key={i} className="bg-gray-100 text-gray-700 border-gray-300 text-xs">
                                                     {symptom}
-                                                </span>
+                                                </Badge>
                                             ))}
                                         </div>
                                     </div>
@@ -386,82 +395,78 @@ export default function DiseaseReportPage() {
                 </div>
 
                 {/* Recent Reports Section */}
-                <div className="space-y-3">
-                    <div className="flex items-center justify-between px-1">
-                        <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between px-2">
+                        <h2 className="text-xl font-bold text-[#1E3A8A]">
                             Recent Reports
                         </h2>
                         {locationData?.nearest_area && (
-                            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                            <span className="text-sm text-gray-600">
                                 {locationData.nearest_area.district_name}
                             </span>
                         )}
                     </div>
 
                     {historyLoading ? (
-                        <div className="backdrop-blur-xl bg-white/60 dark:bg-slate-900/60 border border-white/20 rounded-3xl p-6 shadow-lg">
-                            <div className="flex items-center justify-center gap-3">
-                                <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
-                                <span className="text-sm text-slate-600 dark:text-slate-400">Loading reports...</span>
-                            </div>
+                        <div className="flex items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white shadow-md p-8">
+                            <Loader2 className="h-5 w-5 animate-spin text-[#1E3A8A]" />
+                            <span className="text-sm text-gray-700">Loading reports...</span>
                         </div>
                     ) : history.length === 0 ? (
-                        <div className="backdrop-blur-xl bg-white/60 dark:bg-slate-900/60 border border-white/20 rounded-3xl p-8 shadow-lg">
-                            <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-                                No reports found for this area
-                            </p>
+                        <div className="rounded-xl border border-gray-200 bg-white shadow-md p-10 text-center">
+                            <p className="text-sm text-gray-500">No reports found for this area</p>
                         </div>
                     ) : (
-                        <div className="space-y-3">
-                            {history.map((report) => (
+                        <div className="space-y-4">
+                            {history.map((report, index) => (
                                 <div
                                     key={report.report_id}
-                                    className="backdrop-blur-xl bg-white/60 dark:bg-slate-900/60 border border-white/20 rounded-3xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.01]"
+                                    className="rounded-xl border border-gray-200 bg-white shadow-md hover:shadow-xl p-5 space-y-4 transition-all duration-300 hover:scale-[1.01] cursor-pointer group"
+                                    style={{ animationDelay: `${index * 0.1}s` }}
                                 >
                                     {/* Header */}
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div className="flex-1">
-                                            <h3 className="font-semibold text-slate-900 dark:text-white mb-1">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="font-semibold text-gray-800 truncate group-hover:text-[#1E3A8A] transition-colors">
                                                 {report.extracted_data?.disease_name || "Unverified Report"}
                                             </h3>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                            <p className="text-xs text-gray-500 mt-1">
                                                 {new Date(report.created_at).toLocaleDateString('en-US', {
                                                     month: 'short',
                                                     day: 'numeric',
-                                                    year: 'numeric',
                                                     hour: '2-digit',
                                                     minute: '2-digit'
                                                 })}
                                             </p>
                                         </div>
-                                        <Badge className={`text-xs rounded-full px-3 py-1 ${getStatusColor(report.status)}`}>
+                                        <Badge className={`text-xs shrink-0 ${getStatusColor(report.status)}`}>
                                             {report.status || "pending"}
                                         </Badge>
                                     </div>
 
                                     {/* Description */}
-                                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-3 line-clamp-2">
+                                    <p className="text-sm text-gray-600 line-clamp-2">
                                         {report.description}
                                     </p>
 
-                                    {/* Stats Grid */}
+                                    {/* Stats */}
                                     {report.extracted_data && (
-                                        <div className="grid grid-cols-3 gap-2 mb-3">
-                                            <div className="backdrop-blur-xl bg-white/50 dark:bg-slate-800/50 rounded-xl p-2 border border-white/40">
-                                                <p className="text-xs text-slate-500 dark:text-slate-400">Cases</p>
-                                                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <div className="rounded-lg bg-gray-50 border border-gray-200 shadow-sm p-2">
+                                                <p className="text-xs text-gray-600">Cases</p>
+                                                <p className="text-sm font-semibold text-gray-800 mt-1">
                                                     {report.extracted_data.cases_reported || "N/A"}
                                                 </p>
                                             </div>
-                                            <div className="backdrop-blur-xl bg-white/50 dark:bg-slate-800/50 rounded-xl p-2 border border-white/40">
-                                                <p className="text-xs text-slate-500 dark:text-slate-400">Type</p>
-                                                <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">
+                                            <div className="rounded-lg bg-gray-50 border border-gray-200 shadow-sm p-2">
+                                                <p className="text-xs text-gray-600">Type</p>
+                                                <p className="text-xs font-semibold text-gray-800 truncate mt-1">
                                                     {report.extracted_data.disease_type}
                                                 </p>
                                             </div>
-                                            <div className="backdrop-blur-xl bg-white/50 dark:bg-slate-800/50 rounded-xl p-2 border border-white/40">
-                                                <p className="text-xs text-slate-500 dark:text-slate-400">Severity</p>
-                                                <Badge className={`text-xs ${getSeverityColor(report.extracted_data.severity)} rounded-full px-2 py-0.5 mt-1`}>
+                                            <div className="rounded-lg bg-gray-50 border border-gray-200 shadow-sm p-2">
+                                                <p className="text-xs text-gray-600">Severity</p>
+                                                <Badge className={`text-xs mt-1 ${getSeverityColor(report.extracted_data.severity)}`}>
                                                     {report.extracted_data.severity}
                                                 </Badge>
                                             </div>
@@ -469,22 +474,20 @@ export default function DiseaseReportPage() {
                                     )}
 
                                     {/* Vote Button */}
-                                    <div className="mb-3">
-                                        <Button
-                                            type="button"
-                                            onClick={() => upvoteReport(report.report_id)}
-                                            className="w-full h-10 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white text-sm font-medium rounded-xl shadow-md hover:shadow-lg transition-all"
-                                        >
-                                            <ThumbsUp className="w-4 h-4 mr-2" />
-                                            I have the same problem
-                                        </Button>
-                                    </div>
+                                    <Button
+                                        onClick={() => upvoteReport(report.report_id)}
+                                        className="w-full bg-gray-100 hover:bg-blue-50 border border-gray-300 hover:border-[#1E3A8A]/50 text-gray-800 hover:text-[#1E3A8A] shadow-sm hover:shadow-md transition-all duration-300"
+                                        size="sm"
+                                    >
+                                        <ThumbsUp className="mr-2 h-3.5 w-3.5" />
+                                        I have the same problem
+                                    </Button>
 
-                                    {/* Location Footer */}
+                                    {/* Location */}
                                     {report.district_info && (
-                                        <div className="flex items-center gap-2 pt-3 border-t border-white/20">
-                                            <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                                        <div className="flex items-center gap-2 pt-3 border-t border-gray-200 text-xs text-gray-600">
+                                            <MapPin className="h-3.5 w-3.5" />
+                                            <span>
                                                 {report.district_info.district_name} · {report.district_info.distance_km.toFixed(1)} km away
                                             </span>
                                         </div>

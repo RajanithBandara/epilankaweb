@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import axios from 'axios';
-import { User, Lock, Camera, Check, X } from 'lucide-react';
+import { User, Lock, Camera, Check, X, Settings as SettingsIcon, Bell, Shield, HelpCircle } from 'lucide-react';
 
 interface UserData {
     _id: string;
@@ -23,10 +23,13 @@ interface ApiError {
     message?: string;
 }
 
+type SettingsTab = 'profile' | 'security' | 'appearance' | 'notifications' | 'help';
+
 export default function UserSettings() {
     const [userData, setUserData] = useState<UserData | null>(null);
     const [loading, setLoading] = useState(false);
     const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
 
     // Form states
     const [newUsername, setNewUsername] = useState('');
@@ -36,6 +39,14 @@ export default function UserSettings() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+    const tabs = [
+        { id: 'profile' as SettingsTab, label: 'Profile', icon: User },
+        { id: 'security' as SettingsTab, label: 'Security', icon: Lock },
+        { id: 'appearance' as SettingsTab, label: 'Appearance', icon: Camera },
+        { id: 'notifications' as SettingsTab, label: 'Notifications', icon: Bell },
+        { id: 'help' as SettingsTab, label: 'Help & Support', icon: HelpCircle },
+    ];
 
     const showAlert = (message: string, type: 'success' | 'error' = 'success') => {
         setAlert({ message, type });
@@ -210,16 +221,16 @@ export default function UserSettings() {
 
     if (!getUserId()) {
         return (
-            <div className="min-h-screen bg-white flex items-center justify-center px-4">
-                <div className="bg-black text-white rounded-lg p-8 max-w-md w-full text-center border border-gray-800">
-                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Lock className="w-8 h-8 text-black" />
+            <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center px-4">
+                <div className="bg-white border-2 border-gray-200 rounded-xl shadow-xl p-8 max-w-md w-full text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-[#1E3A8A] to-[#1e40af] rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Lock className="w-8 h-8 text-white" />
                     </div>
-                    <h2 className="text-2xl font-bold mb-4">Authentication Required</h2>
-                    <p className="text-gray-400 mb-6">Please log in to access your settings.</p>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h2>
+                    <p className="text-gray-600 mb-6">Please log in to access your settings.</p>
                     <button
                         onClick={() => window.location.href = '/login'}
-                        className="w-full bg-white text-black font-medium py-3 rounded-lg hover:bg-gray-100 transition"
+                        className="w-full bg-[#1E3A8A] hover:bg-[#1e40af] text-white font-semibold py-3 rounded-lg shadow-md hover:shadow-lg transition duration-300"
                     >
                         Go to Login
                     </button>
@@ -229,202 +240,268 @@ export default function UserSettings() {
     }
 
     return (
-        <div className="min-h-screen bg-white py-8 px-4">
-            <div className="max-w-4xl mx-auto">
+        <div className="min-h-full flex items-start justify-center py-6 px-4 bg-transparent">
+            <div className="w-full max-w-3xl space-y-6">
                 {/* Page Header */}
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-black mb-2">Account Settings</h1>
-                    <p className="text-gray-600">Manage your profile and account preferences</p>
+                <div className="text-center space-y-1">
+                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-[#1E3A8A] text-white mb-1">
+                        <SettingsIcon className="w-5 h-5" />
+                    </div>
+                    <h1 className="text-2xl font-bold text-[#1E3A8A]">Settings</h1>
+                    <p className="text-sm text-gray-600">Manage your account preferences</p>
                 </div>
 
                 {/* Alert */}
                 {alert && (
                     <div
-                        className={`mb-6 rounded-lg p-4 border-2 flex items-center gap-3 transition-all duration-300 ${
-                            alert.type === 'success'
-                                ? 'bg-white border-black text-black'
-                                : 'bg-black border-black text-white'
-                        }`}
+                        className={`rounded-lg p-3 border-l-4 flex items-center gap-3 text-sm ${{
+                            success: 'bg-green-50 border-green-500 text-green-800',
+                            error: 'bg-red-50 border-red-500 text-red-800',
+                        }[alert.type]}`}
                     >
                         {alert.type === 'success' ? (
-                            <Check className="w-5 h-5 flex-shrink-0" />
+                            <Check className="w-4 h-4 flex-shrink-0" />
                         ) : (
-                            <X className="w-5 h-5 flex-shrink-0" />
+                            <X className="w-4 h-4 flex-shrink-0" />
                         )}
                         <span className="font-medium">{alert.message}</span>
                     </div>
                 )}
 
-                <div className="grid md:grid-cols-3 gap-6">
-                    {/* Left Column - Profile Overview */}
-                    <div className="md:col-span-1">
-                        {userData && (
-                            <div className="bg-black text-white rounded-lg p-6 sticky top-6">
-                                <div className="text-center mb-6">
-                                    <div className="relative inline-block">
-                                        {userData.profile_image ? (
-                                            <Image
-                                                src={userData.profile_image}
-                                                alt="Profile"
-                                                width={120}
-                                                height={120}
-                                                className="rounded-full object-cover border-4 border-white"
-                                            />
-                                        ) : (
-                                            <div className="w-[120px] h-[120px] bg-white rounded-full flex items-center justify-center border-4 border-white">
-                                                <User className="w-12 h-12 text-black" />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <h2 className="text-xl font-bold mt-4">{userData.username}</h2>
-                                    <p className="text-gray-400 text-sm mt-1">{userData.email}</p>
-                                </div>
+                {/* Tabs Navigation */}
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-2">
+                    <div className="flex gap-1 overflow-x-auto">
+                        {tabs.map((tab) => {
+                            const Icon = tab.icon;
+                            const isActive = activeTab === tab.id;
 
-                                <div className="space-y-3 pt-4 border-t border-gray-700">
-                                    <div>
-                                        <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Member Since</p>
-                                        <p className="text-sm">{formatDate(userData.created_at)}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-gray-400 text-xs uppercase tracking-wider mb-1">Last Updated</p>
-                                        <p className="text-sm">{formatDate(userData.updated_at)}</p>
-                                    </div>
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                                        isActive
+                                            ? 'bg-[#1E3A8A] text-white'
+                                            : 'text-gray-600 hover:bg-gray-100'
+                                    }`}
+                                >
+                                    <Icon className="w-4 h-4" />
+                                    <span className="hidden sm:inline">{tab.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Tab Content */}
+                <div className="space-y-6">
+                    {/* Profile Tab */}
+                    {activeTab === 'profile' && userData && (
+                        <div className="space-y-4">
+                            {/* Profile Overview Card */}
+                            <div className="card-primary flex items-center gap-4">
+                                <div>
+                                    {userData.profile_image ? (
+                                        <Image
+                                            src={userData.profile_image}
+                                            alt="Profile"
+                                            width={72}
+                                            height={72}
+                                            className="rounded-full object-cover border-4 border-white shadow-md"
+                                        />
+                                    ) : (
+                                        <div className="w-18 h-18 bg-gray-100 rounded-full flex items-center justify-center border border-gray-200">
+                                            <User className="w-8 h-8 text-gray-500" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex-1">
+                                    <h2 className="text-lg font-semibold text-gray-900">{userData.username}</h2>
+                                    <p className="text-sm text-gray-600">{userData.email}</p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Member since {new Date(userData.created_at).toLocaleDateString()}
+                                    </p>
                                 </div>
                             </div>
-                        )}
-                    </div>
 
-                    {/* Right Column - Settings Forms */}
-                    <div className="md:col-span-2 space-y-6">
-                        {/* Update Profile */}
-                        {userData && (
-                            <div className="border-2 border-black rounded-lg p-6">
-                                <div className="flex items-center gap-2 mb-6">
-                                    <User className="w-5 h-5" />
-                                    <h2 className="text-xl font-bold">Profile Information</h2>
-                                </div>
-                                <div className="space-y-4">
+                            {/* Update Profile Form */}
+                            <div className="card-primary space-y-4">
+                                <h3 className="text-base font-semibold text-gray-900">Edit Profile</h3>
+                                <div className="space-y-3">
                                     <div>
-                                        <label className="block text-sm font-semibold text-black mb-2">Username</label>
+                                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                                            Username
+                                        </label>
                                         <input
                                             type="text"
                                             value={newUsername}
                                             onChange={(e) => setNewUsername(e.target.value)}
                                             placeholder="Enter new username"
-                                            className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition bg-white"
+                                            className="input-primary"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-semibold text-black mb-2">Email Address</label>
+                                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                                            Email Address
+                                        </label>
                                         <input
                                             type="email"
                                             value={newEmail}
                                             onChange={(e) => setNewEmail(e.target.value)}
                                             placeholder="Enter new email"
-                                            className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition bg-white"
+                                            className="input-primary"
                                         />
                                     </div>
                                     <button
                                         onClick={updateProfile}
                                         disabled={loading}
-                                        className="w-full bg-black text-white font-semibold py-3 rounded-lg hover:bg-gray-800 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="btn-primary w-full"
                                     >
-                                        {loading ? 'Updating...' : 'Update Profile'}
+                                        {loading ? 'Saving…' : 'Save Changes'}
                                     </button>
                                 </div>
                             </div>
-                        )}
+                        </div>
+                    )}
 
-                        {/* Change Password */}
-                        {userData && (
-                            <div className="border-2 border-black rounded-lg p-6">
-                                <div className="flex items-center gap-2 mb-6">
-                                    <Lock className="w-5 h-5" />
-                                    <h2 className="text-xl font-bold">Change Password</h2>
+                    {/* Security Tab */}
+                    {activeTab === 'security' && (
+                        <div className="space-y-4">
+                            <div className="card-primary space-y-4">
+                                <div className="flex items-center gap-2">
+                                    <Lock className="w-4 h-4 text-[#1E3A8A]" />
+                                    <h3 className="text-base font-semibold text-gray-900">Change Password</h3>
                                 </div>
-                                <div className="space-y-4">
+                                <div className="space-y-3">
                                     <div>
-                                        <label className="block text-sm font-semibold text-black mb-2">Current Password</label>
+                                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                                            Current Password
+                                        </label>
                                         <input
                                             type="password"
                                             value={currentPassword}
                                             onChange={(e) => setCurrentPassword(e.target.value)}
-                                            placeholder="Enter current password"
-                                            className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition bg-white"
+                                            className="input-primary"
                                         />
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-semibold text-black mb-2">New Password</label>
-                                        <input
-                                            type="password"
-                                            value={newPassword}
-                                            onChange={(e) => setNewPassword(e.target.value)}
-                                            placeholder="Enter new password (min. 6 characters)"
-                                            className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition bg-white"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-semibold text-black mb-2">Confirm New Password</label>
-                                        <input
-                                            type="password"
-                                            value={confirmPassword}
-                                            onChange={(e) => setConfirmPassword(e.target.value)}
-                                            placeholder="Confirm new password"
-                                            className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition bg-white"
-                                        />
+                                    <div className="grid sm:grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                                                New Password
+                                            </label>
+                                            <input
+                                                type="password"
+                                                value={newPassword}
+                                                onChange={(e) => setNewPassword(e.target.value)}
+                                                className="input-primary"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                                                Confirm Password
+                                            </label>
+                                            <input
+                                                type="password"
+                                                value={confirmPassword}
+                                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                                className="input-primary"
+                                            />
+                                        </div>
                                     </div>
                                     <button
                                         onClick={changePassword}
                                         disabled={loading}
-                                        className="w-full bg-black text-white font-semibold py-3 rounded-lg hover:bg-gray-800 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="btn-secondary w-full"
                                     >
-                                        {loading ? 'Changing...' : 'Change Password'}
+                                        {loading ? 'Updating…' : 'Update Password'}
                                     </button>
                                 </div>
                             </div>
-                        )}
 
-                        {/* Upload Profile Picture */}
-                        {userData && (
-                            <div className="border-2 border-black rounded-lg p-6">
-                                <div className="flex items-center gap-2 mb-6">
-                                    <Camera className="w-5 h-5" />
-                                    <h2 className="text-xl font-bold">Profile Picture</h2>
-                                </div>
-                                <div className="space-y-4">
-                                    {previewUrl && (
-                                        <div className="text-center">
-                                            <p className="text-sm font-semibold mb-2">Preview:</p>
-                                            <Image
-                                                src={previewUrl}
-                                                alt="Preview"
-                                                width={100}
-                                                height={100}
-                                                className="rounded-full object-cover border-2 border-black mx-auto"
-                                            />
-                                        </div>
-                                    )}
+                            <div className="card-primary bg-blue-50 border-blue-100">
+                                <div className="flex gap-2">
+                                    <Shield className="w-4 h-4 text-[#1E3A8A] mt-0.5" />
                                     <div>
-                                        <label className="block text-sm font-semibold text-black mb-2">Select Image</label>
-                                        <input
-                                            type="file"
-                                            accept="image/jpeg,image/png,image/jpg"
-                                            onChange={handleFileSelect}
-                                            className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-black transition bg-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-black file:text-white file:font-semibold hover:file:bg-gray-800 file:cursor-pointer"
-                                        />
-                                        <p className="text-xs text-gray-600 mt-2">Accepted formats: JPG, PNG (max 5MB)</p>
+                                        <h4 className="text-sm font-semibold text-[#1E3A8A] mb-1">
+                                            Password tips
+                                        </h4>
+                                        <ul className="text-xs text-gray-700 space-y-1">
+                                            <li>• Use at least 6 characters</li>
+                                            <li>• Mix letters, numbers, and symbols</li>
+                                            <li>• Avoid reusing old passwords</li>
+                                        </ul>
                                     </div>
-                                    <button
-                                        onClick={uploadPicture}
-                                        disabled={loading || !selectedFile}
-                                        className="w-full bg-black text-white font-semibold py-3 rounded-lg hover:bg-gray-800 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        {loading ? 'Uploading...' : 'Upload Picture'}
-                                    </button>
                                 </div>
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
+
+                    {/* Appearance Tab */}
+                    {activeTab === 'appearance' && (
+                        <div className="card-primary space-y-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Camera className="w-4 h-4 text-[#1E3A8A]" />
+                                <h3 className="text-base font-semibold text-gray-900">Profile Picture</h3>
+                            </div>
+                            {previewUrl && (
+                                <div className="text-center">
+                                    <Image
+                                        src={previewUrl}
+                                        alt="Preview"
+                                        width={80}
+                                        height={80}
+                                        className="rounded-full object-cover border-4 border-[#1E3A8A] mx-auto mb-2"
+                                    />
+                                    <p className="text-xs text-gray-500">Preview</p>
+                                </div>
+                            )}
+                            <div className="space-y-2">
+                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                    Upload new picture
+                                </label>
+                                <input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/jpg"
+                                    onChange={handleFileSelect}
+                                    className="block w-full text-xs text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-[#1E3A8A] file:text-white file:text-xs hover:file:bg-[#1e40af]"
+                                />
+                                <p className="text-xs text-gray-500">JPG or PNG, max 5MB.</p>
+                            </div>
+                            <button
+                                onClick={uploadPicture}
+                                disabled={loading || !selectedFile}
+                                className="btn-secondary w-full"
+                            >
+                                {loading ? 'Uploading…' : 'Upload Picture'}
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Notifications Tab */}
+                    {activeTab === 'notifications' && (
+                        <div className="card-primary">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Bell className="w-4 h-4 text-[#1E3A8A]" />
+                                <h3 className="text-base font-semibold text-gray-900">Notifications</h3>
+                            </div>
+                            <p className="text-sm text-gray-600">
+                                Notification settings will be available soon.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Help & Support Tab */}
+                    {activeTab === 'help' && (
+                        <div className="card-primary">
+                            <div className="flex items-center gap-2 mb-2">
+                                <HelpCircle className="w-4 h-4 text-[#1E3A8A]" />
+                                <h3 className="text-base font-semibold text-gray-900">Help & Support</h3>
+                            </div>
+                            <p className="text-sm text-gray-600">
+                                Support resources will be added here in a future update.
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

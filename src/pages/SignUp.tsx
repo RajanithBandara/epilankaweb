@@ -71,17 +71,17 @@ export default function SignUp() {
 
     return (
         <div className="min-h-screen flex">
-            {/* Left Panel - Maroon Brand Section */}
+            {/* Left Panel - Primary Brand Section */}
             <motion.div
-                className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#800020] to-[#600018] relative overflow-hidden"
+                className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#1E3A8A] to-[#1e293b] relative overflow-hidden"
                 initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6 }}
             >
                 {/* Decorative Elements */}
                 <div className="absolute inset-0 opacity-10">
-                    <div className="absolute top-20 left-20 w-72 h-72 bg-white rounded-full blur-3xl"></div>
-                    <div className="absolute bottom-20 right-20 w-96 h-96 bg-white rounded-full blur-3xl"></div>
+                    <div className="absolute top-20 left-20 w-72 h-72 bg-[#0EA5A4] rounded-full blur-3xl"></div>
+                    <div className="absolute bottom-20 right-20 w-96 h-96 bg-[#0EA5A4] rounded-full blur-3xl"></div>
                 </div>
 
                 <div className="relative z-10 flex flex-col justify-between p-12 text-white w-full">
@@ -166,7 +166,7 @@ export default function SignUp() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
                     >
-                        <h1 className="text-4xl font-bold text-[#800020] mb-2">EpiWatch Lanka</h1>
+                        <h1 className="text-4xl font-bold text-[#1E3A8A] mb-2">EpiWatch Lanka</h1>
                         <p className="text-gray-600">Join the Disease Surveillance Revolution</p>
                     </motion.div>
 
@@ -227,7 +227,7 @@ export default function SignUp() {
                                         className="absolute left-3 top-1/2 -translate-y-1/2"
                                         animate={{
                                             scale: focusedField === 'username' ? 1.1 : 1,
-                                            color: focusedField === 'username' ? '#800020' : '#6B7280'
+                                            color: focusedField === 'username' ? '#1E3A8A' : '#6B7280'
                                         }}
                                         transition={{ duration: 0.2 }}
                                     >
@@ -240,7 +240,7 @@ export default function SignUp() {
                                         onFocus={() => setFocusedField('username')}
                                         onBlur={() => setFocusedField(null)}
                                         required
-                                        className="w-full pl-11 pr-4 py-3 rounded-lg border-2 border-gray-300 focus:border-[#800020] focus:ring-2 focus:ring-[#800020]/20 outline-none transition-all duration-200 bg-gray-50 focus:bg-white"
+                                        className="w-full pl-11 pr-4 py-3 rounded-lg border-2 border-gray-300 focus:border-[#1E3A8A] focus:ring-2 focus:ring-blue-100 outline-none transition-all duration-200 bg-gray-50 focus:bg-white"
                                         placeholder="Choose a username"
                                         whileFocus={{ scale: 1.01 }}
                                         transition={{ duration: 0.2 }}
@@ -262,7 +262,7 @@ export default function SignUp() {
                                         className="absolute left-3 top-1/2 -translate-y-1/2"
                                         animate={{
                                             scale: focusedField === 'email' ? 1.1 : 1,
-                                            color: focusedField === 'email' ? '#800020' : '#6B7280'
+                                            color: focusedField === 'email' ? '#1E3A8A' : '#6B7280'
                                         }}
                                         transition={{ duration: 0.2 }}
                                     >
@@ -275,7 +275,7 @@ export default function SignUp() {
                                         onFocus={() => setFocusedField('email')}
                                         onBlur={() => setFocusedField(null)}
                                         required
-                                        className="w-full pl-11 pr-4 py-3 rounded-lg border-2 border-gray-300 focus:border-[#800020] focus:ring-2 focus:ring-[#800020]/20 outline-none transition-all duration-200 bg-gray-50 focus:bg-white"
+                                        className="w-full pl-11 pr-4 py-3 rounded-lg border-2 border-gray-300 focus:border-[#1E3A8A] focus:ring-2 focus:ring-blue-100 outline-none transition-all duration-200 bg-gray-50 focus:bg-white"
                                         placeholder="you@example.com"
                                         whileFocus={{ scale: 1.01 }}
                                         transition={{ duration: 0.2 }}
@@ -297,7 +297,7 @@ export default function SignUp() {
                                         className="absolute left-3 top-1/2 -translate-y-1/2"
                                         animate={{
                                             scale: focusedField === 'password' ? 1.1 : 1,
-                                            color: focusedField === 'password' ? '#800020' : '#6B7280'
+                                            color: focusedField === 'password' ? '#1E3A8A' : '#6B7280'
                                         }}
                                         transition={{ duration: 0.2 }}
                                     >
@@ -310,7 +310,7 @@ export default function SignUp() {
                                         onFocus={() => setFocusedField('password')}
                                         onBlur={() => setFocusedField(null)}
                                         required
-                                        className="w-full pl-11 pr-4 py-3 rounded-lg border-2 border-gray-300 focus:border-[#800020] focus:ring-2 focus:ring-[#800020]/20 outline-none transition-all duration-200 bg-gray-50 focus:bg-white"
+                                        className="w-full pl-11 pr-4 py-3 rounded-lg border-2 border-gray-300 focus:border-[#1E3A8A] focus:ring-2 focus:ring-blue-100 outline-none transition-all duration-200 bg-gray-50 focus:bg-white"
                                         placeholder="Create a strong password"
                                         whileFocus={{ scale: 1.01 }}
                                         transition={{ duration: 0.2 }}
@@ -327,7 +327,7 @@ export default function SignUp() {
                                 <motion.button
                                     type="submit"
                                     disabled={loading}
-                                    className="w-full bg-[#800020] hover:bg-[#600018] text-white font-semibold py-3 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                                    className="w-full bg-[#1E3A8A] hover:bg-[#1e40af] text-white font-semibold py-3 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
                                     whileHover={{ scale: loading ? 1 : 1.02 }}
                                     whileTap={{ scale: loading ? 1 : 0.98 }}
                                 >
@@ -384,7 +384,7 @@ export default function SignUp() {
                                     Already have an account?{' '}
                                     <motion.a
                                         href="/login"
-                                        className="text-[#800020] font-semibold hover:underline"
+                                        className="text-[#1E3A8A] font-semibold hover:underline"
                                         whileHover={{ scale: 1.05 }}
                                         transition={{ type: 'spring', stiffness: 400 }}
                                     >
