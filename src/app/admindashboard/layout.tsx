@@ -10,6 +10,7 @@ import { usePathname, useRouter } from "next/navigation";
 const sidebarItems = [
     {label: "Home", href: "/admindashboard/", icon: Users},
     { label: "Users", href: "/admindashboard/users", icon: Users },
+    { label: "Tables", href: "/admindashboard/tables", icon: Users },
 ];
 
 export default function AdminLayout({

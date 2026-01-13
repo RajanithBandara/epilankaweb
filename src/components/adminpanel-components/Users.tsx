@@ -15,7 +15,6 @@ type User = {
     banned_at?: string;
 };
 
-// ✅ Better than `unknown` for UI rendering
 type JsonValue =
     | string
     | number
@@ -34,7 +33,6 @@ type ActivityLog = {
 
 type ApiError = { msg?: string; detail?: string };
 
-// Axios instance pointing to Next.js admin API routes
 const api = axios.create({
     baseURL: "/api",
 });
@@ -53,7 +51,6 @@ function isValidEmail(email: string) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-// ✅ Prevent crashes if details has circular JSON
 function safeStringify(value: unknown) {
     try {
         return JSON.stringify(value, null, 2);
@@ -62,7 +59,6 @@ function safeStringify(value: unknown) {
     }
 }
 
-// ✅ timestamp safe rendering
 function safeDate(ts?: string) {
     if (!ts) return "—";
     try {
