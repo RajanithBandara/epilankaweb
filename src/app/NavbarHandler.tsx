@@ -10,7 +10,7 @@ interface NavbarHandlerProps {
 export default function NavbarHandler({ children }: NavbarHandlerProps) {
     const pathname = usePathname();
 
-    const hideNavbarRoutes = ['/login', '/dashboard', '/signup'];
+    const hideNavbarRoutes = ['/login', '/dashboard', '/signup', '/admindashboard'];
 
     const shouldHideNavbar = hideNavbarRoutes.some(route =>
         pathname === route || pathname?.startsWith(`${route}/`)
