@@ -206,7 +206,7 @@ export default function DiseaseReportPage() {
     };
 
     return (
-        <div className="min-h-screen rounded-xl flex items-center justify-center bg-[#F8FAFC] px-6 py-12">
+        <div className="min-h-0 h-auto w-full flex items-start justify-center bg-[#F8FAFC] px-4 sm:px-6 py-6 sm:py-8 md:py-12">
             <style jsx>{`
                 @keyframes shine {
                     0% { transform: translateX(-100%); }
@@ -228,30 +228,30 @@ export default function DiseaseReportPage() {
                 }
             `}</style>
 
-            <div className="w-full max-w-2xl space-y-6 animate-[slide-up_0.5s_ease-out]">
+            <div className="w-full max-w-2xl space-y-6 animate-[slide-up_0.5s_ease-out] pb-4">
                 {/* Header */}
-                <div className="text-center mb-8">
-                    <h1 className="text-3xl font-extrabold mb-2 text-[#1E3A8A]">
+                <div className="text-center mb-6 sm:mb-8">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold mb-2 text-[#1E3A8A]">
                         Health Incident Report
                     </h1>
-                    <p className="text-sm text-gray-600">AI-powered community health monitoring</p>
+                    <p className="text-xs sm:text-sm text-gray-600">AI-powered community health monitoring</p>
                 </div>
 
                 {/* Location Status */}
                 {locationLoading ? (
-                    <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white shadow-md p-4 animate-pulse">
+                    <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white shadow-md p-3 sm:p-4 animate-pulse">
                         <Loader2 className="h-5 w-5 animate-spin text-[#1E3A8A]" />
-                        <span className="text-sm text-gray-700">Detecting location...</span>
+                        <span className="text-xs sm:text-sm text-gray-700">Detecting location...</span>
                     </div>
                 ) : locationError ? (
-                    <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 shadow-md p-4">
+                    <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 shadow-md p-3 sm:p-4">
                         <AlertCircle className="h-5 w-5 text-red-600" />
-                        <span className="text-sm text-red-700">{locationError}</span>
+                        <span className="text-xs sm:text-sm text-red-700">{locationError}</span>
                     </div>
                 ) : locationData?.nearest_area ? (
-                    <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white shadow-md hover:shadow-lg p-4 transition-all duration-300">
+                    <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white shadow-md hover:shadow-lg p-3 sm:p-4 transition-all duration-300">
                         <MapPin className="h-5 w-5 text-[#1E3A8A]" />
-                        <div className="flex-1 text-sm">
+                        <div className="flex-1 text-xs sm:text-sm">
                             <span className="font-semibold text-gray-800">{locationData.nearest_area.district_name}</span>
                             <span className="text-gray-600">, {locationData.nearest_area.province_name}</span>
                         </div>
@@ -259,7 +259,7 @@ export default function DiseaseReportPage() {
                 ) : null}
 
                 {/* Main Report Card */}
-                <div className="relative rounded-2xl border border-gray-200 bg-white shadow-xl p-8 overflow-hidden group">
+                <div className="relative rounded-2xl border border-gray-200 bg-white shadow-xl p-5 sm:p-6 md:p-8 overflow-hidden group">
                     {/* Animated shining border effect */}
                     <div
                         className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
@@ -273,7 +273,7 @@ export default function DiseaseReportPage() {
                     <div className="absolute -top-20 -right-20 w-40 h-40 bg-[#1E3A8A]/5 rounded-full blur-3xl animate-[pulse-glow_4s_ease-in-out_infinite]" />
                     <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-[#0EA5A4]/5 rounded-full blur-3xl animate-[pulse-glow_5s_ease-in-out_infinite]" />
 
-                    <div className="relative space-y-6">
+                    <div className="relative space-y-5 sm:space-y-6">
                         <div className="space-y-3">
                             <div className="flex items-center gap-2">
                                 <Sparkles className="h-4 w-4 text-[#1E3A8A]" />
@@ -312,7 +312,7 @@ export default function DiseaseReportPage() {
 
                         {/* Error */}
                         {error && (
-                            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm shadow-md animate-[slide-up_0.3s_ease-out]">
+                            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs sm:text-sm shadow-md animate-[slide-up_0.3s_ease-out]">
                                 <div className="flex items-start gap-2">
                                     <AlertCircle className="h-4 w-4 mt-0.5" />
                                     <span>{error}</span>
@@ -322,22 +322,22 @@ export default function DiseaseReportPage() {
 
                         {/* Success */}
                         {submitResponse && (
-                            <div className="space-y-4 rounded-xl border border-green-200 bg-green-50 shadow-md p-5 animate-[slide-up_0.3s_ease-out]">
+                            <div className="space-y-4 rounded-xl border border-green-200 bg-green-50 shadow-md p-4 sm:p-5 animate-[slide-up_0.3s_ease-out]">
                                 <div className="flex items-center gap-3">
                                     <CheckCircle2 className="h-6 w-6 text-green-600" />
                                     <div>
-                                        <p className="font-semibold text-green-800">Report Submitted Successfully</p>
+                                        <p className="font-semibold text-sm sm:text-base text-green-800">Report Submitted Successfully</p>
                                         <p className="text-xs text-green-600">ID: #{submitResponse.data.report_id}</p>
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div className="rounded-lg bg-white border border-gray-200 shadow-sm p-3">
                                         <span className="text-xs text-gray-600">Disease</span>
-                                        <p className="font-semibold text-gray-800 mt-1">{submitResponse.data.extracted_data.disease_name || "Unknown"}</p>
+                                        <p className="font-semibold text-gray-800 text-sm mt-1">{submitResponse.data.extracted_data.disease_name || "Unknown"}</p>
                                     </div>
                                     <div className="rounded-lg bg-white border border-gray-200 shadow-sm p-3">
                                         <span className="text-xs text-gray-600">Type</span>
-                                        <p className="font-semibold text-gray-800 mt-1">{submitResponse.data.extracted_data.disease_type}</p>
+                                        <p className="font-semibold text-gray-800 text-sm mt-1">{submitResponse.data.extracted_data.disease_type}</p>
                                     </div>
                                 </div>
                             </div>
@@ -345,18 +345,18 @@ export default function DiseaseReportPage() {
 
                         {/* Analysis Preview */}
                         {extractedData && !submitResponse && (
-                            <div className="space-y-4 rounded-xl border border-gray-200 bg-white shadow-md p-5 animate-[slide-up_0.3s_ease-out]">
+                            <div className="space-y-4 rounded-xl border border-gray-200 bg-white shadow-md p-4 sm:p-5 animate-[slide-up_0.3s_ease-out]">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <CheckCircle2 className="h-5 w-5 text-[#1E3A8A]" />
                                         <span className="text-sm font-semibold text-gray-800">Analysis Complete</span>
                                     </div>
-                                    <Badge className="bg-gray-100 text-gray-700 border-gray-300 text-xs">
+                                    <Badge className="bg-gray-100 text-gray-700 border-gray-300 text-[11px] sm:text-xs">
                                         {extractedData.confidence} confidence
                                     </Badge>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div className="rounded-lg bg-gray-50 border border-gray-200 shadow-sm p-3">
                                         <p className="text-xs text-gray-600">Disease</p>
                                         <p className="text-sm font-semibold text-gray-800 mt-1">{extractedData.disease_name || "Unknown"}</p>
@@ -371,7 +371,7 @@ export default function DiseaseReportPage() {
                                     </div>
                                     <div className="rounded-lg bg-gray-50 border border-gray-200 shadow-sm p-3">
                                         <p className="text-xs text-gray-600">Severity</p>
-                                        <Badge className={`text-xs mt-1 ${getSeverityColor(extractedData.severity)}`}>
+                                        <Badge className={`text-[11px] sm:text-xs mt-1 ${getSeverityColor(extractedData.severity)}`}>
                                             {extractedData.severity}
                                         </Badge>
                                     </div>
@@ -382,7 +382,7 @@ export default function DiseaseReportPage() {
                                         <p className="text-xs text-gray-600 mb-2">Detected Symptoms</p>
                                         <div className="flex flex-wrap gap-2">
                                             {extractedData.symptoms.map((symptom, i) => (
-                                                <Badge key={i} className="bg-gray-100 text-gray-700 border-gray-300 text-xs">
+                                                <Badge key={i} className="bg-gray-100 text-gray-700 border-gray-300 text-[11px] sm:text-xs">
                                                     {symptom}
                                                 </Badge>
                                             ))}
@@ -501,3 +501,5 @@ export default function DiseaseReportPage() {
         </div>
     );
 }
+
+

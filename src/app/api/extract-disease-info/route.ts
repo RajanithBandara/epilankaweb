@@ -82,7 +82,7 @@ export async function POST(req: Request) {
         let extractedData: ExtractedData;
         try {
             extractedData = JSON.parse(text);
-        } catch (parseError) {
+        } catch {
             console.error("Failed to parse Gemini response:", text);
             extractedData = {
                 disease_name: null,

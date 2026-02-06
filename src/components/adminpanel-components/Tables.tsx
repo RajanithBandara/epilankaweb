@@ -75,7 +75,11 @@ export default function DbBrowser() {
         return dump[activeTable] || null;
     }, [dump, activeTable]);
 
-    const rows = active?.data || [];
+    const rows = useMemo(() => {
+        if (!active) return [];
+        return active.data || [];
+    }, [active]);
+
     const columns = active?.columns || [];
 
     const filteredRows = useMemo(() => {

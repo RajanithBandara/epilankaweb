@@ -1,9 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as tt from "@tomtom-international/web-sdk-maps";
 import "@tomtom-international/web-sdk-maps/dist/maps.css";
 import { useLocation } from "@/contexts/LocationContext";
+
+// shared pill component must be defined outside to satisfy react-hooks/static-components
+const RiskPill = ({ level, getRiskColor }: { level: RiskLevel; getRiskColor: (lvl: RiskLevel) => string }) => (
+    <span
+        className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold text-white"
+        style={{ backgroundColor: getRiskColor(level) }}
+    >
+        <span className="inline-block w-2 h-2 rounded-full bg-white/90" />
+        {level.toUpperCase()}
+    </span>
+);
 
 type RiskLevel = "safe" | "low" | "medium" | "high";
 
@@ -20,103 +31,119 @@ function MapComponent() {
     const nearbyMarkerRef = useRef<tt.Marker | null>(null);
     const userMarkerRef = useRef<tt.Marker | null>(null);
 
-    // Get location data from context
     const { locationData, isLoading: contextLoading, error: contextError } = useLocation();
-    const [mapLoading, setMapLoading] = useState(false);
+
+    const [mapReady, setMapReady] = useState(false);
+    const [panelOpen, setPanelOpen] = useState(true);
+
+    const isLoading = contextLoading || !mapReady;
 
     const getRiskColor = (level: RiskLevel): string => {
         switch (level) {
             case "safe":
-                return "#16A34A"; // Theme success color
+                return "#16A34A";
             case "low":
-                return "#eab308"; // Yellow for low risk
+                return "#EAB308";
             case "medium":
-                return "#F97316"; // Theme warning color
+                return "#F97316";
             case "high":
-                return "#DC2626"; // Theme danger color
+                return "#DC2626";
             default:
-                return "#64748b"; // Theme text secondary
+                return "#64748B";
         }
     };
 
     const getMaxRiskLevel = (riskLevels: Record<string, DiseaseRisk>): RiskLevel => {
-        const priority: Record<RiskLevel, number> = {
-            safe: 0,
-            low: 1,
-            medium: 2,
-            high: 3,
-        };
-
+        const priority: Record<RiskLevel, number> = { safe: 0, low: 1, medium: 2, high: 3 };
         return Object.values(riskLevels).reduce<RiskLevel>(
-            (max, d) => priority[d.level] > priority[max] ? d.level : max,
+            (max, d) => (priority[d.level] > priority[max] ? d.level : max),
             "safe"
         );
     };
 
-    const addCircleToMap = (
-        map: tt.Map,
-        center: [number, number],
-        radiusMeters: number,
-        color: string
-    ) => {
+    const circleGeoJson = (center: [number, number], radiusMeters: number) => {
         const points = 64;
         const coords: number[][] = [];
+        const [lng, lat] = center;
+
         const radiusKm = radiusMeters / 1000;
+        const latRad = (lat * Math.PI) / 180;
 
         for (let i = 0; i < points; i++) {
             const angle = (i / points) * 2 * Math.PI;
-            const lat = center[1] + (radiusKm / 111) * Math.cos(angle);
-            const lng = center[0] + (radiusKm / (111 * Math.cos((center[1] * Math.PI) / 180))) * Math.sin(angle);
-            coords.push([lng, lat]);
+
+            const dLat = (radiusKm / 111) * Math.cos(angle);
+            const dLng = (radiusKm / (111 * Math.cos(latRad))) * Math.sin(angle);
+
+            coords.push([lng + dLng, lat + dLat]);
         }
         coords.push(coords[0]);
 
-        const sourceId = "radius-source";
-        const layerId = "radius-layer";
-
-        if (map.getLayer(layerId)) {
-            map.removeLayer(layerId);
-            map.removeLayer(`${layerId}-outline`);
-            map.removeSource(sourceId);
-        }
-
-        map.addSource(sourceId, {
-            type: "geojson",
-            data: {
-                type: "Feature",
-                geometry: {
-                    type: "Polygon",
-                    coordinates: [coords],
-                },
-                properties: {},
-            },
-        });
-
-        map.addLayer({
-            id: layerId,
-            type: "fill",
-            source: sourceId,
-            paint: {
-                "fill-color": color,
-                "fill-opacity": 0.2,
-            },
-        });
-
-        map.addLayer({
-            id: `${layerId}-outline`,
-            type: "line",
-            source: sourceId,
-            paint: {
-                "line-color": color,
-                "line-width": 2,
-            },
-        });
+        return {
+            type: "Feature" as const,
+            geometry: { type: "Polygon" as const, coordinates: [coords] },
+            properties: {},
+        };
     };
 
-    useEffect(() => {
-        if (!mapElement.current || !locationData) return;
+    const upsertCircle = (map: tt.Map, center: [number, number], radiusMeters: number, color: string) => {
+        const sourceId = "radius-source";
+        const fillId = "radius-layer";
+        const outlineId = "radius-layer-outline";
 
-        // Map loading state is managed through the map.on('load') callback
+        const data = {
+            type: "FeatureCollection" as const,
+            features: [circleGeoJson(center, radiusMeters)],
+        };
+
+        if (!map.getSource(sourceId)) {
+            map.addSource(sourceId, { type: "geojson", data });
+
+            map.addLayer({
+                id: fillId,
+                type: "fill",
+                source: sourceId,
+                paint: {
+                    "fill-color": color,
+                    "fill-opacity": 0.18,
+                },
+            });
+
+            map.addLayer({
+                id: outlineId,
+                type: "line",
+                source: sourceId,
+                paint: {
+                    "line-color": color,
+                    "line-width": 2,
+                    "line-opacity": 0.9,
+                },
+            });
+        } else {
+            const src = map.getSource(sourceId) as tt.GeoJSONSource;
+            src.setData(data);
+            map.setPaintProperty(fillId, "fill-color", color);
+            map.setPaintProperty(outlineId, "line-color", color);
+        }
+    };
+
+    // Memo values for UI so it doesn't recalc a lot
+    const area = locationData?.nearest_area;
+    const riskList = useMemo(() => {
+        if (!area) return [];
+        return Object.values(area.risk_levels);
+    }, [area]);
+
+    const overallRisk = useMemo(() => {
+        if (!area) return "safe" as RiskLevel;
+        return getMaxRiskLevel(area.risk_levels);
+    }, [area]);
+
+    // Init map once
+    useEffect(() => {
+        if (!mapElement.current) return;
+        if (mapRef.current) return; // ✅ prevents re-init
+
         const map = tt.map({
             key: process.env.NEXT_PUBLIC_TOMTOM_API_KEY!,
             container: mapElement.current,
@@ -127,97 +154,120 @@ function MapComponent() {
 
         mapRef.current = map;
 
-        map.on("load", () => {
-            const { latitude, longitude } = locationData.user_location;
-            const userCoords: [number, number] = [longitude, latitude];
-
-            // Add user marker
-            userMarkerRef.current = new tt.Marker({ color: "#1E3A8A" })
-                .setLngLat(userCoords)
-                .setPopup(
-                    new tt.Popup({ offset: 30 }).setHTML(
-                        `<strong>Your Location</strong><br/>
-                         Lat: ${latitude.toFixed(4)}<br/>
-                         Lng: ${longitude.toFixed(4)}`
-                    )
-                )
-                .addTo(map);
-
-            if (locationData.nearest_area) {
-                const area = locationData.nearest_area;
-                const areaCoords: [number, number] = [area.longitude, area.latitude];
-
-                const maxRisk = getMaxRiskLevel(area.risk_levels);
-                const markerColor = getRiskColor(maxRisk);
-
-                // Add nearest area marker
-                nearbyMarkerRef.current = new tt.Marker({ color: markerColor })
-                    .setLngLat(areaCoords)
-                    .setPopup(
-                        new tt.Popup({ offset: 30 }).setHTML(
-                            `
-                            <strong>${area.district_name}</strong><br/>
-                            Province: ${area.province_name}<br/>
-                            Distance: ${area.distance.toFixed(2)} km<br/><br/>
-                            <strong>Risk Levels:</strong><br/>
-                            ${Object.values(area.risk_levels)
-                                .map((d) => `${d.disease_name}: ${d.level} (${d.count})`)
-                                .join("<br/>")}
-                            `
-                        )
-                    )
-                    .addTo(map);
-
-                addCircleToMap(map, areaCoords, 5000, markerColor);
-
-                // Fit bounds to show both markers
-                const bounds = new tt.LngLatBounds();
-                bounds.extend(userCoords);
-                bounds.extend(areaCoords);
-                map.fitBounds(bounds, { padding: 100 });
-            } else {
-                // If no nearest area, center on user
-                map.setCenter(userCoords);
-                map.setZoom(12);
-            }
-
-            setMapLoading(false);
-        });
+        map.on("load", () => setMapReady(true));
 
         return () => {
             userMarkerRef.current?.remove();
             nearbyMarkerRef.current?.remove();
             map.remove();
+            mapRef.current = null;
         };
-    }, [locationData]);
+    }, []);
 
-    const isLoading = contextLoading || mapLoading;
+    // Update markers when locationData changes
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map || !mapReady || !locationData) return;
+
+        const { latitude, longitude } = locationData.user_location;
+        const userCoords: [number, number] = [longitude, latitude];
+
+        // Remove previous markers
+        userMarkerRef.current?.remove();
+        nearbyMarkerRef.current?.remove();
+
+        userMarkerRef.current = new tt.Marker({ color: "#1E3A8A" })
+            .setLngLat(userCoords)
+            .setPopup(
+                new tt.Popup({ offset: 26 }).setHTML(
+                    `<div style="font-weight:700;margin-bottom:4px;">Your Location</div>
+           <div style="font-size:12px;opacity:.85;">Lat: ${latitude.toFixed(4)} · Lng: ${longitude.toFixed(4)}</div>`
+                )
+            )
+            .addTo(map);
+
+        if (locationData.nearest_area) {
+            const a = locationData.nearest_area;
+            const areaCoords: [number, number] = [a.longitude, a.latitude];
+
+            const maxRisk = getMaxRiskLevel(a.risk_levels);
+            const markerColor = getRiskColor(maxRisk);
+
+            nearbyMarkerRef.current = new tt.Marker({ color: markerColor })
+                .setLngLat(areaCoords)
+                .setPopup(
+                    new tt.Popup({ offset: 26 }).setHTML(
+                        `<div style="font-weight:800;margin-bottom:4px;">${a.district_name}</div>
+             <div style="font-size:12px;opacity:.9;margin-bottom:8px;">${a.province_name} · ${a.distance.toFixed(
+                            2
+                        )} km</div>
+             <div style="font-weight:700;margin-bottom:4px;">Risk levels</div>
+             <div style="font-size:12px;line-height:1.4;">
+               ${Object.values(a.risk_levels)
+                            .map((d) => `• ${d.disease_name}: <b>${d.level}</b> (${d.count})`)
+                            .join("<br/>")}
+             </div>`
+                    )
+                )
+                .addTo(map);
+
+            upsertCircle(map, areaCoords, 5000, markerColor);
+
+            const bounds = new tt.LngLatBounds();
+            bounds.extend(userCoords);
+            bounds.extend(areaCoords);
+            map.fitBounds(bounds, { padding: 110, maxZoom: 12 });
+        } else {
+            map.setCenter(userCoords);
+            map.setZoom(12);
+        }
+    }, [locationData, mapReady]); // upsertCircle is stable and defined outside of React's scope
 
     return (
-        <div className="relative w-full h-[600px] rounded-2xl overflow-hidden shadow-2xl">
-            {/* Loading Indicator */}
+        <div className="relative w-full h-[calc(100vh-4.75rem)] md:h-[600px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border border-gray-200 bg-gray-100 max-h-[760px] md:max-h-none">
+            {/* Map */}
+            <div ref={mapElement} className="w-full h-full" />
+
+            {/* Soft top gradient for readability */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-24 sm:h-28 bg-gradient-to-b from-black/25 to-transparent" />
+
+            {/* Legend */}
+            <div className="absolute left-3 sm:left-4 top-3 sm:top-4 z-20">
+                <div className="bg-white/90 backdrop-blur-xl border border-gray-200 rounded-2xl shadow-xl px-3 sm:px-4 py-2.5 sm:py-3">
+                    <div className="text-[11px] sm:text-xs font-extrabold text-gray-900 mb-1.5 sm:mb-2">Risk legend</div>
+                    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                        {(["safe", "low", "medium", "high"] as RiskLevel[]).map((lvl) => (
+                            <span key={lvl} className="inline-flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-semibold text-gray-800">
+                                <span
+                                    className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full"
+                                    style={{ backgroundColor: getRiskColor(lvl) }}
+                                />
+                                {lvl}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Loading overlay */}
             {isLoading && (
-                <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 animate-fade-in">
-                    <div className="backdrop-blur-2xl bg-white/90 border border-gray-200 px-6 py-3.5 rounded-2xl shadow-xl">
-                        <div className="flex items-center gap-3">
-                            <div className="relative">
-                                <div className="w-5 h-5 border-3 border-gray-200 border-t-[#1E3A8A] rounded-full animate-spin" />
-                                <div className="absolute inset-0 w-5 h-5 border-3 border-transparent border-t-[#0EA5A4]/50 rounded-full animate-spin"
-                                     style={{ animationDirection: "reverse", animationDuration: "1s" }} />
-                            </div>
-                            <span className="text-gray-800 font-semibold text-sm tracking-wide">
-                                {contextLoading ? 'Fetching location...' : 'Loading map...'}
+                <div className="absolute inset-0 z-30 bg-white/35 backdrop-blur-[2px] flex items-start justify-center pt-6">
+                    <div className="bg-white/90 border border-gray-200 px-5 sm:px-6 py-3.5 rounded-2xl shadow-xl">
+                        <div className="flex items-center gap-2.5 sm:gap-3">
+                            <div className="w-5 h-5 border-2 border-gray-200 border-t-[#1E3A8A] rounded-full animate-spin" />
+                            <span className="text-gray-800 font-semibold text-xs sm:text-sm tracking-wide">
+                                {contextLoading ? "Fetching location..." : "Loading map..."}
                             </span>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Error Message */}
+            {/* Error */}
             {contextError && (
-                <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20">
-                    <div className="backdrop-blur-2xl bg-red-50 border-2 border-[#DC2626] px-6 py-3.5 rounded-2xl shadow-xl">
-                        <p className="text-[#DC2626] font-semibold text-sm flex items-center gap-2">
+                <div className="absolute left-1/2 -translate-x-1/2 top-3 sm:top-4 z-40 px-3 sm:px-0">
+                    <div className="bg-red-50/95 backdrop-blur-xl border-2 border-[#DC2626] px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-2xl shadow-xl max-w-xs sm:max-w-none">
+                        <p className="text-[#DC2626] font-semibold text-xs sm:text-sm flex items-center gap-2">
                             <span>❌</span>
                             <span>{contextError}</span>
                         </p>
@@ -225,86 +275,88 @@ function MapComponent() {
                 </div>
             )}
 
-            {/* Area Info Card */}
-            {locationData?.nearest_area && (
-                <div className="absolute top-6 right-6 max-w-sm z-20 animate-slide-in-right">
-                    <div className="bg-white border-2 border-gray-200 rounded-3xl shadow-2xl overflow-hidden">
+            {/* Toggle button */}
+            {area && (
+                <button
+                    type="button"
+                    onClick={() => setPanelOpen((v) => !v)}
+                    className="absolute right-3 sm:right-4 top-3 sm:top-4 z-30 bg-white/90 backdrop-blur-xl border border-gray-200 rounded-2xl shadow-xl px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-gray-900 hover:bg-white transition"
+                >
+                    {panelOpen ? "Hide details" : "Show details"}
+                </button>
+            )}
+
+            {/* Info panel (desktop right, mobile bottom-sheet feel) */}
+            {area && panelOpen && (
+                <div className="absolute z-20 md:right-4 md:top-16 md:w-[380px] inset-x-3 bottom-[5rem] sm:inset-x-auto sm:right-4 sm:left-auto sm:translate-x-0 sm:w-[92vw] md:w-[380px] max-w-md mx-auto">
+                    <div className="bg-white/95 backdrop-blur-2xl border border-gray-200 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[60vh] md:max-h-none flex flex-col">
                         {/* Header */}
-                        <div className="relative p-6 border-b border-gray-200 bg-gradient-to-br from-[#1E3A8A] to-[#1e40af]">
-                            <div className="relative">
-                                <div className="flex items-start justify-between mb-2">
-                                    <h3 className="font-bold text-xl text-white drop-shadow-sm flex-1">
-                                        {locationData.nearest_area.district_name}
-                                    </h3>
-                                    <div className="bg-white/20 backdrop-blur-xl px-3 py-1 rounded-full border border-white/30">
-                                        <span className="text-xs font-bold text-white">
-                                            {locationData.nearest_area.distance.toFixed(1)} km
-                                        </span>
-                                    </div>
+                        <div className="p-4 sm:p-5 bg-gradient-to-br from-[#1E3A8A] to-[#1e40af]">
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <div className="text-white font-extrabold text-lg sm:text-xl leading-tight">{area.district_name}</div>
+                                    <div className="text-blue-100 font-semibold text-xs sm:text-sm">{area.province_name}</div>
                                 </div>
-                                <p className="text-sm text-blue-100 font-medium">
-                                    {locationData.nearest_area.province_name}
-                                </p>
+
+                                <div className="flex flex-col items-end gap-2">
+                                    <div className="bg-white/15 border border-white/25 rounded-2xl px-2.5 sm:px-3 py-1">
+                                        <span className="text-white text-xs font-bold">{area.distance.toFixed(1)} km</span>
+                                    </div>
+                                    <RiskPill level={overallRisk} getRiskColor={getRiskColor} />
+                                </div>
                             </div>
                         </div>
 
-                        {/* Disease Risk Cards */}
-                        <div className="p-5 space-y-3 bg-gray-50">
-                            {Object.values(locationData.nearest_area.risk_levels).map((disease, index) => (
-                                <div
-                                    key={disease.disease_id}
-                                    className="bg-white rounded-2xl p-4 border-2 border-gray-200 shadow-md hover:shadow-xl hover:scale-[1.02] transition-all duration-300 animate-fade-in-up"
-                                    style={{ animationDelay: `${index * 100}ms` }}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2.5 mb-1.5">
-                                                <p className="font-bold text-base text-gray-900">
-                                                    {disease.disease_name}
-                                                </p>
+                        {/* Body */}
+                        <div className="p-3 sm:p-4 bg-gray-50 overflow-y-auto">
+                            <div className="grid gap-2.5 sm:gap-3">
+                                {riskList.map((d) => (
+                                    <div
+                                        key={d.disease_id}
+                                        className="bg-white rounded-2xl p-3 sm:p-4 border border-gray-200 shadow-sm hover:shadow-md transition"
+                                    >
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <div className="font-extrabold text-gray-900 text-sm sm:text-base truncate">{d.disease_name}</div>
+                                                <div className="text-[11px] sm:text-xs font-semibold text-gray-600">
+                                                    {d.count} predicted {d.count === 1 ? "case" : "cases"}
+                                                </div>
                                             </div>
-                                            <p className="text-xs text-gray-600 font-medium">
-                                                {disease.count} predicted {disease.count === 1 ? 'case' : 'cases'}
-                                            </p>
-                                        </div>
-                                        <div
-                                            className="px-4 py-2 rounded-xl text-xs font-bold text-white shadow-lg transition-transform hover:scale-105"
-                                            style={{
-                                                backgroundColor: getRiskColor(disease.level),
-                                                boxShadow: `0 4px 12px ${getRiskColor(disease.level)}40`,
-                                            }}
-                                        >
-                                            {disease.level.toUpperCase()}
+
+                                            <span
+                                                className="shrink-0 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold text-white"
+                                                style={{ backgroundColor: getRiskColor(d.level) }}
+                                            >
+                                                {d.level.toUpperCase()}
+                                            </span>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
 
-                        {/* Warning/Safe Banner */}
-                        {locationData.warning && locationData.warning !== "Area is safe" ? (
-                            <div className="mx-5 mb-5 animate-fade-in-up" style={{ animationDelay: "300ms" }}>
-                                <div className="bg-orange-50 border-l-4 border-[#F97316] rounded-2xl p-4 shadow-md">
-                                    <p className="text-sm font-bold text-gray-900 leading-relaxed">
-                                        ⚠️ {locationData.warning}
-                                    </p>
-                                </div>
+                            {/* Banner */}
+                            <div className="mt-3 sm:mt-4">
+                                {locationData?.warning && locationData.warning !== "Area is safe" ? (
+                                    <div className="bg-orange-50 border border-orange-200 rounded-2xl p-3 sm:p-4">
+                                        <p className="text-xs sm:text-sm font-bold text-gray-900 leading-relaxed">⚠️ {locationData.warning}</p>
+                                    </div>
+                                ) : (
+                                    <div className="bg-green-50 border border-green-200 rounded-2xl p-3 sm:p-4">
+                                        <p className="text-xs sm:text-sm font-bold text-gray-900 leading-relaxed">
+                                            ✅ Area is currently safe with low risk levels
+                                        </p>
+                                    </div>
+                                )}
                             </div>
-                        ) : (
-                            <div className="mx-5 mb-5 animate-fade-in-up" style={{ animationDelay: "300ms" }}>
-                                <div className="bg-green-50 border-l-4 border-[#16A34A] rounded-2xl p-4 shadow-md">
-                                    <p className="text-sm font-bold text-gray-900 leading-relaxed">
-                                        ✅ Area is currently safe with low risk levels
-                                    </p>
-                                </div>
-                            </div>
-                        )}
+                        </div>
+                    </div>
+
+                    {/* Mobile helper */}
+                    <div className="mt-2 sm:mt-3 md:hidden text-center text-[11px] sm:text-xs font-semibold text-white/90 drop-shadow">
+                        Tip: pinch to zoom · drag to move
                     </div>
                 </div>
             )}
-
-            {/* Map Container */}
-            <div ref={mapElement} className="w-full h-full" />
         </div>
     );
 }

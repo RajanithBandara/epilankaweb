@@ -29,9 +29,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     return (
         <LocationProvider>
-            <div className="flex min-h-screen flex-col bg-gradient-to-br from-[#F8FAFC] via-[#F1F5F9] to-[#E2E8F0]">
+            <div className="flex min-h-screen flex-col bg-gradient-to-br from-[#F8FAFC] via-[#F1F5F9] to-[#E2E8F0] pb-[4.5rem] md:pb-0 px-2 sm:px-3 md:px-6 pt-2 sm:pt-3 md:pt-4">
                 {/* ================ DESKTOP FLOATING TOP BAR ================ */}
-                <header className="hidden md:block sticky top-4 z-50 px-6">
+                <header className="hidden md:block sticky top-4 z-50">
                     <div className="max-w-7xl mx-auto">
                         <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200/50 px-6 py-3">
                             <div className="flex items-center justify-between gap-6">
@@ -97,14 +97,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </header>
 
                 {/* ================ MAIN CONTENT ================ */}
-                <main className="flex-1 p-4 md:p-6 md:pt-4">
-                    <div className="bg-white rounded-2xl shadow-lg p-6 min-h-full w-full transition-all duration-300 border border-gray-200/50">
+                <main className="flex-1 mt-2 sm:mt-3 md:mt-4">
+                    <div className="bg-white rounded-2xl shadow-lg p-3 sm:p-4 md:p-6 min-h-full w-full transition-all duration-300 border border-gray-200/50">
                         {children}
                     </div>
                 </main>
 
                 {/* ================ MOBILE BOTTOM BAR ================ */}
-                <nav className="md:hidden fixed bottom-4 left-4 right-4 bg-white/90 backdrop-blur-xl shadow-xl rounded-2xl z-50 border border-gray-200/50 overflow-hidden">
+                <nav className="md:hidden fixed bottom-3 left-3 right-3 bg-white/90 backdrop-blur-xl shadow-xl rounded-2xl z-50 border border-gray-200/50 overflow-hidden">
                     <div className="flex h-16">
                         {navItems.map((item) => {
                             const Icon = item.icon;
@@ -114,14 +114,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 <Link key={item.href} href={item.href} className="flex-1">
                                     <div
                                         className={
-                                            `flex flex-col items-center justify-center h-full text-[10px] font-medium transition-all duration-200 mx-1 rounded-xl ` +
+                                            `flex flex-col items-center justify-center h-full text-[10px] leading-tight font-medium transition-all duration-200 mx-1 rounded-xl ` +
                                             (isActive
                                                 ? "text-white bg-gradient-to-br from-[#1E3A8A] to-[#1e40af] shadow-lg"
                                                 : "text-gray-500 hover:text-[#1E3A8A] hover:bg-gray-50")
                                         }
                                     >
                                         <Icon className="h-5 w-5 mb-0.5" />
-                                        <span className="font-medium">{item.label}</span>
+                                        <span className="font-medium truncate max-w-[4rem]">{item.label}</span>
                                     </div>
                                 </Link>
                             );

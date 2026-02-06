@@ -53,15 +53,6 @@ export default function UserSettings() {
         setTimeout(() => setAlert(null), 4000);
     };
 
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    };
 
     const getUserId = (): string | null => {
         if (typeof window !== 'undefined') {
@@ -240,21 +231,21 @@ export default function UserSettings() {
     }
 
     return (
-        <div className="min-h-full flex items-start justify-center py-6 px-4 bg-transparent">
-            <div className="w-full max-w-3xl space-y-6">
+        <div className="min-h-0 h-auto flex items-start justify-center py-6 sm:py-8 md:py-10 px-4 sm:px-6 bg-transparent">
+            <div className="w-full max-w-3xl space-y-6 pb-4">
                 {/* Page Header */}
                 <div className="text-center space-y-1">
                     <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-[#1E3A8A] text-white mb-1">
                         <SettingsIcon className="w-5 h-5" />
                     </div>
-                    <h1 className="text-2xl font-bold text-[#1E3A8A]">Settings</h1>
-                    <p className="text-sm text-gray-600">Manage your account preferences</p>
+                    <h1 className="text-xl sm:text-2xl font-bold text-[#1E3A8A]">Settings</h1>
+                    <p className="text-xs sm:text-sm text-gray-600">Manage your account preferences</p>
                 </div>
 
                 {/* Alert */}
                 {alert && (
                     <div
-                        className={`rounded-lg p-3 border-l-4 flex items-center gap-3 text-sm ${{
+                        className={`rounded-lg p-3 border-l-4 flex items-center gap-3 text-xs sm:text-sm ${{
                             success: 'bg-green-50 border-green-500 text-green-800',
                             error: 'bg-red-50 border-red-500 text-red-800',
                         }[alert.type]}`}
@@ -279,7 +270,7 @@ export default function UserSettings() {
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                                    className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-colors ${
                                         isActive
                                             ? 'bg-[#1E3A8A] text-white'
                                             : 'text-gray-600 hover:bg-gray-100'
