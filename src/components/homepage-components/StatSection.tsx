@@ -45,19 +45,6 @@ function StatSection() {
             }
         }
     };
-
-    const itemVariants = {
-        hidden: { opacity: 0, y: 30 },
-        visible: {
-            opacity: 1,
-            y: 0,
-            transition: {
-                duration: 0.6,
-                ease: "easeOut"
-            }
-        }
-    };
-
     return (
         <motion.section
             className="py-6 px-6 mx-4 md:mx-8 -mt-12 relative z-10"
