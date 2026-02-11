@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 function CtaSection() {
     return(
         <motion.section
-            className="px-6 py-20 mx-4 md:mx-8 my-8 mb-20 relative z-10"
+            className="px-6 py-20 mx-4 md:mx-8 my-8 mb-8 relative z-10"
             initial={{ opacity: 0, y: 60 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.3 }}

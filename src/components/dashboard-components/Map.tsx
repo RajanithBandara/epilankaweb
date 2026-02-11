@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import * as tt from "@tomtom-international/web-sdk-maps";
 import "@tomtom-international/web-sdk-maps/dist/maps.css";
 import { useLocation } from "@/contexts/LocationContext";
@@ -86,7 +86,7 @@ function MapComponent() {
         };
     };
 
-    const upsertCircle = (map: tt.Map, center: [number, number], radiusMeters: number, color: string) => {
+    const upsertCircle = useCallback((map: tt.Map, center: [number, number], radiusMeters: number, color: string) => {
         const sourceId = "radius-source";
         const fillId = "radius-layer";
         const outlineId = "radius-layer-outline";
@@ -125,7 +125,8 @@ function MapComponent() {
             map.setPaintProperty(fillId, "fill-color", color);
             map.setPaintProperty(outlineId, "line-color", color);
         }
-    };
+    }, []); // Empty deps since it only uses its parameters and circleGeoJson which is stable
+
 
     // Memo values for UI so it doesn't recalc a lot
     const area = locationData?.nearest_area;
@@ -221,7 +222,7 @@ function MapComponent() {
             map.setCenter(userCoords);
             map.setZoom(12);
         }
-    }, [locationData, mapReady]); // upsertCircle is stable and defined outside of React's scope
+    }, [locationData, mapReady, upsertCircle]);
 
     return (
         <div className="relative w-full h-[calc(100vh-4.75rem)] md:h-[600px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border border-gray-200 bg-gray-100 max-h-[760px] md:max-h-none">
