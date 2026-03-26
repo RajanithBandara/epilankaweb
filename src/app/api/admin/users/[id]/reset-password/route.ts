@@ -9,16 +9,9 @@ export async function POST(
         const { id } = await context.params;
         const body = await req.json();
 
-        // The backend expects { current_password, new_password }
-        // For admin reset, we might not have current_password
-        // We need to modify the payload to match backend expectations
-        const res = await adminApi.post(
-            `/users/change-password/${id}`,
-            {
-                current_password: body.current_password || "",
-                new_password: body.new_password
-            }
-        );
+        const res = await adminApi.post(`/admin/users/${id}/reset-password`, {
+            new_password: body.new_password,
+        });
 
         return NextResponse.json(res.data);
     } catch (err: unknown) {
