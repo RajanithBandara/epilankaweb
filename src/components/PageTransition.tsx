@@ -9,7 +9,6 @@ export default function PageTransition({ children }: { children: React.ReactNode
   const [showContent, setShowContent] = useState(false);
 
   const pathname = usePathname();
-
   const safePath = pathname ?? "";
 
   const isAppRoute = useMemo(() => {
@@ -17,63 +16,66 @@ export default function PageTransition({ children }: { children: React.ReactNode
   }, [safePath]);
 
   useEffect(() => {
+    let loadingTimer: number | undefined;
+    let contentTimer: number | undefined;
+
     const restoreBody = () => {
       document.body.style.overflow = "";
       document.body.style.position = "";
     };
 
     if (isAppRoute) {
-      const timer = setTimeout(() => {
+      loadingTimer = window.setTimeout(() => {
         setIsLoading(false);
         setShowContent(true);
+        window.scrollTo({ top: 0, behavior: "smooth" });
         restoreBody();
       }, 0);
+
       return () => {
-        clearTimeout(timer);
+        if (loadingTimer) window.clearTimeout(loadingTimer);
         restoreBody();
       };
     }
 
-    const startTimer = setTimeout(() => {
+    const kickoffTimer = window.setTimeout(() => {
       setIsLoading(true);
       setShowContent(false);
-    }, 0);
+    }, 50);
 
-    const loadingTimer = window.setTimeout(() => {
+    loadingTimer = window.setTimeout(() => {
       setIsLoading(false);
-
-      // Wait for the loading screen scale-up exit (850ms) before revealing content
-      const contentTimer = window.setTimeout(() => {
+      contentTimer = window.setTimeout(() => {
         setShowContent(true);
-      }, 500);
-
-      return () => window.clearTimeout(contentTimer);
-    }, 1400);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 220);
+    }, 620);
 
     return () => {
-      clearTimeout(startTimer);
-      window.clearTimeout(loadingTimer);
+      if (kickoffTimer) window.clearTimeout(kickoffTimer);
+      if (loadingTimer) window.clearTimeout(loadingTimer);
+      if (contentTimer) window.clearTimeout(contentTimer);
       restoreBody();
     };
   }, [safePath, isAppRoute]);
 
   return (
-      <>
-        {!isAppRoute && <LoadingScreen isLoading={isLoading} />}
+    <>
+      {!isAppRoute && <LoadingScreen isLoading={isLoading} />}
 
-        <div
-            className={`min-h-screen ${
-                isAppRoute ? "duration-200" : "duration-[900ms]"
-            } ease-out transition-all ${
-                showContent
-                    ? "opacity-100 translate-y-0 scale-100"
-                    : isAppRoute
-                        ? "opacity-100 translate-y-0 scale-100"
-                        : "opacity-0 translate-y-3 scale-[0.98]"
-            }`}
-        >
-          {children}
-        </div>
-      </>
+      <div
+        className={`min-h-screen ${
+          isAppRoute ? "duration-400" : "duration-900"
+        } ease-[cubic-bezier(0.22,1,0.36,1)] transition-[opacity,transform] will-change-[opacity,transform] ${
+          showContent
+            ? "opacity-100 translate-y-0 scale-100"
+            : isAppRoute
+              ? "opacity-100 translate-y-0 scale-100"
+              : "opacity-0 translate-y-2 scale-[0.99]"
+        }`}
+      >
+        {children}
+      </div>
+    </>
   );
 }

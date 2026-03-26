@@ -1,0 +1,471 @@
+'use client';
+
+import { FormEvent, useEffect, useState } from 'react';
+import axios from 'axios';
+import { useRouter } from 'next/navigation';
+import {
+  Activity,
+  AlertCircle,
+  ArrowRight,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Globe,
+  Loader2,
+  Lock,
+  Mail,
+  Shield,
+  TrendingUp,
+  User,
+} from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+
+type AuthMode = 'login' | 'signup';
+
+interface AuthPageProps {
+  initialMode?: AuthMode;
+}
+
+const features = [
+  {
+    icon: <Shield className="h-5 w-5" />,
+    title: 'Verified Access',
+    description: 'Secure sessions with cryptographically signed tokens',
+  },
+  {
+    icon: <TrendingUp className="h-5 w-5" />,
+    title: 'Insight Engine',
+    description: 'AI-assisted forecasting to stay ahead of outbreaks',
+  },
+  {
+    icon: <Globe className="h-5 w-5" />,
+    title: 'Map Intelligence',
+    description: 'District-level heatmaps & real-time signals',
+  },
+  {
+    icon: <Activity className="h-5 w-5" />,
+    title: 'Proactive Alerts',
+    description: 'Instant notices for high-risk zones',
+  },
+];
+
+// Subtle floating orb for background
+function Orb({ className }: { className: string }) {
+  return (
+    <div
+      className={`pointer-events-none absolute rounded-full blur-3xl opacity-30 ${className}`}
+    />
+  );
+}
+
+interface InputFieldProps {
+  id: string;
+  label: string;
+  type: string;
+  value: string;
+  placeholder: string;
+  icon: React.ReactNode;
+  required?: boolean;
+  onChange: (v: string) => void;
+  hint?: string;
+  showToggle?: boolean;
+}
+
+function InputField({
+  id,
+  label,
+  type,
+  value,
+  placeholder,
+  icon,
+  required,
+  onChange,
+  hint,
+  showToggle,
+}: InputFieldProps) {
+  const [focused, setFocused] = useState(false);
+  const [show, setShow] = useState(false);
+  const active = focused || value.length > 0;
+  const inputType = showToggle ? (show ? 'text' : 'password') : type;
+
+  return (
+    <div className="space-y-1.5">
+      <label
+        htmlFor={id}
+        className="text-[11px] font-semibold uppercase tracking-widest text-slate-500 transition-colors duration-200"
+        style={{ color: focused ? '#1e40af' : undefined }}
+      >
+        {label}
+      </label>
+      <div
+        className="relative flex items-center rounded-xl border bg-slate-50 transition-all duration-200"
+        style={{
+          borderColor: focused ? '#3b82f6' : '#e2e8f0',
+          boxShadow: focused ? '0 0 0 3px rgba(59,130,246,0.12)' : 'none',
+          backgroundColor: focused ? '#fff' : '#f8fafc',
+        }}
+      >
+        <span
+          className="absolute left-3.5 transition-colors duration-200"
+          style={{ color: focused ? '#3b82f6' : '#94a3b8' }}
+        >
+          {icon}
+        </span>
+        <input
+          id={id}
+          type={inputType}
+          value={value}
+          required={required}
+          placeholder={active ? placeholder : ''}
+          onChange={(e) => onChange(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          className="w-full bg-transparent py-3 pl-10 pr-4 text-sm font-medium text-slate-800 outline-none placeholder:text-slate-400"
+          style={{ paddingRight: showToggle ? '3rem' : undefined }}
+          autoComplete={id === 'password' ? 'current-password' : id === 'email' ? 'email' : 'username'}
+        />
+        {showToggle && (
+          <button
+            type="button"
+            tabIndex={-1}
+            onClick={() => setShow((s) => !s)}
+            className="absolute right-3.5 text-slate-400 hover:text-slate-600 transition-colors duration-150"
+          >
+            {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        )}
+      </div>
+      {hint && (
+        <p className="text-[11px] leading-relaxed text-slate-400">{hint}</p>
+      )}
+    </div>
+  );
+}
+
+export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
+  const router = useRouter();
+  const [mode, setMode] = useState<AuthMode>(initialMode);
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const isLogin = mode === 'login';
+
+  useEffect(() => {
+    setError('');
+    setLoading(false);
+  }, [mode]);
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      if (isLogin) {
+        const response = await axios.post(
+          '/api/login',
+          { email, password },
+          { headers: { 'Content-Type': 'application/json' } }
+        );
+        localStorage.setItem('user_id', response.data.user_id);
+        localStorage.setItem('username', response.data.username);
+        localStorage.setItem('email', response.data.email);
+        document.cookie = `token=${response.data.access_token}; path=/; max-age=86400; SameSite=Strict`;
+        router.push('/dashboard');
+        router.refresh();
+      } else {
+        const res = await axios.post('/api/signup', { username, email, password });
+        console.log('Signup success:', res.data);
+        router.push('/success');
+      }
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        setError(
+          err.response?.data?.message ||
+            err.response?.data?.detail ||
+            (isLogin ? 'Login failed. Check your credentials.' : 'Signup failed. Please try again.')
+        );
+      } else {
+        setError(isLogin ? 'An unexpected error occurred.' : 'Signup failed. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="relative min-h-screen overflow-hidden bg-[#f0f4ff] flex items-center justify-center p-4 sm:p-6">
+      {/* Decorative background orbs */}
+      <Orb className="h-96 w-96 bg-blue-400 -top-24 -left-24" />
+      <Orb className="h-80 w-80 bg-indigo-400 top-1/2 -right-16" />
+      <Orb className="h-64 w-64 bg-cyan-300 bottom-0 left-1/3" />
+
+      <div className="relative z-10 w-full max-w-5xl">
+        <motion.div
+          className="grid grid-cols-1 overflow-hidden rounded-3xl shadow-2xl shadow-blue-200/50 lg:grid-cols-[1.1fr_1fr]"
+          initial={{ opacity: 0, scale: 0.97, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {/* ── LEFT PANEL ── */}
+          <div className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-[#1e3a8a] via-[#1e40af] to-[#0c7bb3] p-10 text-white lg:flex">
+            {/* internal blur shapes */}
+            <div className="pointer-events-none absolute -bottom-20 -right-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+            <div className="pointer-events-none absolute top-10 -left-10 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
+
+            <div className="relative z-10">
+              {/* Logo / brand */}
+              <div className="flex items-center gap-2.5 mb-10">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 ring-1 ring-white/30 backdrop-blur-sm">
+                  <Activity className="h-5 w-5 text-white" />
+                </div>
+                <span className="text-lg font-bold tracking-tight">EpiLanka</span>
+              </div>
+
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={mode}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <h1 className="text-3xl font-extrabold leading-tight xl:text-4xl">
+                    {isLogin ? 'Welcome back.' : 'Join the network.'}
+                  </h1>
+                  <p className="mt-3 text-base font-medium leading-relaxed text-blue-100">
+                    {isLogin
+                      ? 'Stay ahead of every signal and protect communities across Sri Lanka.'
+                      : 'Get insight, respond faster, and collaborate to keep people safe.'}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {/* Feature list */}
+            <div className="relative z-10 mt-auto space-y-3 pt-10">
+              {features.map((f, i) => (
+                <motion.div
+                  key={f.title}
+                  className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-sm"
+                  initial={{ opacity: 0, x: -16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 + i * 0.07, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                  whileHover={{ x: 4, transition: { duration: 0.2 } }}
+                >
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-white/20 text-white">
+                    {f.icon}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-white">{f.title}</p>
+                    <p className="text-xs text-blue-200">{f.description}</p>
+                  </div>
+                  <CheckCircle2 className="ml-auto h-4 w-4 flex-shrink-0 text-white/40" />
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── RIGHT PANEL (form) ── */}
+          <div className="flex flex-col justify-center bg-white px-8 py-10 sm:px-10">
+            {/* Mobile logo */}
+            <div className="mb-8 flex items-center gap-2 lg:hidden">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#1e3a8a]">
+                <Activity className="h-4 w-4 text-white" />
+              </div>
+              <span className="text-base font-bold text-slate-800">EpiLanka</span>
+            </div>
+
+            {/* Tab switcher */}
+            <div className="mb-7 flex rounded-xl bg-slate-100 p-1">
+              {(['login', 'signup'] as AuthMode[]).map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setMode(item)}
+                  className="relative flex-1 rounded-lg py-2 text-sm font-semibold transition-colors duration-200"
+                  style={{ color: mode === item ? '#1e3a8a' : '#64748b' }}
+                >
+                  {mode === item && (
+                    <motion.span
+                      layoutId="tab-pill"
+                      className="absolute inset-0 rounded-lg bg-white shadow-sm"
+                      transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
+                    />
+                  )}
+                  <span className="relative z-10">
+                    {item === 'login' ? 'Sign in' : 'Create account'}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Header */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={mode + '-header'}
+                className="mb-6"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.25 }}
+              >
+                <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">
+                  {isLogin ? 'Access your workspace' : 'Create your account'}
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  {isLogin
+                    ? 'Enter your credentials to continue.'
+                    : 'Fill in the details below to get started.'}
+                </p>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Error banner */}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  className="mb-5 flex items-start gap-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3"
+                  initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-500" />
+                  <p className="text-sm font-medium text-red-700">{error}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Form */}
+            <AnimatePresence mode="wait">
+              <motion.form
+                key={mode}
+                onSubmit={handleSubmit}
+                className="space-y-4"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <AnimatePresence mode="popLayout">
+                  {!isLogin && (
+                    <motion.div
+                      key="username-field"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                      style={{ overflow: 'hidden' }}
+                    >
+                      <InputField
+                        id="username"
+                        label="Username"
+                        type="text"
+                        placeholder="Choose a username"
+                        icon={<User className="h-4 w-4" />}
+                        value={username}
+                        onChange={setUsername}
+                        required={!isLogin}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <InputField
+                  id="email"
+                  label="Email address"
+                  type="email"
+                  placeholder="you@example.com"
+                  icon={<Mail className="h-4 w-4" />}
+                  value={email}
+                  onChange={setEmail}
+                  required
+                />
+
+                <InputField
+                  id="password"
+                  label="Password"
+                  type="password"
+                  placeholder={isLogin ? '••••••••' : 'Create a strong password'}
+                  icon={<Lock className="h-4 w-4" />}
+                  value={password}
+                  onChange={setPassword}
+                  required
+                  hint={
+                    isLogin
+                      ? 'Sessions are secured with signed tokens.'
+                      : 'Use 8+ characters with numbers and symbols.'
+                  }
+                  showToggle
+                />
+
+                {isLogin && (
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      className="text-xs font-semibold text-[#1e40af] hover:text-[#1e3a8a] transition-colors duration-150"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                )}
+
+                <motion.button
+                  type="submit"
+                  disabled={loading}
+                  className="group relative mt-2 w-full overflow-hidden rounded-xl py-3 text-sm font-bold text-white shadow-lg shadow-blue-300/30 transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-60"
+                  style={{
+                    background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #0c7bb3 100%)',
+                  }}
+                  whileHover={loading ? undefined : { scale: 1.01, y: -1 }}
+                  whileTap={loading ? undefined : { scale: 0.99 }}
+                >
+                  {/* Shine sweep */}
+                  <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+                  <span className="relative flex items-center justify-center gap-2">
+                    {loading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        {isLogin ? 'Signing in…' : 'Creating account…'}
+                      </>
+                    ) : (
+                      <>
+                        {isLogin ? 'Sign in' : 'Create account'}
+                        <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+                      </>
+                    )}
+                  </span>
+                </motion.button>
+
+                <p className="pt-1 text-center text-sm text-slate-500">
+                  {isLogin ? "Don&apos;t have an account?" : 'Already have an account?'}{' '}
+                  <button
+                    type="button"
+                    onClick={() => setMode(isLogin ? 'signup' : 'login')}
+                    className="font-semibold text-[#1e3a8a] underline-offset-2 hover:underline transition-colors duration-150"
+                  >
+                    {isLogin ? 'Sign up' : 'Sign in'}
+                  </button>
+                </p>
+              </motion.form>
+            </AnimatePresence>
+
+            <p className="mt-8 text-center text-[11px] leading-relaxed text-slate-400">
+              By continuing, you agree to EpiLanka&apos;s{' '}
+              <span className="cursor-pointer font-medium text-slate-500 hover:text-slate-700 transition-colors">
+                Terms of Service
+              </span>{' '}
+              &amp;{' '}
+              <span className="cursor-pointer font-medium text-slate-500 hover:text-slate-700 transition-colors">
+                Privacy Policy
+              </span>
+              .
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
