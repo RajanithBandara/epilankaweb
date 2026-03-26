@@ -16,20 +16,24 @@ export default function PageTransition({ children }: { children: React.ReactNode
   }, [safePath]);
 
   useEffect(() => {
+    let loadingTimer: number | undefined;
+    let contentTimer: number | undefined;
+
     const restoreBody = () => {
       document.body.style.overflow = "";
       document.body.style.position = "";
     };
 
     if (isAppRoute) {
-      const timer = window.setTimeout(() => {
+      loadingTimer = window.setTimeout(() => {
         setIsLoading(false);
         setShowContent(true);
+        window.scrollTo({ top: 0, behavior: "smooth" });
         restoreBody();
       }, 0);
 
       return () => {
-        window.clearTimeout(timer);
+        if (loadingTimer) window.clearTimeout(loadingTimer);
         restoreBody();
       };
     }
@@ -37,20 +41,20 @@ export default function PageTransition({ children }: { children: React.ReactNode
     const kickoffTimer = window.setTimeout(() => {
       setIsLoading(true);
       setShowContent(false);
-    }, 0);
+    }, 50);
 
-    const loadingTimer = window.setTimeout(() => {
+    loadingTimer = window.setTimeout(() => {
       setIsLoading(false);
-      const contentTimer = window.setTimeout(() => {
+      contentTimer = window.setTimeout(() => {
         setShowContent(true);
-      }, 240);
-
-      return () => window.clearTimeout(contentTimer);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }, 220);
     }, 620);
 
     return () => {
-      window.clearTimeout(kickoffTimer);
-      window.clearTimeout(loadingTimer);
+      if (kickoffTimer) window.clearTimeout(kickoffTimer);
+      if (loadingTimer) window.clearTimeout(loadingTimer);
+      if (contentTimer) window.clearTimeout(contentTimer);
       restoreBody();
     };
   }, [safePath, isAppRoute]);
@@ -61,8 +65,8 @@ export default function PageTransition({ children }: { children: React.ReactNode
 
       <div
         className={`min-h-screen ${
-          isAppRoute ? "duration-200" : "duration-500"
-        } ease-out transition-all ${
+          isAppRoute ? "duration-400" : "duration-900"
+        } ease-[cubic-bezier(0.22,1,0.36,1)] transition-[opacity,transform] will-change-[opacity,transform] ${
           showContent
             ? "opacity-100 translate-y-0 scale-100"
             : isAppRoute
