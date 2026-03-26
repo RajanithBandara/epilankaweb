@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import {
@@ -440,7 +440,7 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
                 </motion.button>
 
                 <p className="pt-1 text-center text-sm text-slate-500">
-                  {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
+                  {isLogin ? "Don&apos;t have an account?" : 'Already have an account?'}{' '}
                   <button
                     type="button"
                     onClick={() => setMode(isLogin ? 'signup' : 'login')}
@@ -453,7 +453,7 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
             </AnimatePresence>
 
             <p className="mt-8 text-center text-[11px] leading-relaxed text-slate-400">
-              By continuing, you agree to EpiLanka's{' '}
+              By continuing, you agree to EpiLanka&apos;s{' '}
               <span className="cursor-pointer font-medium text-slate-500 hover:text-slate-700 transition-colors">
                 Terms of Service
               </span>{' '}
