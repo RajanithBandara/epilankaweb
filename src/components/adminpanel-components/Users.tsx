@@ -27,17 +27,17 @@ const safeDate = (ts?: string) => { if (!ts) return "—"; try { const d = new D
 const safeJSON = (v: unknown) => { try { return JSON.stringify(v, null, 2); } catch { return String(v); } };
 const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
-const labelCls = "block text-[11px] font-medium text-white/35 uppercase tracking-wider mb-1.5";
-const inputCls = "bg-white/[0.04] border border-white/10 text-white placeholder:text-white/25 text-sm rounded-lg px-3 py-2 h-9 w-full focus:outline-none focus:ring-1 focus:ring-white/30 focus:border-white/30 transition-colors duration-150";
+const labelCls = "block text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-1.5";
+const inputCls = "bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 text-sm rounded-lg px-3 py-2 h-9 w-full focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-150 shadow-sm";
 
 function Section({ title, children, collapsible }: { title: string; children: React.ReactNode; collapsible?: boolean }) {
     const [open, setOpen] = useState(true);
     return (
-        <div className="border-t border-white/[0.06] pt-4">
+        <div className="border-t border-slate-200 pt-4">
             <button type="button" onClick={() => collapsible && setOpen((o) => !o)}
                 className={["flex w-full items-center justify-between mb-3", collapsible ? "cursor-pointer" : "cursor-default"].join(" ")}>
-                <span className="text-[11px] font-semibold text-white/30 uppercase tracking-widest">{title}</span>
-                {collapsible && (open ? <ChevronUp className="w-3.5 h-3.5 text-white/20" /> : <ChevronDown className="w-3.5 h-3.5 text-white/20" />)}
+                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">{title}</span>
+                {collapsible && (open ? <ChevronUp className="w-3.5 h-3.5 text-slate-400" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />)}
             </button>
             {open && <div className="space-y-3">{children}</div>}
         </div>
@@ -155,60 +155,60 @@ export default function AdminUsersPanel() {
             <aside className="w-72 shrink-0 flex flex-col gap-3">
                 <div className="flex items-center gap-2">
                     <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search users…"
-                        className="h-8 text-xs bg-white/[0.04] border-white/10 text-white placeholder:text-white/25 focus-visible:ring-white/20 flex-1" />
+                        className="h-8 text-xs bg-white border-slate-200 text-slate-800 placeholder:text-slate-400 focus-visible:ring-blue-500 flex-1 shadow-sm" />
                     <button onClick={() => setShowBannedOnly((v) => !v)}
-                        className={["shrink-0 h-8 px-2.5 rounded-lg text-xs font-medium border transition-all duration-150",
-                            showBannedOnly ? "bg-red-500/15 border-red-500/30 text-red-300" : "bg-white/[0.04] border-white/10 text-white/40 hover:text-white"].join(" ")}>
+                        className={["shrink-0 h-8 px-2.5 rounded-lg text-xs font-medium border transition-all duration-150 shadow-sm",
+                            showBannedOnly ? "bg-red-50 border-red-200 text-red-600" : "bg-white border-slate-200 text-slate-500 hover:text-slate-800"].join(" ")}>
                         {showBannedOnly ? "Banned" : "All"}
                     </button>
                     <button onClick={() => void loadUsers()} disabled={loading}
-                        className="shrink-0 h-8 w-8 flex items-center justify-center rounded-lg bg-white/[0.04] border border-white/10 text-white/40 hover:text-white disabled:opacity-30 transition-all duration-150">
+                        className="shrink-0 h-8 w-8 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-slate-800 disabled:opacity-30 transition-all duration-150 shadow-sm">
                         <RefreshCw className={["w-3.5 h-3.5", loading ? "animate-spin" : ""].join(" ")} />
                     </button>
                 </div>
 
-                <ScrollArea className="flex-1 rounded-xl border border-white/[0.07]">
+                <ScrollArea className="flex-1 rounded-xl border border-slate-200 bg-white shadow-sm">
                     <div className="p-2 space-y-0.5">
                         {loading && !users.length ? (
-                            <div className="flex items-center justify-center py-8"><Loader2 className="w-4 h-4 animate-spin text-white/20" /></div>
+                            <div className="flex items-center justify-center py-8"><Loader2 className="w-4 h-4 animate-spin text-slate-400" /></div>
                         ) : filtered.length === 0 ? (
-                            <div className="text-xs text-white/25 text-center py-8">No users found</div>
+                            <div className="text-xs text-slate-400 text-center py-8">No users found</div>
                         ) : filtered.map((u) => {
                             const active = u._id === selectedId;
                             return (
                                 <button key={u._id} type="button" onClick={() => setSelectedId(u._id)}
                                     className={["w-full text-left px-3 py-2.5 rounded-lg transition-all duration-150",
-                                        active ? "bg-white text-black" : "text-white/70 hover:bg-white/[0.06] hover:text-white"].join(" ")}>
+                                        active ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-800"].join(" ")}>
                                     <div className="flex items-center justify-between gap-1.5 mb-0.5">
-                                        <span className={["text-xs font-semibold truncate", active ? "text-black" : ""].join(" ")}>
+                                        <span className={["text-xs font-semibold truncate", active ? "text-blue-700" : ""].join(" ")}>
                                             {u.username ?? "(no username)"}
                                         </span>
                                         {u.is_banned && (
                                             <span className={["text-[9px] px-1.5 py-0.5 rounded-full font-semibold tracking-wide shrink-0",
-                                                active ? "bg-red-600 text-white" : "bg-red-500/20 text-red-300"].join(" ")}>
+                                                active ? "bg-red-600 text-white" : "bg-red-50 text-red-600"].join(" ")}>
                                                 BAN
                                             </span>
                                         )}
                                     </div>
-                                    <div className={["text-[11px] truncate", active ? "text-black/60" : "text-white/35"].join(" ")}>{u.email ?? "(no email)"}</div>
+                                    <div className={["text-[11px] truncate", active ? "text-blue-700/60" : "text-slate-400"].join(" ")}>{u.email ?? "(no email)"}</div>
                                 </button>
                             );
                         })}
                     </div>
                 </ScrollArea>
 
-                <div className={["text-xs px-2", showBannedOnly ? "text-red-300/60" : "text-white/20"].join(" ")}>
+                <div className={["text-xs px-2", showBannedOnly ? "text-red-500/80" : "text-slate-400"].join(" ")}>
                     {filtered.length} / {users.length} users
                 </div>
             </aside>
 
             {/* RIGHT — detail panel */}
-            <div className="flex-1 rounded-xl border border-white/[0.07] overflow-hidden flex flex-col">
+            <div className="flex-1 rounded-xl border border-slate-200 bg-white overflow-hidden flex flex-col shadow-sm">
                 {!selectedUser ? (
                     <div className="flex-1 flex items-center justify-center">
                         <div className="text-center space-y-2">
-                            <User className="w-8 h-8 text-white/10 mx-auto" />
-                            <p className="text-sm text-white/20">Select a user to manage</p>
+                            <User className="w-8 h-8 text-slate-200 mx-auto" />
+                            <p className="text-sm text-slate-400">Select a user to manage</p>
                         </div>
                     </div>
                 ) : (
@@ -217,26 +217,26 @@ export default function AdminUsersPanel() {
 
                             {/* Header */}
                             <div className="flex items-start gap-4 mb-6">
-                                <div className="w-12 h-12 rounded-xl border border-white/10 overflow-hidden bg-white/[0.04] flex items-center justify-center shrink-0">
+                                <div className="w-12 h-12 rounded-xl border border-slate-200 overflow-hidden bg-slate-50 flex items-center justify-center shrink-0">
                                     {selectedUser.profile_image
                                         /* eslint-disable-next-line @next/next/no-img-element */
                                         ? <img src={selectedUser.profile_image} alt="" className="w-full h-full object-cover" />
-                                        : <User className="w-5 h-5 text-white/20" />
+                                        : <User className="w-5 h-5 text-slate-300" />
                                     }
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
-                                        <h3 className="font-semibold text-white text-base truncate">{selectedUser.username ?? "(no username)"}</h3>
-                                        {selectedUser.is_banned && <Badge className="bg-red-500/15 text-red-300 border-red-500/25 text-[10px]">Banned</Badge>}
-                                        {saving && <Loader2 className="w-3.5 h-3.5 animate-spin text-white/30" />}
+                                        <h3 className="font-semibold text-slate-800 text-base truncate">{selectedUser.username ?? "(no username)"}</h3>
+                                        {selectedUser.is_banned && <Badge className="bg-red-50 text-red-600 border-red-200 text-[10px]">Banned</Badge>}
+                                        {saving && <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />}
                                     </div>
-                                    <p className="text-xs text-white/40 truncate mt-0.5">{selectedUser.email ?? "—"}</p>
-                                    <p className="text-[11px] text-white/20 font-mono mt-1 truncate">{selectedUser._id}</p>
+                                    <p className="text-xs text-slate-500 truncate mt-0.5">{selectedUser.email ?? "—"}</p>
+                                    <p className="text-[11px] text-slate-400 font-mono mt-1 truncate">{selectedUser._id}</p>
                                 </div>
                             </div>
 
                             {errorMsg && (
-                                <div className="flex items-center justify-between gap-2 mb-4 rounded-lg border border-red-500/20 bg-red-500/[0.07] px-3 py-2.5 text-xs text-red-300">
+                                <div className="flex items-center justify-between gap-2 mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-xs text-red-600">
                                     {errorMsg}
                                     <button onClick={() => setErrorMsg("")}><X className="w-3.5 h-3.5" /></button>
                                 </div>
@@ -247,8 +247,8 @@ export default function AdminUsersPanel() {
                                 <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
                                     {[["Created", safeDate(selectedUser.created_at)], ["Updated", safeDate(selectedUser.updated_at)]].map(([k, v]) => (
                                         <React.Fragment key={k}>
-                                            <span className="text-white/30">{k}</span>
-                                            <span className="text-white/70">{v}</span>
+                                            <span className="text-slate-400">{k}</span>
+                                            <span className="text-slate-700">{v}</span>
                                         </React.Fragment>
                                     ))}
                                 </div>
@@ -265,7 +265,7 @@ export default function AdminUsersPanel() {
                                     <input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className={inputCls} />
                                 </div>
                                 <Button size="sm" disabled={saving} onClick={() => void saveProfile()}
-                                    className="h-7 text-xs bg-white text-black hover:bg-white/90 font-semibold">
+                                    className="h-7 text-xs bg-blue-600 text-white hover:bg-blue-700 font-semibold shadow-sm">
                                     Save profile
                                 </Button>
                             </Section>
@@ -273,19 +273,19 @@ export default function AdminUsersPanel() {
                             {/* Profile image */}
                             <Section title="Profile image" collapsible>
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-lg border border-white/10 overflow-hidden bg-white/[0.04] shrink-0 flex items-center justify-center">
+                                    <div className="w-10 h-10 rounded-lg border border-slate-200 overflow-hidden bg-slate-50 shrink-0 flex items-center justify-center">
                                         {selectedUser.profile_image
                                             /* eslint-disable-next-line @next/next/no-img-element */
                                             ? <img src={selectedUser.profile_image} alt="" className="w-full h-full object-cover" />
-                                            : <ImagePlus className="w-4 h-4 text-white/15" />
+                                            : <ImagePlus className="w-4 h-4 text-slate-300" />
                                         }
                                     </div>
                                     <input type="file" accept="image/jpeg,image/png,image/jpg"
                                         onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
-                                        className="flex-1 text-[11px] text-white/40 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[11px] file:bg-white/[0.07] file:text-white hover:file:bg-white/[0.12] transition-colors" />
+                                        className="flex-1 text-[11px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[11px] file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 transition-colors" />
                                 </div>
                                 <Button size="sm" disabled={saving || !selectedFile} onClick={() => void saveProfileImage()}
-                                    className="h-7 text-xs bg-white/[0.07] text-white hover:bg-white/[0.12] border border-white/10">
+                                    className="h-7 text-xs bg-white text-slate-700 hover:bg-slate-50 border border-slate-200 shadow-sm">
                                     Upload image
                                 </Button>
                             </Section>
@@ -298,7 +298,7 @@ export default function AdminUsersPanel() {
                                         placeholder="Min. 8 characters" className={inputCls} />
                                 </div>
                                 <Button size="sm" disabled={saving} onClick={() => void resetPassword()}
-                                    className="h-7 text-xs bg-white text-black hover:bg-white/90 font-semibold">
+                                    className="h-7 text-xs bg-blue-600 text-white hover:bg-blue-700 font-semibold shadow-sm">
                                     <KeyRound className="w-3 h-3 mr-1.5" /> Reset password
                                 </Button>
                             </Section>
@@ -306,10 +306,10 @@ export default function AdminUsersPanel() {
                             {/* Ban management */}
                             <Section title="Ban management" collapsible>
                                 {selectedUser.is_banned && (
-                                    <div className="rounded-lg border border-red-500/20 bg-red-500/[0.07] px-3 py-2.5 space-y-1">
-                                        <p className="text-xs font-semibold text-red-300">User is currently banned</p>
-                                        {selectedUser.ban_reason && <p className="text-[11px] text-red-200/70">Reason: {selectedUser.ban_reason}</p>}
-                                        {selectedUser.banned_at  && <p className="text-[11px] text-red-200/50">Since: {safeDate(selectedUser.banned_at)}</p>}
+                                    <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 space-y-1">
+                                        <p className="text-xs font-semibold text-red-600">User is currently banned</p>
+                                        {selectedUser.ban_reason && <p className="text-[11px] text-red-500/80">Reason: {selectedUser.ban_reason}</p>}
+                                        {selectedUser.banned_at  && <p className="text-[11px] text-red-500/60">Since: {safeDate(selectedUser.banned_at)}</p>}
                                     </div>
                                 )}
                                 {!selectedUser.is_banned && (
@@ -320,10 +320,10 @@ export default function AdminUsersPanel() {
                                     </div>
                                 )}
                                 <Button size="sm" disabled={saving} onClick={() => void toggleBan()}
-                                    className={["h-7 text-xs font-semibold",
+                                    className={["h-7 text-xs font-semibold shadow-sm",
                                         selectedUser.is_banned
-                                            ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 hover:bg-emerald-500/25"
-                                            : "bg-red-500/15 text-red-300 border border-red-500/25 hover:bg-red-500/25"
+                                            ? "bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100"
+                                            : "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100"
                                     ].join(" ")}>
                                     {selectedUser.is_banned
                                         ? <><ShieldCheck className="w-3 h-3 mr-1.5" />Unban user</>
@@ -335,22 +335,22 @@ export default function AdminUsersPanel() {
                             {/* Activity log */}
                             <Section title="Activity log" collapsible>
                                 <Button size="sm" disabled={loadingActivity} onClick={() => void loadActivity()}
-                                    className="h-7 text-xs bg-white/[0.07] text-white/60 hover:text-white hover:bg-white/[0.12] border border-white/10">
+                                    className="h-7 text-xs bg-white text-slate-600 hover:text-slate-800 hover:bg-slate-50 border border-slate-200 shadow-sm">
                                     <Activity className="w-3 h-3 mr-1.5" />
                                     {loadingActivity ? "Loading…" : showActivity ? "Refresh" : "View activity"}
                                 </Button>
                                 {showActivity && (
-                                    <div className="max-h-52 overflow-auto rounded-lg border border-white/[0.07] bg-black/30 p-2 space-y-1.5 animate-in fade-in duration-150">
+                                    <div className="max-h-52 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-2 space-y-1.5 animate-in fade-in duration-150">
                                         {activityLogs.length === 0
-                                            ? <p className="text-xs text-white/25 text-center py-4">No activity found</p>
+                                            ? <p className="text-xs text-slate-400 text-center py-4">No activity found</p>
                                             : activityLogs.map((log) => (
-                                                <div key={log._id} className="rounded-md bg-white/[0.04] px-3 py-2">
+                                                <div key={log._id} className="rounded-md bg-white border border-slate-100 px-3 py-2 shadow-sm">
                                                     <div className="flex items-center justify-between gap-2">
-                                                        <span className="text-xs font-medium text-white/80 truncate">{log.action}</span>
-                                                        <span className="text-[10px] text-white/30 shrink-0">{safeDate(log.timestamp)}</span>
+                                                        <span className="text-xs font-medium text-slate-800 truncate">{log.action}</span>
+                                                        <span className="text-[10px] text-slate-400 shrink-0">{safeDate(log.timestamp)}</span>
                                                     </div>
                                                     {log.details != null && (
-                                                        <pre className="mt-1.5 text-[10px] text-white/40 overflow-auto max-h-24 leading-relaxed">
+                                                        <pre className="mt-1.5 text-[10px] text-slate-500 overflow-auto max-h-24 leading-relaxed bg-slate-50 p-1.5 rounded">
                                                             {safeJSON(log.details)}
                                                         </pre>
                                                     )}
@@ -365,19 +365,19 @@ export default function AdminUsersPanel() {
                             <Section title="Danger zone">
                                 {!showDeleteConfirm ? (
                                     <Button size="sm" onClick={() => setShowDeleteConfirm(true)}
-                                        className="h-7 text-xs bg-red-500/10 text-red-300 border border-red-500/25 hover:bg-red-500/20 font-semibold">
+                                        className="h-7 text-xs bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 font-semibold shadow-sm">
                                         <Trash2 className="w-3 h-3 mr-1.5" />Delete user
                                     </Button>
                                 ) : (
-                                    <div className="rounded-lg border border-red-500/20 bg-red-500/[0.07] p-3 space-y-3 animate-in fade-in duration-150">
-                                        <p className="text-xs text-red-200/80">This action is permanent and cannot be undone.</p>
+                                    <div className="rounded-lg border border-red-200 bg-red-50 p-3 space-y-3 animate-in fade-in duration-150">
+                                        <p className="text-xs text-red-600">This action is permanent and cannot be undone.</p>
                                         <div className="flex gap-2">
                                             <Button size="sm" disabled={saving} onClick={() => void deleteUser()}
-                                                className="h-7 text-xs bg-red-600 text-white hover:bg-red-700 font-semibold">
+                                                className="h-7 text-xs bg-red-600 text-white hover:bg-red-700 font-semibold shadow-sm">
                                                 Confirm delete
                                             </Button>
                                             <Button size="sm" variant="outline" onClick={() => setShowDeleteConfirm(false)}
-                                                className="h-7 text-xs border-white/10 bg-transparent text-white/40 hover:bg-white/[0.06] hover:text-white">
+                                                className="h-7 text-xs border-slate-200 bg-white text-slate-600 hover:bg-slate-50 shadow-sm">
                                                 Cancel
                                             </Button>
                                         </div>

@@ -60,21 +60,21 @@ export default function AdminHome() {
                 {CARDS.map(({ title, icon: Icon, description, stat, href }) => {
                     const value = stat && stats ? stats[stat] : null;
                     const inner = (
-                        <div className="relative rounded-xl border border-white/[0.07] bg-white/[0.03] p-5 h-36 flex flex-col justify-between group hover:border-white/[0.14] hover:bg-white/[0.05] transition-all duration-200">
+                        <div className="relative rounded-xl border border-slate-200 bg-white p-5 h-36 flex flex-col justify-between group hover:border-blue-200 hover:bg-slate-50 transition-all duration-200 shadow-sm">
                             <div className="flex items-start justify-between">
-                                <div className="w-9 h-9 rounded-lg bg-white/[0.06] flex items-center justify-center">
-                                    <Icon className="w-4 h-4 text-white/60" />
+                                <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
+                                    <Icon className="w-4 h-4 text-blue-600" />
                                 </div>
-                                {href && <ArrowRight className="w-4 h-4 text-white/15 group-hover:text-white/40 group-hover:translate-x-0.5 transition-all duration-200" />}
+                                {href && <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all duration-200" />}
                             </div>
                             <div>
                                 {stat
                                     ? loading
-                                        ? <Loader2 className="w-4 h-4 animate-spin text-white/25 mb-1" />
-                                        : <p className="text-2xl font-bold text-white tabular-nums">{value ?? 0}</p>
-                                    : <p className="text-2xl font-bold text-white">—</p>
+                                        ? <Loader2 className="w-4 h-4 animate-spin text-slate-400 mb-1" />
+                                        : <p className="text-2xl font-bold text-slate-800 tabular-nums">{value ?? 0}</p>
+                                    : <p className="text-2xl font-bold text-slate-800">—</p>
                                 }
-                                <p className="text-xs text-white/35 mt-0.5">{description}</p>
+                                <p className="text-xs text-slate-500 mt-0.5">{description}</p>
                             </div>
                         </div>
                     );
@@ -83,14 +83,14 @@ export default function AdminHome() {
             </div>
 
             <div>
-                <h2 className="text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-3">Quick actions</h2>
+                <h2 className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-3">Quick actions</h2>
                 <div className="space-y-1.5">
                     {QUICK.map(({ label, href, icon: Icon }) => (
                         <Link key={href} href={href}
-                            className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.07] bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/[0.14] group transition-all duration-150">
-                            <Icon className="w-4 h-4 text-white/35 group-hover:text-white/70 transition-colors duration-150" />
-                            <span className="text-sm text-white/60 group-hover:text-white transition-colors duration-150">{label}</span>
-                            <ArrowRight className="ml-auto w-3.5 h-3.5 text-white/15 group-hover:text-white/50 group-hover:translate-x-0.5 transition-all duration-200" />
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl border border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-200 group transition-all duration-150 shadow-sm">
+                            <Icon className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-colors duration-150" />
+                            <span className="text-sm text-slate-600 group-hover:text-blue-700 transition-colors duration-150">{label}</span>
+                            <ArrowRight className="ml-auto w-3.5 h-3.5 text-slate-300 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all duration-200" />
                         </Link>
                     ))}
                 </div>
