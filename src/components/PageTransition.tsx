@@ -9,7 +9,6 @@ export default function PageTransition({ children }: { children: React.ReactNode
   const [showContent, setShowContent] = useState(false);
 
   const pathname = usePathname();
-
   const safePath = pathname ?? "";
 
   const isAppRoute = useMemo(() => {
@@ -23,57 +22,56 @@ export default function PageTransition({ children }: { children: React.ReactNode
     };
 
     if (isAppRoute) {
-      const timer = setTimeout(() => {
+      const timer = window.setTimeout(() => {
         setIsLoading(false);
         setShowContent(true);
         restoreBody();
       }, 0);
+
       return () => {
-        clearTimeout(timer);
+        window.clearTimeout(timer);
         restoreBody();
       };
     }
 
-    const startTimer = setTimeout(() => {
+    const kickoffTimer = window.setTimeout(() => {
       setIsLoading(true);
       setShowContent(false);
     }, 0);
 
     const loadingTimer = window.setTimeout(() => {
       setIsLoading(false);
-
-      // Wait for the loading screen scale-up exit (850ms) before revealing content
       const contentTimer = window.setTimeout(() => {
         setShowContent(true);
-      }, 500);
+      }, 240);
 
       return () => window.clearTimeout(contentTimer);
-    }, 1400);
+    }, 620);
 
     return () => {
-      clearTimeout(startTimer);
+      window.clearTimeout(kickoffTimer);
       window.clearTimeout(loadingTimer);
       restoreBody();
     };
   }, [safePath, isAppRoute]);
 
   return (
-      <>
-        {!isAppRoute && <LoadingScreen isLoading={isLoading} />}
+    <>
+      {!isAppRoute && <LoadingScreen isLoading={isLoading} />}
 
-        <div
-            className={`min-h-screen ${
-                isAppRoute ? "duration-200" : "duration-[900ms]"
-            } ease-out transition-all ${
-                showContent
-                    ? "opacity-100 translate-y-0 scale-100"
-                    : isAppRoute
-                        ? "opacity-100 translate-y-0 scale-100"
-                        : "opacity-0 translate-y-3 scale-[0.98]"
-            }`}
-        >
-          {children}
-        </div>
-      </>
+      <div
+        className={`min-h-screen ${
+          isAppRoute ? "duration-200" : "duration-500"
+        } ease-out transition-all ${
+          showContent
+            ? "opacity-100 translate-y-0 scale-100"
+            : isAppRoute
+              ? "opacity-100 translate-y-0 scale-100"
+              : "opacity-0 translate-y-2 scale-[0.99]"
+        }`}
+      >
+        {children}
+      </div>
+    </>
   );
 }
