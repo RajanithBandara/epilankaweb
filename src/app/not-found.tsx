@@ -3,8 +3,17 @@
 import Link from 'next/link';
 import { Home, ArrowLeft, Search, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useEffect } from 'react';
 
 export default function NotFound() {
+  useEffect(() => {
+    document.body.classList.add('not-found-page');
+
+    return () => {
+      document.body.classList.remove('not-found-page');
+    };
+  }, []);
+
   return (
     <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F8FAFC] via-blue-50 to-teal-50 px-6 relative overflow-hidden">
       {/* Background Decorative Elements */}

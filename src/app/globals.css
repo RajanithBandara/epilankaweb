@@ -185,6 +185,10 @@ body {
     position: relative;
 }
 
+body.not-found-page .app-navbar {
+    display: none;
+}
+
 /* Ensure Next.js root takes full height */
 #__next {
     min-height: 100vh;
@@ -193,42 +197,50 @@ body {
 
 * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+    scrollbar-color: rgba(14, 165, 164, 0.7) rgba(30, 58, 138, 0.08);
 }
 
 *::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 12px;
+    height: 12px;
 }
 
 *::-webkit-scrollbar-track {
-    background: transparent;
+    background: linear-gradient(180deg, rgba(30, 58, 138, 0.08), rgba(14, 165, 164, 0.08));
+    border-radius: 9999px;
 }
 
 *::-webkit-scrollbar-thumb {
-    background: rgba(155, 155, 155, 0.5);
-    border-radius: 20px;
-    border: 2px solid transparent;
-    background-clip: content-box;
+    background: linear-gradient(180deg, var(--color-primary), var(--color-secondary));
+    border-radius: 9999px;
+    border: 3px solid rgba(248, 250, 252, 0.95);
+    box-shadow: 0 2px 8px rgba(30, 58, 138, 0.25);
 }
 
 *::-webkit-scrollbar-thumb:hover {
-    background: rgba(155, 155, 155, 0.7);
-    background-clip: content-box;
+    background: linear-gradient(180deg, var(--color-primary-hover), var(--color-secondary-hover));
 }
 
+*::-webkit-scrollbar-thumb:active {
+    background: linear-gradient(180deg, var(--color-primary-dark), var(--color-secondary-dark));
+}
+
+*::-webkit-scrollbar-corner {
+    background: transparent;
+}
 
 @media (prefers-color-scheme: dark) {
     * {
-        scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+        scrollbar-color: rgba(94, 234, 212, 0.7) rgba(15, 23, 42, 0.45);
+    }
+
+    *::-webkit-scrollbar-track {
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0.55), rgba(30, 41, 59, 0.45));
     }
 
     *::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.3);
-    }
-
-    *::-webkit-scrollbar-thumb:hover {
-        background: rgba(255, 255, 255, 0.5);
+        border-color: rgba(15, 23, 42, 0.85);
+        box-shadow: 0 2px 10px rgba(14, 165, 164, 0.35);
     }
 }
 

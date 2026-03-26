@@ -8,7 +8,7 @@ function NavBar() {
 
     return (
         <>
-            <nav className="fixed top-0 left-0 right-0 z-50 px-4 pt-4">
+            <nav className="app-navbar fixed top-0 left-0 right-0 z-50 px-4 pt-4">
                 {/* Centered bubble container */}
                 <div className="max-w-6xl mx-auto">
                     <motion.div
