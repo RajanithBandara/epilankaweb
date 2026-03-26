@@ -42,12 +42,13 @@ export default function PageTransition({ children }: { children: React.ReactNode
     const loadingTimer = window.setTimeout(() => {
       setIsLoading(false);
 
+      // Wait for the loading screen scale-up exit (850ms) before revealing content
       const contentTimer = window.setTimeout(() => {
         setShowContent(true);
-      }, 300);
+      }, 500);
 
       return () => window.clearTimeout(contentTimer);
-    }, 1000);
+    }, 1400);
 
     return () => {
       clearTimeout(startTimer);
@@ -61,14 +62,14 @@ export default function PageTransition({ children }: { children: React.ReactNode
         {!isAppRoute && <LoadingScreen isLoading={isLoading} />}
 
         <div
-            className={`min-h-screen transition-all ${
-                isAppRoute ? "duration-200" : "duration-700"
-            } ease-out ${
+            className={`min-h-screen ${
+                isAppRoute ? "duration-200" : "duration-[900ms]"
+            } ease-out transition-all ${
                 showContent
                     ? "opacity-100 translate-y-0 scale-100"
                     : isAppRoute
                         ? "opacity-100 translate-y-0 scale-100"
-                        : "opacity-0 translate-y-5 scale-95"
+                        : "opacity-0 translate-y-3 scale-[0.98]"
             }`}
         >
           {children}
