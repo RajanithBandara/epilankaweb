@@ -5,6 +5,7 @@ import NavbarHandler from "@/app/NavbarHandler";
 import NavBar from "@/components/NavBar";
 import { LoadingProvider } from "@/contexts/LoadingContext";
 import PageTransition from "@/components/PageTransition";
+import { ThemeProvider } from "next-themes";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,7 +19,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "EpiLanka",
-  description: "Sri Lankan Disease analyzys platform",
+  description: "Sri Lankan Disease analysis platform",
 };
 
 export default function RootLayout({
@@ -27,18 +28,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-      <LoadingProvider>
-        <NavbarHandler>
-          <NavBar/>
-        </NavbarHandler>
-        <PageTransition>
-          {children}
-        </PageTransition>
-      </LoadingProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange={false}>
+          <LoadingProvider>
+            <NavbarHandler>
+              <NavBar/>
+            </NavbarHandler>
+            <PageTransition>
+              {children}
+            </PageTransition>
+          </LoadingProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

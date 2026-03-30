@@ -3,7 +3,24 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import axios from 'axios';
-import { User, Lock, Camera, Check, X, Settings as SettingsIcon, Bell, Shield, HelpCircle } from 'lucide-react';
+import {
+    User,
+    Lock,
+    Camera,
+    Check,
+    X,
+    Settings as SettingsIcon,
+    Bell,
+    Shield,
+    HelpCircle,
+    Upload,
+    AlertCircle,
+    ChevronRight,
+    KeyRound,
+    Mail,
+    UserCircle2,
+    CalendarDays,
+} from 'lucide-react';
 
 interface UserData {
     _id: string;
@@ -15,214 +32,168 @@ interface UserData {
 }
 
 interface ApiError {
-    response?: {
-        data?: {
-            detail?: string;
-        };
-    };
+    response?: { data?: { detail?: string } };
     message?: string;
 }
 
 type SettingsTab = 'profile' | 'security' | 'appearance' | 'notifications' | 'help';
 
+const tabs = [
+    { id: 'profile'       as SettingsTab, label: 'Profile',       icon: User,        color: 'text-blue-600',   activeBg: 'bg-blue-50',   activeBorder: 'border-blue-200' },
+    { id: 'security'      as SettingsTab, label: 'Security',      icon: Lock,        color: 'text-rose-600',   activeBg: 'bg-rose-50',   activeBorder: 'border-rose-200' },
+    { id: 'appearance'    as SettingsTab, label: 'Appearance',    icon: Camera,      color: 'text-violet-600', activeBg: 'bg-violet-50', activeBorder: 'border-violet-200' },
+    { id: 'notifications' as SettingsTab, label: 'Notifications', icon: Bell,        color: 'text-amber-600',  activeBg: 'bg-amber-50',  activeBorder: 'border-amber-200' },
+    { id: 'help'          as SettingsTab, label: 'Help & Support', icon: HelpCircle, color: 'text-emerald-600',activeBg: 'bg-emerald-50',activeBorder: 'border-emerald-200' },
+];
+
+/* ── Small reusable field wrapper ─────────────────────────────────── */
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+        <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5">{label}</label>
+            {children}
+        </div>
+    );
+}
+
+/* ── Section card header ─────────────────────────────────────────── */
+function SectionHeader({ icon, title, subtitle }: {
+    icon: React.ReactNode;
+    title: string;
+    subtitle?: string;
+}) {
+    return (
+        <div className="card-panel-header -mx-5 -mt-5 mb-4 px-5 border-b border-slate-100">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#1e3a8a] to-[#2563eb]
+                flex items-center justify-center shadow-sm text-white shrink-0">
+                {icon}
+            </div>
+            <div>
+                <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+                {subtitle && <p className="text-xs text-slate-400">{subtitle}</p>}
+            </div>
+        </div>
+    );
+}
+
 export default function UserSettings() {
-    const [userData, setUserData] = useState<UserData | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-    const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
+    const [userData,        setUserData]        = useState<UserData | null>(null);
+    const [loading,         setLoading]         = useState(false);
+    const [alert,           setAlert]           = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+    const [activeTab,       setActiveTab]       = useState<SettingsTab>('profile');
 
-    // Form states
-    const [newUsername, setNewUsername] = useState('');
-    const [newEmail, setNewEmail] = useState('');
+    const [newUsername,     setNewUsername]     = useState('');
+    const [newEmail,        setNewEmail]        = useState('');
     const [currentPassword, setCurrentPassword] = useState('');
-    const [newPassword, setNewPassword] = useState('');
+    const [newPassword,     setNewPassword]     = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
-    const tabs = [
-        { id: 'profile' as SettingsTab, label: 'Profile', icon: User },
-        { id: 'security' as SettingsTab, label: 'Security', icon: Lock },
-        { id: 'appearance' as SettingsTab, label: 'Appearance', icon: Camera },
-        { id: 'notifications' as SettingsTab, label: 'Notifications', icon: Bell },
-        { id: 'help' as SettingsTab, label: 'Help & Support', icon: HelpCircle },
-    ];
+    const [selectedFile,    setSelectedFile]    = useState<File | null>(null);
+    const [previewUrl,      setPreviewUrl]      = useState<string | null>(null);
 
     const showAlert = (message: string, type: 'success' | 'error' = 'success') => {
         setAlert({ message, type });
-        setTimeout(() => setAlert(null), 4000);
+        setTimeout(() => setAlert(null), 4200);
     };
 
-
-    const getUserId = (): string | null => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('user_id');
-        }
-        return null;
-    };
+    const getUserId = (): string | null =>
+        typeof window !== 'undefined' ? localStorage.getItem('user_id') : null;
 
     const loadSettings = useCallback(async () => {
         const userId = getUserId();
-
-        if (!userId) {
-            showAlert('User ID not found. Please login again.', 'error');
-            return;
-        }
-
+        if (!userId) { showAlert('User ID not found. Please login again.', 'error'); return; }
         setLoading(true);
         try {
             const response = await axios.get(`/api/settings/${userId}`);
-
             setUserData(response.data.user);
             setNewUsername(response.data.user.username);
             setNewEmail(response.data.user.email);
         } catch (error) {
-            const apiError = error as ApiError;
-            const errorMsg = apiError.response?.data?.detail || apiError.message || 'Failed to load settings';
-            showAlert(errorMsg, 'error');
-        } finally {
-            setLoading(false);
-        }
+            const e = error as ApiError;
+            showAlert(e.response?.data?.detail || e.message || 'Failed to load settings', 'error');
+        } finally { setLoading(false); }
     }, []);
 
     const updateProfile = async () => {
         const userId = getUserId();
-
-        if (!userId) {
-            showAlert('User ID not found', 'error');
-            return;
-        }
-
+        if (!userId) { showAlert('User ID not found', 'error'); return; }
         const body: Record<string, string> = {};
         if (newUsername.trim()) body.username = newUsername;
-        if (newEmail.trim()) body.email = newEmail;
-
-        if (Object.keys(body).length === 0) {
-            showAlert('Enter at least one field to update', 'error');
-            return;
-        }
-
+        if (newEmail.trim())    body.email    = newEmail;
+        if (!Object.keys(body).length) { showAlert('Enter at least one field to update', 'error'); return; }
         setLoading(true);
         try {
             await axios.put(`/api/profile/${userId}`, body);
             showAlert('Profile updated successfully!');
             loadSettings();
         } catch (error) {
-            const apiError = error as ApiError;
-            const errorMsg = apiError.response?.data?.detail || apiError.message || 'Update failed';
-            showAlert(errorMsg, 'error');
-        } finally {
-            setLoading(false);
-        }
+            const e = error as ApiError;
+            showAlert(e.response?.data?.detail || e.message || 'Update failed', 'error');
+        } finally { setLoading(false); }
     };
 
     const changePassword = async () => {
         const userId = getUserId();
-
-        if (!userId) {
-            showAlert('User ID not found', 'error');
-            return;
-        }
-
-        if (!currentPassword || !newPassword || !confirmPassword) {
-            showAlert('All fields required', 'error');
-            return;
-        }
-
-        if (newPassword !== confirmPassword) {
-            showAlert('Passwords do not match', 'error');
-            return;
-        }
-
-        if (newPassword.length < 6) {
-            showAlert('Password must be 6+ characters', 'error');
-            return;
-        }
-
+        if (!userId) { showAlert('User ID not found', 'error'); return; }
+        if (!currentPassword || !newPassword || !confirmPassword) { showAlert('All fields required', 'error'); return; }
+        if (newPassword !== confirmPassword) { showAlert('Passwords do not match', 'error'); return; }
+        if (newPassword.length < 6) { showAlert('Password must be 6+ characters', 'error'); return; }
         setLoading(true);
         try {
             await axios.post(`/api/change-password/${userId}`, {
                 current_password: currentPassword,
-                new_password: newPassword,
+                new_password:     newPassword,
             });
-
             showAlert('Password changed successfully!');
-            setCurrentPassword('');
-            setNewPassword('');
-            setConfirmPassword('');
+            setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
         } catch (error) {
-            const apiError = error as ApiError;
-            const errorMsg = apiError.response?.data?.detail || apiError.message || 'Failed to change password';
-            showAlert(errorMsg, 'error');
-        } finally {
-            setLoading(false);
-        }
+            const e = error as ApiError;
+            showAlert(e.response?.data?.detail || e.message || 'Failed to change password', 'error');
+        } finally { setLoading(false); }
     };
 
     const uploadPicture = async () => {
         const userId = getUserId();
-
-        if (!userId || !selectedFile) {
-            showAlert('User ID or file not found', 'error');
-            return;
-        }
-
+        if (!userId || !selectedFile) { showAlert('User ID or file not found', 'error'); return; }
         const formData = new FormData();
         formData.append('file', selectedFile);
-
         setLoading(true);
         try {
             await axios.post(`/api/profilepic/${userId}`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
+                headers: { 'Content-Type': 'multipart/form-data' },
             });
-
             showAlert('Picture uploaded successfully!');
-            setSelectedFile(null);
-            setPreviewUrl(null);
-            loadSettings();
+            setSelectedFile(null); setPreviewUrl(null); loadSettings();
         } catch (error) {
-            const apiError = error as ApiError;
-            const errorMsg = apiError.response?.data?.detail || apiError.message || 'Upload failed';
-            showAlert(errorMsg, 'error');
-        } finally {
-            setLoading(false);
-        }
+            const e = error as ApiError;
+            showAlert(e.response?.data?.detail || e.message || 'Upload failed', 'error');
+        } finally { setLoading(false); }
     };
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
         setSelectedFile(file);
-
         if (file) {
             const reader = new FileReader();
-            reader.onloadend = () => {
-                setPreviewUrl(reader.result as string);
-            };
+            reader.onloadend = () => setPreviewUrl(reader.result as string);
             reader.readAsDataURL(file);
         } else {
             setPreviewUrl(null);
         }
     };
 
-    useEffect(() => {
-        loadSettings();
-    }, [loadSettings]);
+    useEffect(() => { loadSettings(); }, [loadSettings]);
 
     if (!getUserId()) {
         return (
-            <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center px-4">
-                <div className="bg-white border-2 border-gray-200 rounded-xl shadow-xl p-8 max-w-md w-full text-center">
-                    <div className="w-16 h-16 bg-gradient-to-br from-[#1E3A8A] to-[#1e40af] rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Lock className="w-8 h-8 text-white" />
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <div className="card-primary max-w-sm w-full text-center space-y-4">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#1e3a8a] to-[#2563eb]
+                        flex items-center justify-center mx-auto shadow-lg">
+                        <Lock className="w-7 h-7 text-white" />
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h2>
-                    <p className="text-gray-600 mb-6">Please log in to access your settings.</p>
-                    <button
-                        onClick={() => window.location.href = '/login'}
-                        className="w-full bg-[#1E3A8A] hover:bg-[#1e40af] text-white font-semibold py-3 rounded-lg shadow-md hover:shadow-lg transition duration-300"
-                    >
+                    <h2 className="text-lg font-bold text-slate-900">Authentication Required</h2>
+                    <p className="text-sm text-slate-500">Please log in to access your settings.</p>
+                    <button onClick={() => window.location.href = '/login'} className="btn-primary w-full">
                         Go to Login
                     </button>
                 </div>
@@ -231,266 +202,333 @@ export default function UserSettings() {
     }
 
     return (
-        <div className="min-h-0 h-auto flex items-start justify-center py-6 sm:py-8 md:py-10 px-4 sm:px-6 bg-transparent">
-            <div className="w-full max-w-3xl space-y-6 pb-4">
-                {/* Page Header */}
-                <div className="text-center space-y-1">
-                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-[#1E3A8A] text-white mb-1">
-                        <SettingsIcon className="w-5 h-5" />
-                    </div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-[#1E3A8A]">Settings</h1>
-                    <p className="text-xs sm:text-sm text-gray-600">Manage your account preferences</p>
+        <div className="space-y-5 py-2">
+
+            {/* ── Page header ───────────────────────────────────────────────── */}
+            <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1e3a8a] to-[#2563eb]
+                    flex items-center justify-center shadow-md">
+                    <SettingsIcon className="w-5 h-5 text-white" />
                 </div>
+                <div>
+                    <h1 className="text-xl font-bold text-slate-900">Settings</h1>
+                    <p className="text-xs text-slate-400">Manage your account preferences</p>
+                </div>
+            </div>
 
-                {/* Alert */}
-                {alert && (
-                    <div
-                        className={`rounded-lg p-3 border-l-4 flex items-center gap-3 text-xs sm:text-sm ${{
-                            success: 'bg-green-50 border-green-500 text-green-800',
-                            error: 'bg-red-50 border-red-500 text-red-800',
-                        }[alert.type]}`}
-                    >
-                        {alert.type === 'success' ? (
-                            <Check className="w-4 h-4 flex-shrink-0" />
-                        ) : (
-                            <X className="w-4 h-4 flex-shrink-0" />
-                        )}
-                        <span className="font-medium">{alert.message}</span>
-                    </div>
-                )}
+            {/* ── Alert banner ──────────────────────────────────────────────── */}
+            {alert && (
+                <div className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-medium animate-fade-in-scale ${
+                    alert.type === 'success'
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                        : 'bg-rose-50 border-rose-200 text-rose-800'
+                }`}>
+                    {alert.type === 'success'
+                        ? <Check className="w-4 h-4 shrink-0" />
+                        : <AlertCircle className="w-4 h-4 shrink-0" />
+                    }
+                    {alert.message}
+                    <button onClick={() => setAlert(null)} className="ml-auto opacity-60 hover:opacity-100">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
 
-                {/* Tabs Navigation */}
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-2">
-                    <div className="flex gap-1 overflow-x-auto">
+            {/* ── Settings body: sidebar tabs + panel ───────────────────────── */}
+            <div className="flex flex-col sm:flex-row gap-4">
+
+                {/* ── Vertical Tab Sidebar (sm+) / Horizontal scrollbar (xs) ── */}
+                <div className="sm:w-44 shrink-0">
+                    {/* Mobile: horizontal scroll strip */}
+                    <div className="sm:hidden flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
                         {tabs.map((tab) => {
-                            const Icon = tab.icon;
+                            const Icon     = tab.icon;
                             const isActive = activeTab === tab.id;
-
                             return (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-colors ${
-                                        isActive
-                                            ? 'bg-[#1E3A8A] text-white'
-                                            : 'text-gray-600 hover:bg-gray-100'
-                                    }`}
+                                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold
+                                        whitespace-nowrap shrink-0 transition-all duration-180 border
+                                        ${isActive
+                                            ? `${tab.activeBg} ${tab.color} ${tab.activeBorder} shadow-sm`
+                                            : 'text-slate-500 bg-white border-slate-200 hover:bg-slate-50'
+                                        }`}
                                 >
-                                    <Icon className="w-4 h-4" />
-                                    <span className="hidden sm:inline">{tab.label}</span>
+                                    <Icon className="w-3.5 h-3.5" />
+                                    {tab.label}
                                 </button>
                             );
                         })}
                     </div>
+
+                    {/* Desktop: vertical sidebar tabs */}
+                    <nav className="hidden sm:flex flex-col gap-1 p-1 rounded-2xl border border-slate-200/80
+                        bg-white/90 shadow-sm">
+                        {tabs.map((tab) => {
+                            const Icon     = tab.icon;
+                            const isActive = activeTab === tab.id;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm
+                                        text-left font-medium transition-all duration-180 group
+                                        ${isActive
+                                            ? `${tab.activeBg} ${tab.color} shadow-sm`
+                                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                                        }`}
+                                >
+                                    <span className={`flex items-center justify-center w-7 h-7 rounded-lg shrink-0
+                                        transition-colors duration-150
+                                        ${isActive
+                                            ? 'bg-white/80 shadow-sm'
+                                            : 'bg-slate-100 group-hover:bg-slate-200/70'
+                                        }`}>
+                                        <Icon className="w-3.5 h-3.5" />
+                                    </span>
+                                    <span className="flex-1 text-left">{tab.label}</span>
+                                    {isActive && <ChevronRight className="w-3.5 h-3.5 opacity-50 shrink-0" />}
+                                </button>
+                            );
+                        })}
+                    </nav>
                 </div>
 
-                {/* Tab Content */}
-                <div className="space-y-6">
-                    {/* Profile Tab */}
+                {/* ── Tab content panel ─────────────────────────────────────── */}
+                <div className="flex-1 min-w-0">
+
+                    {/* ── Profile tab ─────────────────────────────────────────── */}
                     {activeTab === 'profile' && userData && (
-                        <div className="space-y-4">
-                            {/* Profile Overview Card */}
-                            <div className="card-primary flex items-center gap-4">
-                                <div>
-                                    {userData.profile_image ? (
-                                        <Image
-                                            src={userData.profile_image}
-                                            alt="Profile"
-                                            width={72}
-                                            height={72}
-                                            className="rounded-full object-cover border-4 border-white shadow-md"
-                                        />
-                                    ) : (
-                                        <div className="w-18 h-18 bg-gray-100 rounded-full flex items-center justify-center border border-gray-200">
-                                            <User className="w-8 h-8 text-gray-500" />
+                        <div className="space-y-4 animate-fade-in-scale">
+                            {/* Profile overview card */}
+                            <div className="card-panel overflow-hidden">
+                                {/* Top gradient */}
+                                <div className="h-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-t-2xl" />
+                                <div className="px-5 pb-5 pt-0 -mt-6">
+                                    <div className="flex items-end gap-4">
+                                        {userData.profile_image ? (
+                                            <Image
+                                                src={userData.profile_image}
+                                                alt="Profile"
+                                                width={72}
+                                                height={72}
+                                                className="rounded-2xl object-cover ring-4 ring-white shadow-md"
+                                            />
+                                        ) : (
+                                            <div className="w-[72px] h-[72px] rounded-2xl
+                                                bg-gradient-to-br from-slate-200 to-slate-300
+                                                flex items-center justify-center ring-4 ring-white shadow-md">
+                                                <UserCircle2 className="w-9 h-9 text-slate-500" />
+                                            </div>
+                                        )}
+                                        <div className="pb-1 flex-1 min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <h2 className="text-base font-bold text-slate-900 truncate">{userData.username}</h2>
+                                                <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                                            </div>
+                                            <p className="text-sm text-slate-500 flex items-center gap-1.5 mt-0.5">
+                                                <Mail className="w-3.5 h-3.5 text-slate-400" />
+                                                {userData.email}
+                                            </p>
+                                            <p className="text-xs text-slate-400 flex items-center gap-1.5 mt-1">
+                                                <CalendarDays className="w-3 h-3" />
+                                                Member since {new Date(userData.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                                            </p>
                                         </div>
-                                    )}
-                                </div>
-                                <div className="flex-1">
-                                    <h2 className="text-lg font-semibold text-gray-900">{userData.username}</h2>
-                                    <p className="text-sm text-gray-600">{userData.email}</p>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        Member since {new Date(userData.created_at).toLocaleDateString()}
-                                    </p>
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Update Profile Form */}
+                            {/* Edit profile form */}
                             <div className="card-primary space-y-4">
-                                <h3 className="text-base font-semibold text-gray-900">Edit Profile</h3>
-                                <div className="space-y-3">
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-600 mb-1">
-                                            Username
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={newUsername}
-                                            onChange={(e) => setNewUsername(e.target.value)}
-                                            placeholder="Enter new username"
-                                            className="input-primary"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-600 mb-1">
-                                            Email Address
-                                        </label>
-                                        <input
-                                            type="email"
-                                            value={newEmail}
-                                            onChange={(e) => setNewEmail(e.target.value)}
-                                            placeholder="Enter new email"
-                                            className="input-primary"
-                                        />
-                                    </div>
-                                    <button
-                                        onClick={updateProfile}
-                                        disabled={loading}
-                                        className="btn-primary w-full"
-                                    >
-                                        {loading ? 'Saving…' : 'Save Changes'}
-                                    </button>
-                                </div>
+                                <SectionHeader
+                                    icon={<UserCircle2 className="w-4 h-4" />}
+                                    title="Edit Profile"
+                                    subtitle="Update your username and email"
+                                />
+                                <Field label="Username">
+                                    <input
+                                        type="text"
+                                        value={newUsername}
+                                        onChange={(e) => setNewUsername(e.target.value)}
+                                        placeholder="Enter new username"
+                                        className="input-primary"
+                                    />
+                                </Field>
+                                <Field label="Email Address">
+                                    <input
+                                        type="email"
+                                        value={newEmail}
+                                        onChange={(e) => setNewEmail(e.target.value)}
+                                        placeholder="Enter new email"
+                                        className="input-primary"
+                                    />
+                                </Field>
+                                <button onClick={updateProfile} disabled={loading} className="btn-primary w-full">
+                                    {loading ? 'Saving…' : 'Save Changes'}
+                                </button>
                             </div>
                         </div>
                     )}
 
-                    {/* Security Tab */}
+                    {/* ── Security tab ────────────────────────────────────────── */}
                     {activeTab === 'security' && (
-                        <div className="space-y-4">
+                        <div className="space-y-4 animate-fade-in-scale">
                             <div className="card-primary space-y-4">
-                                <div className="flex items-center gap-2">
-                                    <Lock className="w-4 h-4 text-[#1E3A8A]" />
-                                    <h3 className="text-base font-semibold text-gray-900">Change Password</h3>
-                                </div>
-                                <div className="space-y-3">
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-600 mb-1">
-                                            Current Password
-                                        </label>
+                                <SectionHeader
+                                    icon={<KeyRound className="w-4 h-4" />}
+                                    title="Change Password"
+                                    subtitle="Choose a strong, unique password"
+                                />
+                                <Field label="Current Password">
+                                    <input
+                                        type="password"
+                                        value={currentPassword}
+                                        onChange={(e) => setCurrentPassword(e.target.value)}
+                                        className="input-primary"
+                                        placeholder="••••••••"
+                                    />
+                                </Field>
+                                <div className="grid sm:grid-cols-2 gap-3">
+                                    <Field label="New Password">
                                         <input
                                             type="password"
-                                            value={currentPassword}
-                                            onChange={(e) => setCurrentPassword(e.target.value)}
+                                            value={newPassword}
+                                            onChange={(e) => setNewPassword(e.target.value)}
                                             className="input-primary"
+                                            placeholder="••••••••"
                                         />
-                                    </div>
-                                    <div className="grid sm:grid-cols-2 gap-3">
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-600 mb-1">
-                                                New Password
-                                            </label>
-                                            <input
-                                                type="password"
-                                                value={newPassword}
-                                                onChange={(e) => setNewPassword(e.target.value)}
-                                                className="input-primary"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-600 mb-1">
-                                                Confirm Password
-                                            </label>
-                                            <input
-                                                type="password"
-                                                value={confirmPassword}
-                                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                                className="input-primary"
-                                            />
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={changePassword}
-                                        disabled={loading}
-                                        className="btn-secondary w-full"
-                                    >
-                                        {loading ? 'Updating…' : 'Update Password'}
-                                    </button>
+                                    </Field>
+                                    <Field label="Confirm Password">
+                                        <input
+                                            type="password"
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                            className="input-primary"
+                                            placeholder="••••••••"
+                                        />
+                                    </Field>
                                 </div>
+                                <button onClick={changePassword} disabled={loading} className="btn-primary w-full">
+                                    {loading ? 'Updating…' : 'Update Password'}
+                                </button>
                             </div>
 
-                            <div className="card-primary bg-blue-50 border-blue-100">
-                                <div className="flex gap-2">
-                                    <Shield className="w-4 h-4 text-[#1E3A8A] mt-0.5" />
-                                    <div>
-                                        <h4 className="text-sm font-semibold text-[#1E3A8A] mb-1">
-                                            Password tips
-                                        </h4>
-                                        <ul className="text-xs text-gray-700 space-y-1">
-                                            <li>• Use at least 6 characters</li>
-                                            <li>• Mix letters, numbers, and symbols</li>
-                                            <li>• Avoid reusing old passwords</li>
-                                        </ul>
-                                    </div>
+                            {/* Security tip card */}
+                            <div className="card-panel overflow-hidden">
+                                <div className="card-panel-header border-b border-blue-100 bg-blue-50/60">
+                                    <Shield className="w-4 h-4 text-blue-700 shrink-0" />
+                                    <h4 className="text-xs font-bold text-blue-800">Password Requirements</h4>
                                 </div>
+                                <ul className="px-5 py-4 space-y-2">
+                                    {['At least 6 characters long',
+                                      'Mix letters, numbers, and symbols',
+                                      'Avoid reusing old passwords'].map((tip) => (
+                                        <li key={tip} className="flex items-center gap-2 text-xs text-slate-600">
+                                            <ChevronRight className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                                            {tip}
+                                        </li>
+                                    ))}
+                                </ul>
                             </div>
                         </div>
                     )}
 
-                    {/* Appearance Tab */}
+                    {/* ── Appearance tab ──────────────────────────────────────── */}
                     {activeTab === 'appearance' && (
-                        <div className="card-primary space-y-4">
-                            <div className="flex items-center gap-2 mb-2">
-                                <Camera className="w-4 h-4 text-[#1E3A8A]" />
-                                <h3 className="text-base font-semibold text-gray-900">Profile Picture</h3>
-                            </div>
+                        <div className="card-primary space-y-4 animate-fade-in-scale">
+                            <SectionHeader
+                                icon={<Camera className="w-4 h-4" />}
+                                title="Profile Picture"
+                                subtitle="Upload a JPG or PNG, max 5 MB"
+                            />
+
                             {previewUrl && (
-                                <div className="text-center">
+                                <div className="flex flex-col items-center gap-2">
                                     <Image
                                         src={previewUrl}
                                         alt="Preview"
-                                        width={80}
-                                        height={80}
-                                        className="rounded-full object-cover border-4 border-[#1E3A8A] mx-auto mb-2"
+                                        width={88}
+                                        height={88}
+                                        className="rounded-2xl object-cover ring-2 ring-blue-200 shadow-md"
                                     />
-                                    <p className="text-xs text-gray-500">Preview</p>
+                                    <span className="text-xs text-slate-400">Preview</span>
                                 </div>
                             )}
-                            <div className="space-y-2">
-                                <label className="block text-xs font-medium text-gray-600 mb-1">
-                                    Upload new picture
-                                </label>
+
+                            <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50
+                                p-6 text-center hover:border-blue-300 hover:bg-blue-50/40 transition-colors duration-200">
+                                <Upload className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                                <p className="text-sm font-medium text-slate-600 mb-1">Choose a file to upload</p>
+                                <p className="text-xs text-slate-400 mb-3">JPG or PNG, max 5 MB</p>
                                 <input
                                     type="file"
                                     accept="image/jpeg,image/png,image/jpg"
                                     onChange={handleFileSelect}
-                                    className="block w-full text-xs text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-[#1E3A8A] file:text-white file:text-xs hover:file:bg-[#1e40af]"
+                                    id="profile-pic-input"
+                                    className="hidden"
                                 />
-                                <p className="text-xs text-gray-500">JPG or PNG, max 5MB.</p>
+                                <label
+                                    htmlFor="profile-pic-input"
+                                    className="btn-secondary text-xs px-4 py-1.5 cursor-pointer"
+                                >
+                                    Browse File
+                                </label>
+                                {selectedFile && (
+                                    <p className="text-xs text-slate-600 mt-2 font-medium truncate px-2">
+                                        {selectedFile.name}
+                                    </p>
+                                )}
                             </div>
+
                             <button
                                 onClick={uploadPicture}
                                 disabled={loading || !selectedFile}
-                                className="btn-secondary w-full"
+                                className="btn-primary w-full"
                             >
                                 {loading ? 'Uploading…' : 'Upload Picture'}
                             </button>
                         </div>
                     )}
 
-                    {/* Notifications Tab */}
+                    {/* ── Notifications tab ───────────────────────────────────── */}
                     {activeTab === 'notifications' && (
-                        <div className="card-primary">
-                            <div className="flex items-center gap-2 mb-2">
-                                <Bell className="w-4 h-4 text-[#1E3A8A]" />
-                                <h3 className="text-base font-semibold text-gray-900">Notifications</h3>
+                        <div className="card-panel animate-fade-in-scale">
+                            <div className="card-panel-header border-b border-amber-100 bg-amber-50/40">
+                                <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center shadow-sm">
+                                    <Bell className="w-4 h-4 text-amber-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-semibold text-slate-900">Notifications</h3>
+                                    <p className="text-xs text-slate-400">Alert preferences</p>
+                                </div>
                             </div>
-                            <p className="text-sm text-gray-600">
-                                Notification settings will be available soon.
-                            </p>
+                            <div className="px-5 py-10 text-center">
+                                <p className="text-sm text-slate-500">
+                                    Notification settings will be available in a future update.
+                                </p>
+                            </div>
                         </div>
                     )}
 
-                    {/* Help & Support Tab */}
+                    {/* ── Help & Support tab ──────────────────────────────────── */}
                     {activeTab === 'help' && (
-                        <div className="card-primary">
-                            <div className="flex items-center gap-2 mb-2">
-                                <HelpCircle className="w-4 h-4 text-[#1E3A8A]" />
-                                <h3 className="text-base font-semibold text-gray-900">Help & Support</h3>
+                        <div className="card-panel animate-fade-in-scale">
+                            <div className="card-panel-header border-b border-emerald-100 bg-emerald-50/40">
+                                <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center shadow-sm">
+                                    <HelpCircle className="w-4 h-4 text-emerald-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-semibold text-slate-900">Help &amp; Support</h3>
+                                    <p className="text-xs text-slate-400">Resources &amp; documentation</p>
+                                </div>
                             </div>
-                            <p className="text-sm text-gray-600">
-                                Support resources will be added here in a future update.
-                            </p>
+                            <div className="px-5 py-10 text-center">
+                                <p className="text-sm text-slate-500">
+                                    Support resources and documentation will be added here in a future update.
+                                </p>
+                            </div>
                         </div>
                     )}
                 </div>
