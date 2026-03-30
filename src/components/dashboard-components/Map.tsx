@@ -1,20 +1,11 @@
-"use client";
+'use client';
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import * as tt from "@tomtom-international/web-sdk-maps";
 import "@tomtom-international/web-sdk-maps/dist/maps.css";
 import { useLocation } from "@/contexts/LocationContext";
-
-// shared pill component must be defined outside to satisfy react-hooks/static-components
-const RiskPill = ({ level, getRiskColor }: { level: RiskLevel; getRiskColor: (lvl: RiskLevel) => string }) => (
-    <span
-        className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold text-white"
-        style={{ backgroundColor: getRiskColor(level) }}
-    >
-        <span className="inline-block w-2 h-2 rounded-full bg-white/90" />
-        {level.toUpperCase()}
-    </span>
-);
+import { Badge } from "@/components/ui/badge";
+import { Map as MapIcon, Loader2, AlertTriangle, CheckCircle2, Navigation, Activity } from "lucide-react";
 
 type RiskLevel = "safe" | "low" | "medium" | "high";
 
@@ -25,41 +16,48 @@ interface DiseaseRisk {
     level: RiskLevel;
 }
 
-function MapComponent() {
+const getSeverityConfig = (severity: RiskLevel) => {
+    switch (severity) {
+        case "high": return { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200", color: "#e11d48", dot: "bg-rose-500", strip: "bg-rose-400" };
+        case "medium": return { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200", color: "#d97706", dot: "bg-amber-500", strip: "bg-amber-400" };
+        case "low": return { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200", color: "#2563eb", dot: "bg-blue-500", strip: "bg-blue-400" };
+        case "safe": return { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", color: "#059669", dot: "bg-emerald-500", strip: "bg-emerald-400" };
+        default: return { bg: "bg-slate-50", text: "text-slate-700", border: "border-slate-200", color: "#64748b", dot: "bg-slate-500", strip: "bg-slate-300" };
+    }
+};
+
+const getMaxRiskLevel = (riskLevels: Record<string, DiseaseRisk>): RiskLevel => {
+    const priority: Record<RiskLevel, number> = { safe: 0, low: 1, medium: 2, high: 3 };
+    return Object.values(riskLevels).reduce<RiskLevel>(
+        (max, d) => (priority[d.level] > priority[max] ? d.level : max),
+        "safe"
+    );
+};
+
+export default function MapComponent() {
     const mapElement = useRef<HTMLDivElement>(null);
     const mapRef = useRef<tt.Map | null>(null);
     const nearbyMarkerRef = useRef<tt.Marker | null>(null);
     const userMarkerRef = useRef<tt.Marker | null>(null);
 
     const { locationData, isLoading: contextLoading, error: contextError } = useLocation();
-
     const [mapReady, setMapReady] = useState(false);
-    const [panelOpen, setPanelOpen] = useState(true);
 
     const isLoading = contextLoading || !mapReady;
 
-    const getRiskColor = (level: RiskLevel): string => {
-        switch (level) {
-            case "safe":
-                return "#16A34A";
-            case "low":
-                return "#EAB308";
-            case "medium":
-                return "#F97316";
-            case "high":
-                return "#DC2626";
-            default:
-                return "#64748B";
-        }
-    };
+    const area = locationData?.nearest_area;
+    const riskList = useMemo(() => {
+        if (!area) return [];
+        return Object.values(area.risk_levels).sort((a, b) => {
+            const p: Record<RiskLevel, number> = { high: 3, medium: 2, low: 1, safe: 0 };
+            return p[b.level] - p[a.level];
+        });
+    }, [area]);
 
-    const getMaxRiskLevel = (riskLevels: Record<string, DiseaseRisk>): RiskLevel => {
-        const priority: Record<RiskLevel, number> = { safe: 0, low: 1, medium: 2, high: 3 };
-        return Object.values(riskLevels).reduce<RiskLevel>(
-            (max, d) => (priority[d.level] > priority[max] ? d.level : max),
-            "safe"
-        );
-    };
+    const overallRisk = useMemo(() => {
+        if (!area) return "safe" as RiskLevel;
+        return getMaxRiskLevel(area.risk_levels);
+    }, [area]);
 
     const circleGeoJson = (center: [number, number], radiusMeters: number) => {
         const points = 64;
@@ -71,10 +69,8 @@ function MapComponent() {
 
         for (let i = 0; i < points; i++) {
             const angle = (i / points) * 2 * Math.PI;
-
             const dLat = (radiusKm / 111) * Math.cos(angle);
             const dLng = (radiusKm / (111 * Math.cos(latRad))) * Math.sin(angle);
-
             coords.push([lng + dLng, lat + dLat]);
         }
         coords.push(coords[0]);
@@ -98,26 +94,17 @@ function MapComponent() {
 
         if (!map.getSource(sourceId)) {
             map.addSource(sourceId, { type: "geojson", data });
-
             map.addLayer({
                 id: fillId,
                 type: "fill",
                 source: sourceId,
-                paint: {
-                    "fill-color": color,
-                    "fill-opacity": 0.18,
-                },
+                paint: { "fill-color": color, "fill-opacity": 0.15 },
             });
-
             map.addLayer({
                 id: outlineId,
                 type: "line",
                 source: sourceId,
-                paint: {
-                    "line-color": color,
-                    "line-width": 2,
-                    "line-opacity": 0.9,
-                },
+                paint: { "line-color": color, "line-width": 2, "line-opacity": 0.8 },
             });
         } else {
             const src = map.getSource(sourceId) as tt.GeoJSONSource;
@@ -125,36 +112,21 @@ function MapComponent() {
             map.setPaintProperty(fillId, "fill-color", color);
             map.setPaintProperty(outlineId, "line-color", color);
         }
-    }, []); // Empty deps since it only uses its parameters and circleGeoJson which is stable
+    }, []);
 
-
-    // Memo values for UI so it doesn't recalc a lot
-    const area = locationData?.nearest_area;
-    const riskList = useMemo(() => {
-        if (!area) return [];
-        return Object.values(area.risk_levels);
-    }, [area]);
-
-    const overallRisk = useMemo(() => {
-        if (!area) return "safe" as RiskLevel;
-        return getMaxRiskLevel(area.risk_levels);
-    }, [area]);
-
-    // Init map once
     useEffect(() => {
         if (!mapElement.current) return;
-        if (mapRef.current) return; // ✅ prevents re-init
+        if (mapRef.current) return;
 
         const map = tt.map({
             key: process.env.NEXT_PUBLIC_TOMTOM_API_KEY!,
             container: mapElement.current,
             center: [80.7718, 7.8731],
-            zoom: 8,
-            language: "en-GB",
+            zoom: 7.5,
+            language: "si",
         });
 
         mapRef.current = map;
-
         map.on("load", () => setMapReady(true));
 
         return () => {
@@ -165,7 +137,6 @@ function MapComponent() {
         };
     }, []);
 
-    // Update markers when locationData changes
     useEffect(() => {
         const map = mapRef.current;
         if (!map || !mapReady || !locationData) return;
@@ -173,43 +144,38 @@ function MapComponent() {
         const { latitude, longitude } = locationData.user_location;
         const userCoords: [number, number] = [longitude, latitude];
 
-        // Remove previous markers
         userMarkerRef.current?.remove();
         nearbyMarkerRef.current?.remove();
 
-        userMarkerRef.current = new tt.Marker({ color: "#1E3A8A" })
+        const userPopupHtml = `
+            <div style="font-family: inherit; margin: -4px;">
+                <div style="font-weight:700; font-size: 13px; margin-bottom: 2px; color: #1e293b;">Your Location</div>
+                <div style="font-size:11px; color: #64748b;">${latitude.toFixed(4)}, ${longitude.toFixed(4)}</div>
+            </div>`;
+
+        userMarkerRef.current = new tt.Marker({ color: "#2563eb" })
             .setLngLat(userCoords)
-            .setPopup(
-                new tt.Popup({ offset: 26 }).setHTML(
-                    `<div style="font-weight:700;margin-bottom:4px;">Your Location</div>
-           <div style="font-size:12px;opacity:.85;">Lat: ${latitude.toFixed(4)} · Lng: ${longitude.toFixed(4)}</div>`
-                )
-            )
+            .setPopup(new tt.Popup({ offset: 26, className: "custom-map-popup" }).setHTML(userPopupHtml))
             .addTo(map);
 
         if (locationData.nearest_area) {
             const a = locationData.nearest_area;
             const areaCoords: [number, number] = [a.longitude, a.latitude];
-
             const maxRisk = getMaxRiskLevel(a.risk_levels);
-            const markerColor = getRiskColor(maxRisk);
+            const markerColor = getSeverityConfig(maxRisk).color;
+            const riskListHtml = Object.values(a.risk_levels).map(r => `<div style="font-size:11px; margin-bottom:2px;">• ${r.disease_name}: <b>${r.level}</b></div>`).join('');
+            const areaPopupHtml = `
+                <div style="font-family: inherit; margin: -4px; width: 160px;">
+                    <div style="font-weight:700; font-size: 14px; margin-bottom: 2px; color: #0f172a;">${a.district_name}</div>
+                    <div style="font-size:11px; color: #64748b; margin-bottom: 8px;">${a.province_name} · ${a.distance.toFixed(1)} km</div>
+                    <div style="border-top: 1px solid #e2e8f0; padding-top: 6px;">
+                        ${riskListHtml}
+                    </div>
+                </div>`;
 
             nearbyMarkerRef.current = new tt.Marker({ color: markerColor })
                 .setLngLat(areaCoords)
-                .setPopup(
-                    new tt.Popup({ offset: 26 }).setHTML(
-                        `<div style="font-weight:800;margin-bottom:4px;">${a.district_name}</div>
-             <div style="font-size:12px;opacity:.9;margin-bottom:8px;">${a.province_name} · ${a.distance.toFixed(
-                            2
-                        )} km</div>
-             <div style="font-weight:700;margin-bottom:4px;">Risk levels</div>
-             <div style="font-size:12px;line-height:1.4;">
-               ${Object.values(a.risk_levels)
-                            .map((d) => `• ${d.disease_name}: <b>${d.level}</b> (${d.count})`)
-                            .join("<br/>")}
-             </div>`
-                    )
-                )
+                .setPopup(new tt.Popup({ offset: 26, className: "custom-map-popup" }).setHTML(areaPopupHtml))
                 .addTo(map);
 
             upsertCircle(map, areaCoords, 5000, markerColor);
@@ -217,7 +183,12 @@ function MapComponent() {
             const bounds = new tt.LngLatBounds();
             bounds.extend(userCoords);
             bounds.extend(areaCoords);
-            map.fitBounds(bounds, { padding: 110, maxZoom: 12 });
+            // Slight delay to ensure map layout is ready before fitting bounds
+            setTimeout(() => {
+                if (mapRef.current) {
+                    mapRef.current.fitBounds(bounds, { padding: 80, maxZoom: 12 });
+                }
+            }, 100);
         } else {
             map.setCenter(userCoords);
             map.setZoom(12);
@@ -225,141 +196,139 @@ function MapComponent() {
     }, [locationData, mapReady, upsertCircle]);
 
     return (
-        <div className="relative w-full h-[calc(100vh-4.75rem)] md:h-[600px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border border-gray-200 bg-gray-100 max-h-[760px] md:max-h-none">
-            {/* Map */}
-            <div ref={mapElement} className="w-full h-full" />
+        <div className="space-y-5 py-2">
 
-            {/* Soft top gradient for readability */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-24 sm:h-28 bg-gradient-to-b from-black/25 to-transparent" />
-
-            {/* Legend */}
-            <div className="absolute left-3 sm:left-4 top-3 sm:top-4 z-20">
-                <div className="bg-white/90 backdrop-blur-xl border border-gray-200 rounded-2xl shadow-xl px-3 sm:px-4 py-2.5 sm:py-3">
-                    <div className="text-[11px] sm:text-xs font-extrabold text-gray-900 mb-1.5 sm:mb-2">Risk legend</div>
-                    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                        {(["safe", "low", "medium", "high"] as RiskLevel[]).map((lvl) => (
-                            <span key={lvl} className="inline-flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-semibold text-gray-800">
-                                <span
-                                    className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full"
-                                    style={{ backgroundColor: getRiskColor(lvl) }}
-                                />
-                                {lvl}
-                            </span>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            {/* Loading overlay */}
-            {isLoading && (
-                <div className="absolute inset-0 z-30 bg-white/35 backdrop-blur-[2px] flex items-start justify-center pt-6">
-                    <div className="bg-white/90 border border-gray-200 px-5 sm:px-6 py-3.5 rounded-2xl shadow-xl">
-                        <div className="flex items-center gap-2.5 sm:gap-3">
-                            <div className="w-5 h-5 border-2 border-gray-200 border-t-[#1E3A8A] rounded-full animate-spin" />
-                            <span className="text-gray-800 font-semibold text-xs sm:text-sm tracking-wide">
-                                {contextLoading ? "Fetching location..." : "Loading map..."}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Error */}
+            {/* ── Error state ──────────────────────────────────────────────── */}
             {contextError && (
-                <div className="absolute left-1/2 -translate-x-1/2 top-3 sm:top-4 z-40 px-3 sm:px-0">
-                    <div className="bg-red-50/95 backdrop-blur-xl border-2 border-[#DC2626] px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-2xl shadow-xl max-w-xs sm:max-w-none">
-                        <p className="text-[#DC2626] font-semibold text-xs sm:text-sm flex items-center gap-2">
-                            <span>❌</span>
-                            <span>{contextError}</span>
-                        </p>
-                    </div>
+                <div className="flex items-center gap-2.5 rounded-xl border border-rose-200 bg-rose-50
+                    px-4 py-3 text-sm text-rose-700 animate-fade-in-scale">
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    <span>{contextError}</span>
                 </div>
             )}
 
-            {/* Toggle button */}
-            {area && (
-                <button
-                    type="button"
-                    onClick={() => setPanelOpen((v) => !v)}
-                    className="absolute right-3 sm:right-4 top-3 sm:top-4 z-30 bg-white/90 backdrop-blur-xl border border-gray-200 rounded-2xl shadow-xl px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-gray-900 hover:bg-white transition"
-                >
-                    {panelOpen ? "Hide details" : "Show details"}
-                </button>
-            )}
-
-            {/* Info panel (desktop right, mobile bottom-sheet feel) */}
-            {area && panelOpen && (
-                <div className="absolute z-20 md:right-4 md:top-16 md:w-[380px] inset-x-3 bottom-[5rem] sm:inset-x-auto sm:right-4 sm:left-auto sm:translate-x-0 sm:w-[92vw] md:w-[380px] max-w-md mx-auto">
-                    <div className="bg-white/95 backdrop-blur-2xl border border-gray-200 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[60vh] md:max-h-none flex flex-col">
-                        {/* Header */}
-                        <div className="p-4 sm:p-5 bg-gradient-to-br from-[#1E3A8A] to-[#1e40af]">
-                            <div className="flex items-start justify-between gap-3">
-                                <div>
-                                    <div className="text-white font-extrabold text-lg sm:text-xl leading-tight">{area.district_name}</div>
-                                    <div className="text-blue-100 font-semibold text-xs sm:text-sm">{area.province_name}</div>
-                                </div>
-
-                                <div className="flex flex-col items-end gap-2">
-                                    <div className="bg-white/15 border border-white/25 rounded-2xl px-2.5 sm:px-3 py-1">
-                                        <span className="text-white text-xs font-bold">{area.distance.toFixed(1)} km</span>
-                                    </div>
-                                    <RiskPill level={overallRisk} getRiskColor={getRiskColor} />
-                                </div>
+            {/* ── Main Layout: Map & Side Panel ────────────────────────────── */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+                
+                {/* ── Interactive Map (Col span 2) ─────────────────────────── */}
+                <div className="lg:col-span-2 card-panel relative p-0 overflow-hidden h-[450px] sm:h-[550px] lg:h-[650px] flex flex-col group translate-z-0">
+                    {/* Map container */}
+                    <div ref={mapElement} className="flex-1 w-full" />
+                    
+                    {/* Overlay loaders */}
+                    {isLoading && (
+                        <div className="absolute inset-0 z-10 bg-white/40 backdrop-blur-sm flex items-center justify-center transition-all duration-300">
+                            <div className="bg-white/95 border border-slate-200 px-5 py-3.5 rounded-2xl shadow-xl flex items-center gap-3">
+                                <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                                <span className="text-slate-800 font-semibold text-sm">
+                                    {contextLoading ? "Locating you..." : "Initializing map..."}
+                                </span>
                             </div>
                         </div>
-
-                        {/* Body */}
-                        <div className="p-3 sm:p-4 bg-gray-50 overflow-y-auto">
-                            <div className="grid gap-2.5 sm:gap-3">
-                                {riskList.map((d) => (
-                                    <div
-                                        key={d.disease_id}
-                                        className="bg-white rounded-2xl p-3 sm:p-4 border border-gray-200 shadow-sm hover:shadow-md transition"
-                                    >
-                                        <div className="flex items-center justify-between gap-3">
-                                            <div className="min-w-0">
-                                                <div className="font-extrabold text-gray-900 text-sm sm:text-base truncate">{d.disease_name}</div>
-                                                <div className="text-[11px] sm:text-xs font-semibold text-gray-600">
-                                                    {d.count} predicted {d.count === 1 ? "case" : "cases"}
-                                                </div>
-                                            </div>
-
-                                            <span
-                                                className="shrink-0 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold text-white"
-                                                style={{ backgroundColor: getRiskColor(d.level) }}
-                                            >
-                                                {d.level.toUpperCase()}
-                                            </span>
+                    )}
+                    
+                    {/* Legend */}
+                    <div className="absolute left-3 top-3 z-10 pointer-events-none">
+                        <div className="bg-white/90 backdrop-blur-xl border border-slate-200 rounded-xl shadow-md p-2.5 pointer-events-auto">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 px-1">Risk Legend</p>
+                            <div className="flex flex-col gap-1.5">
+                                {(["high", "medium", "low", "safe"] as RiskLevel[]).map((lvl) => {
+                                    const c = getSeverityConfig(lvl);
+                                    return (
+                                        <div key={lvl} className="flex items-center gap-2 px-1">
+                                            <span className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: c.color }} />
+                                            <span className="text-xs font-semibold text-slate-700 capitalize">{lvl}</span>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
+                        </div>
+                    </div>
+                </div>
 
-                            {/* Banner */}
-                            <div className="mt-3 sm:mt-4">
+                {/* ── Information Panel (Col span 1) ───────────────────────── */}
+                <div className="lg:col-span-1 space-y-4">
+                    {/* Current Area Insight */}
+                    {area ? (
+                        <div className="card-panel animate-fade-in-scale shrink-0">
+                            <div className="card-panel-header border-b border-slate-100 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-600 to-cyan-500
+                                        flex items-center justify-center shadow-sm">
+                                        <Navigation className="h-3.5 w-3.5 text-white" />
+                                    </div>
+                                    <span className="text-sm font-semibold text-slate-900">Area Insights</span>
+                                </div>
+                                {(() => {
+                                    const c = getSeverityConfig(overallRisk);
+                                    return (
+                                        <Badge className={`text-[10px] font-bold ${c.bg} ${c.text} ${c.border}`}>
+                                            {overallRisk} risk
+                                        </Badge>
+                                    );
+                                })()}
+                            </div>
+                            
+                            <div className="p-4 sm:p-5">
+                                <h2 className="text-lg font-bold text-slate-900 mb-0.5 shrink-0">{area.district_name}</h2>
+                                <p className="text-xs text-slate-500 mb-4">{area.province_name} • {area.distance.toFixed(1)} km away</p>
+
+                                {/* Banner */}
                                 {locationData?.warning && locationData.warning !== "Area is safe" ? (
-                                    <div className="bg-orange-50 border border-orange-200 rounded-2xl p-3 sm:p-4">
-                                        <p className="text-xs sm:text-sm font-bold text-gray-900 leading-relaxed">⚠️ {locationData.warning}</p>
+                                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 flex gap-2.5 items-start">
+                                        <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                                        <p className="text-xs font-semibold text-amber-800 leading-relaxed">{locationData.warning}</p>
                                     </div>
                                 ) : (
-                                    <div className="bg-green-50 border border-green-200 rounded-2xl p-3 sm:p-4">
-                                        <p className="text-xs sm:text-sm font-bold text-gray-900 leading-relaxed">
-                                            ✅ Area is currently safe with low risk levels
+                                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-4 flex gap-2.5 items-start">
+                                        <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                                        <p className="text-xs font-semibold text-emerald-800 leading-relaxed">
+                                            Area is currently safe with normal health activity.
                                         </p>
                                     </div>
                                 )}
+
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-100 pb-1.5 shrink-0">
+                                        Active Pathogens
+                                    </p>
+                                    {riskList.length > 0 ? (
+                                        <div className="space-y-2">
+                                            {riskList.map(risk => {
+                                                const c = getSeverityConfig(risk.level);
+                                                return (
+                                                    <div key={risk.disease_id} className={`relative flex items-center justify-between p-2.5 rounded-lg border ${c.bg} ${c.border} overflow-hidden group hover:shadow-sm transition-all duration-200`}>
+                                                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${c.strip}`} />
+                                                        <div className="pl-1.5 flex flex-col min-w-0 pr-2">
+                                                            <span className={`text-sm font-semibold truncate ${c.text}`}>{risk.disease_name}</span>
+                                                            <span className={`text-[10px] opacity-80 mt-0.5 ${c.text}`}>{risk.count} projected {risk.count === 1 ? 'case' : 'cases'}</span>
+                                                        </div>
+                                                        <Badge className={`text-[10px] uppercase shrink-0 ${c.bg} ${c.text} ${c.border}`}>
+                                                            {risk.level}
+                                                        </Badge>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <div className="py-4 text-center text-xs text-slate-500 bg-slate-50 rounded-xl border border-slate-100 border-dashed">
+                                            No recent reports in this area.
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    </div>
-
-                    {/* Mobile helper */}
-                    <div className="mt-2 sm:mt-3 md:hidden text-center text-[11px] sm:text-xs font-semibold text-white/90 drop-shadow">
-                        Tip: pinch to zoom · drag to move
-                    </div>
+                    ) : (
+                        <div className="card-panel py-10 px-6 text-center animate-fade-in-scale">
+                            <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto mb-3 shadow-sm">
+                                <Activity className="h-5 w-5 text-slate-300" />
+                            </div>
+                            <h3 className="text-sm font-semibold text-slate-700">Awaiting Location</h3>
+                            <p className="text-xs text-slate-500 mt-1 max-w-[200px] mx-auto">Stand by while we fetch your coordinates to display health insights.</p>
+                        </div>
+                    )}
                 </div>
-            )}
+            </div>
         </div>
     );
 }
-
-export default MapComponent;

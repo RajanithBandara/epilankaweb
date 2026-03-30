@@ -212,7 +212,7 @@ export default function AdminUsersPanel() {
                         </div>
                     </div>
                 ) : (
-                    <ScrollArea className="flex-1">
+                    <ScrollArea className="flex-1 overflow-auto">
                         <div className="p-6 space-y-0">
 
                             {/* Header */}

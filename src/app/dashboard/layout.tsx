@@ -1,21 +1,42 @@
 'use client';
 
-import { Home, Map, FileText, Settings, LogOut, User } from "lucide-react";
+import {
+    Home,
+    Map,
+    FileText,
+    Settings,
+    LogOut,
+    User,
+    CalendarDays,
+    Menu,
+    X,
+    ChevronRight,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { LocationProvider } from "@/contexts/LocationContext";
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 
-const navItems = [
+type NavItem = {
+    label: string;
+    href: string;
+    icon: React.ComponentType<{ className?: string }>;
+};
+
+const navItems: NavItem[] = [
     { label: "Home", href: "/dashboard", icon: Home },
     { label: "Map", href: "/dashboard/map", icon: Map },
     { label: "Reports", href: "/dashboard/report", icon: FileText },
     { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
+const baseNavItemClass = "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors";
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     const handleLogout = () => {
         localStorage.clear();
@@ -27,105 +48,309 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         () => (typeof window !== "undefined" ? localStorage.getItem("username") || "" : "")
     );
 
+    const todayLabel = useMemo(
+        () =>
+            new Intl.DateTimeFormat("en-US", {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+            }).format(new Date()),
+        []
+    );
+
+    const avatarLetter = username ? username[0].toUpperCase() : null;
+
     return (
         <LocationProvider>
-            <div className="flex min-h-screen flex-col bg-gradient-to-br from-[#F8FAFC] via-[#F1F5F9] to-[#E2E8F0] pb-[4.5rem] md:pb-0 px-2 sm:px-3 md:px-6 pt-2 sm:pt-3 md:pt-4">
-                {/* ================ DESKTOP FLOATING TOP BAR ================ */}
-                <header className="hidden md:block sticky top-4 z-50">
-                    <div className="max-w-7xl mx-auto">
-                        <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200/50 px-6 py-3">
-                            <div className="flex items-center justify-between gap-6">
-                                {/* Brand */}
-                                <div className="flex items-center gap-2.5">
-                                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#1E3A8A] to-[#1e40af] flex items-center justify-center shadow-md">
-                                        <span className="text-white font-bold text-base">E</span>
-                                    </div>
-                                    <div>
-                                        <h1 className="text-lg font-bold text-[#1E3A8A] leading-tight">EpiLanka</h1>
-                                        <p className="text-[10px] text-gray-500 leading-tight">Disease Surveillance</p>
-                                    </div>
+            <div className="relative h-dvh w-full overflow-hidden" style={{ background: "var(--dash-bg)" }}>
+                <div className="relative z-10 h-full min-h-0 lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+                    <aside
+                        className="hidden lg:flex flex-col h-dvh border-r"
+                        style={{
+                            background: "var(--dash-sidebar-bg)",
+                            borderColor: "var(--dash-sidebar-border)",
+                        }}
+                    >
+                        <div className="px-5 pt-5 pb-4 shrink-0 border-b" style={{ borderColor: "var(--dash-sidebar-border)" }}>
+                            <Link href="/dashboard" className="flex items-center gap-3">
+                                <div
+                                    className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold"
+                                    style={{ background: "var(--color-primary)", color: "#fff" }}
+                                >
+                                    E
                                 </div>
+                                <div>
+                                    <p className="text-sm font-semibold" style={{ color: "var(--dash-text-primary)" }}>
+                                        EpiLanka
+                                    </p>
+                                    <p className="text-[11px]" style={{ color: "var(--dash-text-muted)" }}>
+                                        Disease Intelligence
+                                    </p>
+                                </div>
+                            </Link>
+                        </div>
 
-                                {/* Centered Navigation */}
-                                <nav className="flex-1 flex justify-center max-w-2xl">
-                                    <div className="flex items-center gap-2 bg-gray-50/80 backdrop-blur-sm rounded-full px-3 py-2 border border-gray-200/50">
-                                        {navItems.map((item) => {
-                                            const Icon = item.icon;
-                                            const isActive = pathname === item.href;
+                        <div className="px-3 pt-3 pb-2 shrink-0">
+                            <p className="px-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--dash-text-muted)" }}>
+                                Navigation
+                            </p>
+                        </div>
 
-                                            return (
-                                                <Link key={item.href} href={item.href}>
-                                                    <div
-                                                        className={
-                                                            `flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 ` +
-                                                            (isActive
-                                                                ? "bg-gradient-to-br from-[#1E3A8A] to-[#1e40af] text-white shadow-lg"
-                                                                : "text-gray-600 hover:text-[#1E3A8A] hover:bg-white/60")
-                                                        }
-                                                    >
-                                                        <Icon className="h-4 w-4" />
-                                                        <span className="hidden xl:inline">{item.label}</span>
-                                                    </div>
-                                                </Link>
-                                            );
-                                        })}
-                                    </div>
-                                </nav>
-
-                                {/* User Profile + Logout */}
-                                <div className="flex items-center gap-3">
-                                    <div className="flex items-center gap-2 bg-gray-50/80 rounded-full px-3 py-1.5 border border-gray-200/50">
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1E3A8A] to-[#3b82f6] text-white flex items-center justify-center text-xs font-semibold">
-                                            {username ? username[0].toUpperCase() : <User size={14} />}
-                                        </div>
-                                        <span className="text-sm font-medium text-gray-800 truncate max-w-[100px] hidden lg:inline">
-                                            {username || "User"}
-                                        </span>
-                                    </div>
-
-                                    <button
-                                        onClick={handleLogout}
-                                        className="flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 font-medium rounded-full px-3 py-1.5 shadow-sm hover:shadow-md transition-all duration-200 border border-red-200"
+                        <nav className="flex-1 overflow-y-auto px-3 pb-3 space-y-1">
+                            {navItems.map((item) => {
+                                const Icon = item.icon;
+                                const isActive = pathname === item.href;
+                                return (
+                                    <Link
+                                        key={item.href}
+                                        href={item.href}
+                                        className={`${baseNavItemClass} ${
+                                            isActive ? "" : "hover:bg-(--dash-nav-hover-bg)"
+                                        }`}
+                                        style={
+                                            isActive
+                                                ? {
+                                                    background: "var(--color-primary)",
+                                                    color: "#fff",
+                                                }
+                                                : { color: "var(--dash-text-secondary)" }
+                                        }
                                     >
-                                        <LogOut className="h-3.5 w-3.5" />
-                                        <span className="text-xs hidden lg:inline">Logout</span>
+                                        <Icon className="h-4 w-4" />
+                                        <span className="flex-1">{item.label}</span>
+                                        {isActive && <ChevronRight className="h-4 w-4 opacity-80" />}
+                                    </Link>
+                                );
+                            })}
+                        </nav>
+
+                        <div className="px-3 pb-5 space-y-2 shrink-0">
+                            <div
+                                className="rounded-xl border px-3 py-2.5 flex items-center gap-2"
+                                style={{
+                                    background: "var(--dash-card-bg)",
+                                    borderColor: "var(--dash-card-border)",
+                                }}
+                            >
+                                <CalendarDays className="h-4 w-4" style={{ color: "var(--dash-text-muted)" }} />
+                                <span className="flex-1 text-xs font-medium" style={{ color: "var(--dash-text-secondary)" }}>
+                                    {todayLabel}
+                                </span>
+                                <AnimatedThemeToggler
+                                    className="h-8 w-8 rounded-lg border flex items-center justify-center"
+                                    style={{
+                                        borderColor: "var(--dash-card-border)",
+                                        color: "var(--dash-text-secondary)",
+                                        background: "var(--dash-card-bg)",
+                                    }}
+                                />
+                            </div>
+
+                            <div
+                                className="rounded-xl border px-3 py-2.5 flex items-center gap-2.5"
+                                style={{
+                                    background: "var(--dash-card-bg)",
+                                    borderColor: "var(--dash-card-border)",
+                                }}
+                            >
+                                <div
+                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-semibold"
+                                    style={{ background: "var(--color-primary)", color: "#fff" }}
+                                >
+                                    {avatarLetter ?? <User className="h-4 w-4" />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium truncate" style={{ color: "var(--dash-text-primary)" }}>
+                                        {username || "User"}
+                                    </p>
+                                    <p className="text-[11px]" style={{ color: "var(--dash-text-muted)" }}>
+                                        Active
+                                    </p>
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={handleLogout}
+                                className="w-full rounded-xl border px-3 py-2.5 flex items-center gap-2.5 text-sm font-medium transition-colors hover:bg-red-50 dark:hover:bg-red-500/10"
+                                style={{
+                                    borderColor: "var(--dash-card-border)",
+                                    color: "#dc2626",
+                                }}
+                            >
+                                <LogOut className="h-4 w-4" />
+                                Sign Out
+                            </button>
+                        </div>
+                    </aside>
+
+                    <main className="min-w-0 min-h-0 h-full flex flex-col px-3 sm:px-4 lg:px-5 pb-24 lg:pb-5 pt-3 lg:pt-5">
+                        <header
+                            className="lg:hidden rounded-xl border px-3 py-2.5 mb-3"
+                            style={{
+                                background: "var(--dash-sidebar-bg)",
+                                borderColor: "var(--dash-sidebar-border)",
+                            }}
+                        >
+                            <div className="flex items-center justify-between gap-2">
+                                <Link href="/dashboard" className="flex items-center gap-2.5 min-w-0">
+                                    <div
+                                        className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-semibold"
+                                        style={{ background: "var(--color-primary)", color: "#fff" }}
+                                    >
+                                        E
+                                    </div>
+                                    <p className="text-sm font-semibold truncate" style={{ color: "var(--dash-text-primary)" }}>
+                                        EpiLanka Dashboard
+                                    </p>
+                                </Link>
+
+                                <div className="flex items-center gap-2">
+                                    <AnimatedThemeToggler
+                                        className="h-8 w-8 rounded-lg border flex items-center justify-center"
+                                        style={{
+                                            borderColor: "var(--dash-card-border)",
+                                            color: "var(--dash-text-secondary)",
+                                            background: "var(--dash-card-bg)",
+                                        }}
+                                    />
+                                    <button
+                                        onClick={() => setMobileMenuOpen((v) => !v)}
+                                        className="h-8 w-8 rounded-lg border flex items-center justify-center"
+                                        style={{
+                                            borderColor: "var(--dash-card-border)",
+                                            color: "var(--dash-text-secondary)",
+                                            background: "var(--dash-card-bg)",
+                                        }}
+                                        aria-label="Toggle menu"
+                                    >
+                                        {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
                                     </button>
                                 </div>
                             </div>
+
+                            {mobileMenuOpen && (
+                                <div className="mt-2 pt-2 border-t space-y-1" style={{ borderColor: "var(--dash-card-border)" }}>
+                                    {navItems.map((item) => {
+                                        const Icon = item.icon;
+                                        const isActive = pathname === item.href;
+                                        return (
+                                            <Link
+                                                key={item.href}
+                                                href={item.href}
+                                                onClick={() => setMobileMenuOpen(false)}
+                                                className={`${baseNavItemClass} ${isActive ? "" : "hover:bg-(--dash-nav-hover-bg)"}`}
+                                                style={
+                                                    isActive
+                                                        ? { background: "var(--color-primary)", color: "#fff" }
+                                                        : { color: "var(--dash-text-secondary)" }
+                                                }
+                                            >
+                                                <Icon className="h-4 w-4" />
+                                                <span className="flex-1">{item.label}</span>
+                                            </Link>
+                                        );
+                                    })}
+                                    <button
+                                        onClick={() => {
+                                            setMobileMenuOpen(false);
+                                            handleLogout();
+                                        }}
+                                        className="w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium"
+                                        style={{ color: "#dc2626" }}
+                                    >
+                                        Sign Out
+                                    </button>
+                                </div>
+                            )}
+                        </header>
+
+                        <div
+                            className="hidden md:flex lg:hidden items-center gap-1.5 rounded-xl border px-1.5 py-1.5 mb-3 overflow-x-auto"
+                            style={{
+                                background: "var(--dash-sidebar-bg)",
+                                borderColor: "var(--dash-sidebar-border)",
+                            }}
+                        >
+                            {navItems.map((item) => {
+                                const Icon = item.icon;
+                                const isActive = pathname === item.href;
+                                return (
+                                    <Link key={item.href} href={item.href} className="shrink-0">
+                                        <div
+                                            className="flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium"
+                                            style={
+                                                isActive
+                                                    ? { background: "var(--color-primary)", color: "#fff" }
+                                                    : { color: "var(--dash-text-secondary)" }
+                                            }
+                                        >
+                                            <Icon className="h-3.5 w-3.5" />
+                                            {item.label}
+                                        </div>
+                                    </Link>
+                                );
+                            })}
+                            <AnimatedThemeToggler
+                                className="ml-auto h-8 w-8 rounded-lg border flex items-center justify-center shrink-0"
+                                style={{
+                                    borderColor: "var(--dash-card-border)",
+                                    color: "var(--dash-text-secondary)",
+                                    background: "var(--dash-card-bg)",
+                                }}
+                            />
                         </div>
-                    </div>
-                </header>
 
-                {/* ================ MAIN CONTENT ================ */}
-                <main className="flex-1 mt-2 sm:mt-3 md:mt-4">
-                    <div className="bg-white rounded-2xl shadow-lg p-3 sm:p-4 md:p-6 min-h-full w-full transition-all duration-300 border border-gray-200/50">
-                        {children}
-                    </div>
-                </main>
+                        <section
+                            className="max-w-7xl mx-auto w-full min-h-0 h-full rounded-2xl border overflow-hidden flex flex-col"
+                            style={{
+                                background: "var(--dash-panel-bg)",
+                                borderColor: "var(--dash-panel-border)",
+                            }}
+                        >
+                            <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-5 md:px-6 lg:px-7 py-5 sm:py-6">
+                                {children}
+                            </div>
+                        </section>
+                    </main>
+                </div>
 
-                {/* ================ MOBILE BOTTOM BAR ================ */}
-                <nav className="md:hidden fixed bottom-3 left-3 right-3 bg-white/90 backdrop-blur-xl shadow-xl rounded-2xl z-50 border border-gray-200/50 overflow-hidden">
-                    <div className="flex h-16">
+                <nav
+                    className="lg:hidden fixed bottom-3 left-3 right-3 z-50 rounded-xl border overflow-hidden"
+                    style={{
+                        background: "var(--dash-sidebar-bg)",
+                        borderColor: "var(--dash-sidebar-border)",
+                    }}
+                >
+                    <div className="h-16 grid grid-cols-5 gap-1 p-1.5">
                         {navItems.map((item) => {
                             const Icon = item.icon;
                             const isActive = pathname === item.href;
-
                             return (
-                                <Link key={item.href} href={item.href} className="flex-1">
+                                <Link key={item.href} href={item.href} className="min-w-0">
                                     <div
-                                        className={
-                                            `flex flex-col items-center justify-center h-full text-[10px] leading-tight font-medium transition-all duration-200 mx-1 rounded-xl ` +
-                                            (isActive
-                                                ? "text-white bg-gradient-to-br from-[#1E3A8A] to-[#1e40af] shadow-lg"
-                                                : "text-gray-500 hover:text-[#1E3A8A] hover:bg-gray-50")
+                                        className="h-full rounded-lg flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium"
+                                        style={
+                                            isActive
+                                                ? { background: "var(--color-primary)", color: "#fff" }
+                                                : { color: "var(--dash-text-muted)" }
                                         }
                                     >
-                                        <Icon className="h-5 w-5 mb-0.5" />
-                                        <span className="font-medium truncate max-w-[4rem]">{item.label}</span>
+                                        <Icon className="h-[15px] w-[15px]" />
+                                        {item.label}
                                     </div>
                                 </Link>
                             );
                         })}
+                        <div className="h-full flex items-center justify-center">
+                            <AnimatedThemeToggler
+                                className="h-9 w-9 rounded-lg border flex items-center justify-center"
+                                style={{
+                                    borderColor: "var(--dash-card-border)",
+                                    color: "var(--dash-text-secondary)",
+                                    background: "var(--dash-card-bg)",
+                                }}
+                            />
+                        </div>
                     </div>
                 </nav>
             </div>

@@ -1,11 +1,27 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { HistoryData, District, Disease } from "@/types/historydata";
+import {
+    ResponsiveContainer,
+    LineChart,
+    Line,
+    CartesianGrid,
+    XAxis,
+    YAxis,
+    Tooltip,
+    BarChart,
+    Bar,
+    PieChart,
+    Pie,
+    Cell,
+    Legend,
+} from "recharts";
 
 const API_BASE = "/api/admin";
 
 const PAGE_SIZE = 20;
+const CHART_FETCH_SIZE = 200;
 
 const DISTRICTS: District[] = [
     { district_id: 1, district_name: "Colombo" },
@@ -51,16 +67,26 @@ const defaultFilters = {
     disease_id: "",
 };
 
+const CHART_COLORS = ["#2563eb", "#0ea5e9", "#14b8a6", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#d946ef"];
+
+type AggregationType = "daily" | "weekly" | "monthly" | "yearly";
+type TabType = "history" | "charts";
+
 export default function HistoricalDataManager() {
     const [records, setRecords] = useState<HistoryData[]>([]);
+    const [chartRecords, setChartRecords] = useState<HistoryData[]>([]);
     const [diseases, setDiseases] = useState<Disease[]>([]);
     const [form, setForm] = useState(defaultForm);
     const [filters, setFilters] = useState(defaultFilters);
     const [page, setPage] = useState(0);
     const [hasMore, setHasMore] = useState(true);
 
+    const [activeTab, setActiveTab] = useState<TabType>("history");
+    const [timeAggregation, setTimeAggregation] = useState<AggregationType>("weekly");
+
     const [loading, setLoading] = useState(false);
     const [fetchingRecords, setFetchingRecords] = useState(true);
+    const [fetchingCharts, setFetchingCharts] = useState(true);
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
     const [error, setError] = useState<string | null>(null);
@@ -111,10 +137,46 @@ export default function HistoricalDataManager() {
         }
     }, []);
 
+    const fetchAllChartRecords = useCallback(async () => {
+        setFetchingCharts(true);
+        try {
+            let skip = 0;
+            const allRecords: HistoryData[] = [];
+
+            while (true) {
+                const params = new URLSearchParams();
+                params.set("skip", String(skip));
+                params.set("limit", String(CHART_FETCH_SIZE));
+
+                const res = await fetch(`${API_BASE}/historical-data?${params.toString()}`);
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.error || "Failed to fetch chart records");
+                }
+
+                const batch: HistoryData[] = await res.json();
+                allRecords.push(...batch);
+
+                if (batch.length < CHART_FETCH_SIZE) {
+                    break;
+                }
+
+                skip += CHART_FETCH_SIZE;
+            }
+
+            setChartRecords(allRecords);
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Failed to load chart data");
+        } finally {
+            setFetchingCharts(false);
+        }
+    }, []);
+
     useEffect(() => {
         fetchRecords(0, defaultFilters);
+        fetchAllChartRecords();
         fetchDiseases();
-    }, [fetchDiseases, fetchRecords]);
+    }, [fetchAllChartRecords, fetchDiseases, fetchRecords]);
 
     // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -177,6 +239,7 @@ export default function HistoricalDataManager() {
             setForm(defaultForm);
             setShowForm(false);
             fetchRecords(page, filters);
+            fetchAllChartRecords();
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Something went wrong");
         } finally {
@@ -200,6 +263,7 @@ export default function HistoricalDataManager() {
             }
             setSuccess("Record deleted successfully.");
             fetchRecords(page, filters);
+            fetchAllChartRecords();
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Delete failed");
         } finally {
@@ -209,29 +273,184 @@ export default function HistoricalDataManager() {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    const getDistrictName = (id: number) =>
-        DISTRICTS.find((d) => d.district_id === id)?.district_name ?? `District ${id}`;
+    const getDistrictName = useCallback(
+        (id: number) => DISTRICTS.find((d) => d.district_id === id)?.district_name ?? `District ${id}`,
+        []
+    );
 
-    const getDiseaseName = (id: number) =>
-        diseases.find((d) => d.disease_id === id)?.disease_name ?? `Disease ${id}`;
+    const getDiseaseName = useCallback(
+        (id: number) => diseases.find((d) => d.disease_id === id)?.disease_name ?? `Disease ${id}`,
+        [diseases]
+    );
 
     const activeFilterCount = Object.values(filters).filter(Boolean).length;
 
+    const getDateKey = useCallback((record: HistoryData): string => {
+        const date = new Date(record.year, 0, 1);
+        date.setDate(date.getDate() + (record.week_number - 1) * 7);
+
+        switch (timeAggregation) {
+            case "daily":
+                return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+            case "weekly":
+                return `${date.getFullYear()}-W${String(record.week_number).padStart(2, "0")}`;
+            case "monthly":
+                return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+            case "yearly":
+                return `${date.getFullYear()}`;
+            default:
+                return "";
+        }
+    }, [timeAggregation]);
+
+    const getDateLabel = useCallback((record: HistoryData): string => {
+        const date = new Date(record.year, 0, 1);
+        date.setDate(date.getDate() + (record.week_number - 1) * 7);
+
+        switch (timeAggregation) {
+            case "daily":
+                return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+            case "weekly":
+                return `W${String(record.week_number).padStart(2, "0")} ${date.getFullYear()}`;
+            case "monthly":
+                return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+            case "yearly":
+                return `${date.getFullYear()}`;
+            default:
+                return "";
+        }
+    }, [timeAggregation]);
+
+    const weeklyTrendData = useMemo(() => {
+        const grouped = new Map<string, { label: string; order: number; cases: number }>();
+
+        chartRecords.forEach((record) => {
+            const key = getDateKey(record);
+            const existing = grouped.get(key);
+
+            if (existing) {
+                existing.cases += record.case_count;
+                return;
+            }
+
+            grouped.set(key, {
+                label: getDateLabel(record),
+                order: new Date(record.year, 0, 1).getTime() + (record.week_number - 1) * 7 * 24 * 60 * 60 * 1000,
+                cases: record.case_count,
+            });
+        });
+
+        return Array.from(grouped.values())
+            .sort((a, b) => a.order - b.order)
+            .map(({ label, cases }) => ({ label, cases }));
+    }, [chartRecords, getDateKey, getDateLabel]);
+
+    const districtCasesData = useMemo(() => {
+        const totals = new Map<number, number>();
+
+        chartRecords.forEach((record) => {
+            totals.set(record.district_id, (totals.get(record.district_id) ?? 0) + record.case_count);
+        });
+
+        return Array.from(totals.entries())
+            .map(([districtId, totalCases]) => ({
+                district: getDistrictName(districtId),
+                cases: totalCases,
+            }))
+            .sort((a, b) => b.cases - a.cases)
+            .slice(0, 10);
+    }, [chartRecords, getDistrictName]);
+
+    const diseaseCasesData = useMemo(() => {
+        const totals = new Map<number, number>();
+
+        chartRecords.forEach((record) => {
+            totals.set(record.disease_id, (totals.get(record.disease_id) ?? 0) + record.case_count);
+        });
+
+        const sorted = Array.from(totals.entries())
+            .map(([diseaseId, totalCases]) => ({
+                disease: getDiseaseName(diseaseId),
+                cases: totalCases,
+            }))
+            .sort((a, b) => b.cases - a.cases);
+
+        if (sorted.length <= 6) {
+            return sorted;
+        }
+
+        const topDiseases = sorted.slice(0, 6);
+        const otherCases = sorted.slice(6).reduce((acc, item) => acc + item.cases, 0);
+
+        return [...topDiseases, { disease: "Other", cases: otherCases }];
+    }, [chartRecords, getDiseaseName]);
+
     // ── Render ────────────────────────────────────────────────────────────────
 
+    const tabClasses = (tabName: TabType) =>
+        `px-4 py-2 font-medium border-b-2 transition ${
+            activeTab === tabName
+                ? "border-blue-600 text-blue-600"
+                : "border-transparent text-gray-600 hover:text-gray-800"
+        }`;
+
     return (
-        <div className="max-w-6xl mx-auto p-6">
+        <div className="max-w-7xl mx-auto p-6">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-800">
-                        Historical Disease Data
-                    </h1>
-                    <p className="text-sm text-gray-500 mt-1">
-                        Manage weekly disease case records by district
-                    </p>
+            <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-800">
+                            Historical Disease Data
+                        </h1>
+                        <p className="text-sm text-gray-500 mt-1">
+                            Manage weekly disease case records by district
+                        </p>
+                    </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-6 border-b border-gray-200">
+                    <button
+                        onClick={() => setActiveTab("history")}
+                        className={tabClasses("history")}
+                    >
+                        📋 History View
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("charts")}
+                        className={tabClasses("charts")}
+                    >
+                        📊 Charts & Analytics
+                    </button>
+                </div>
+            </div>
+
+            {/* Time Aggregation Controls for Charts Tab */}
+            {activeTab === "charts" && (
+                <div className="mb-6 bg-linear-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <span className="text-sm font-semibold text-gray-700">Time Aggregation:</span>
+                        <div className="flex gap-2">
+                            {(["daily", "weekly", "monthly", "yearly"] as AggregationType[]).map((agg) => (
+                                <button
+                                    key={agg}
+                                    onClick={() => setTimeAggregation(agg)}
+                                    className={`px-3 py-1 text-xs font-medium rounded-lg transition ${
+                                        timeAggregation === agg
+                                            ? "bg-blue-600 text-white"
+                                            : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                                    }`}
+                                >
+                                    {agg.charAt(0).toUpperCase() + agg.slice(1)}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* History Tab Controls */}
+            {activeTab === "history" && (
+                <div className="mb-6 flex gap-2">
                     <button
                         onClick={() => {
                             setShowFilters(!showFilters);
@@ -262,7 +481,7 @@ export default function HistoricalDataManager() {
                         {showForm ? "Cancel" : "+ Add Record"}
                     </button>
                 </div>
-            </div>
+            )}
 
             {/* Feedback messages */}
             {error && (
@@ -279,7 +498,7 @@ export default function HistoricalDataManager() {
             )}
 
             {/* Filter Panel */}
-            {showFilters && (
+            {activeTab === "history" && showFilters && (
                 <div className="mb-6 bg-gray-50 border border-gray-200 rounded-xl p-5">
                     <h2 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">
                         Filter Records
@@ -364,7 +583,7 @@ export default function HistoricalDataManager() {
             )}
 
             {/* Add Record Form */}
-            {showForm && (
+            {activeTab === "history" && showForm && (
                 <div className="mb-8 bg-white border border-gray-200 rounded-xl shadow-sm p-6">
                     <h2 className="text-lg font-semibold text-gray-700 mb-4">Add New Record</h2>
                     <form onSubmit={handleSubmit}>
@@ -468,6 +687,91 @@ export default function HistoricalDataManager() {
                     </form>
                 </div>
             )}
+
+            {/* Charts Tab Content */}
+            {activeTab === "charts" && (
+            <>
+            {fetchingCharts ? (
+                <div className="mb-8 bg-white border border-gray-200 rounded-xl shadow-sm p-8 text-center">
+                    <div className="inline-block w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
+                    <p className="text-gray-500 text-sm">Loading full historical dataset for charts...</p>
+                </div>
+            ) : chartRecords.length > 0 ? (
+                <div className="mb-8 grid grid-cols-1 gap-5">
+                    <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
+                        <h3 className="text-base font-semibold text-gray-700 mb-1">Weekly Case Trend</h3>
+                        <p className="text-xs text-gray-400 mb-3">Based on all historical records in the database</p>
+                        <div className="h-[360px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={weeklyTrendData} margin={{ top: 12, right: 20, left: 8, bottom: 16 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                    <XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" minTickGap={22} />
+                                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                                    <Tooltip formatter={(value) => Number(value ?? 0).toLocaleString()} />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="cases"
+                                        stroke="#2563eb"
+                                        strokeWidth={2.5}
+                                        dot={{ r: 2.5 }}
+                                        activeDot={{ r: 4 }}
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
+                        <h3 className="text-base font-semibold text-gray-700 mb-3">Cases by District (Top 10)</h3>
+                        <div className="h-[380px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={districtCasesData} margin={{ top: 12, right: 20, left: 8, bottom: 44 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                    <XAxis dataKey="district" tick={{ fontSize: 11 }} angle={-16} textAnchor="end" height={62} interval={0} />
+                                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                                    <Tooltip formatter={(value) => Number(value ?? 0).toLocaleString()} />
+                                    <Bar dataKey="cases" fill="#0ea5e9" radius={[6, 6, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
+                        <h3 className="text-base font-semibold text-gray-700 mb-3">Cases by Disease</h3>
+                        <div className="h-[420px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={diseaseCasesData}
+                                        dataKey="cases"
+                                        nameKey="disease"
+                                        cx="50%"
+                                        cy="50%"
+                                        outerRadius={140}
+                                        label={({ name, percent }) => `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`}
+                                    >
+                                        {diseaseCasesData.map((entry, index) => (
+                                            <Cell key={`${entry.disease}-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip formatter={(value) => Number(value ?? 0).toLocaleString()} />
+                                    <Legend />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                <div className="mb-8 bg-white border border-gray-200 rounded-xl shadow-sm p-8 text-center text-gray-400 text-sm">
+                    No historical records available for charts.
+                </div>
+            )}
+            </>
+            )}
+
+            {/* History Tab Content */}
+            {activeTab === "history" && (
+            <>
 
             {/* Records Table */}
             <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
@@ -580,6 +884,8 @@ export default function HistoricalDataManager() {
                     </>
                 )}
             </div>
+            </>
+            )}
         </div>
     );
 }
