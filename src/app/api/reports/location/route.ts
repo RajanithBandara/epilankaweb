@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 
+function parseIntParam(value: string | null, name: string) {
+    if (value === null) return undefined;
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
+        throw new Error(`${name} must be an integer`);
+    }
+    return parsed;
+}
+
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
-    const district_name = searchParams.get('district_name');
-    const province_name = searchParams.get('province_name');
+    const district_name = searchParams.get('district_name')?.trim() || null;
+    const province_name = searchParams.get('province_name')?.trim() || null;
     const limit = searchParams.get('limit');
     const skip = searchParams.get('skip');
     const days = searchParams.get('days');
@@ -16,16 +25,39 @@ export async function GET(request: NextRequest) {
         );
     }
 
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (!apiBaseUrl) {
+        return NextResponse.json(
+            { error: 'API base URL is not configured' },
+            { status: 500 }
+        );
+    }
+
+    let parsedLimit: number | undefined;
+    let parsedSkip: number | undefined;
+    let parsedDays: number | undefined;
+
+    try {
+        parsedLimit = parseIntParam(limit, 'limit');
+        parsedSkip = parseIntParam(skip, 'skip');
+        parsedDays = parseIntParam(days, 'days');
+    } catch (err) {
+        return NextResponse.json(
+            { error: err instanceof Error ? err.message : 'Invalid query parameter' },
+            { status: 400 }
+        );
+    }
+
     const params: Record<string, string | number> = {};
     if (district_name) params.district_name = district_name;
     if (province_name) params.province_name = province_name;
-    if (limit) params.limit = limit;
-    if (skip) params.skip = skip;
-    if (days) params.days = days;
+    if (parsedLimit !== undefined) params.limit = parsedLimit;
+    if (parsedSkip !== undefined) params.skip = parsedSkip;
+    if (parsedDays !== undefined) params.days = parsedDays;
 
     try {
         const response = await axios.get(
-            `${process.env.NEXT_PUBLIC_API_URL}/reports/location`,
+            `${apiBaseUrl}/reports/location`,
             {
                 params,
                 headers: {
@@ -38,6 +70,14 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(response.data);
     } catch (error) {
         console.error('Error fetching reports:', error);
+        if (axios.isAxiosError(error)) {
+            return NextResponse.json(
+                {
+                    error: error.response?.data?.detail || error.response?.data?.error || 'Failed to fetch reports',
+                },
+                { status: error.response?.status || 500 }
+            );
+        }
         return NextResponse.json(
             { error: 'Failed to fetch reports' },
             { status: 500 }
