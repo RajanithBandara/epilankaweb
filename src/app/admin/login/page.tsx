@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { FormEvent, useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
+import { ShieldCheck } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { auth } from "@/lib/firebase";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { MagicCard } from "@/components/ui/magic-card";
 
 export default function AdminLogin() {
     const [email, setEmail] = useState("");
@@ -27,7 +29,6 @@ export default function AdminLogin() {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const token = await userCredential.user.getIdToken();
 
-            // ✅ Send token to server to set HttpOnly cookie
             const res = await fetch("/api/admin/auth/session", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -36,7 +37,8 @@ export default function AdminLogin() {
 
             if (!res.ok) {
                 const t = await res.text();
-                throw new Error(t || "Failed to create session");
+                setError(t || "Failed to create session");
+                return;
             }
 
             router.push("/admindashboard");
@@ -48,51 +50,74 @@ export default function AdminLogin() {
     };
 
     return (
-        <div className="min-h-screen bg-[#0B0B10] flex items-center justify-center px-4">
-            <Card className="w-full max-w-sm border-white/10 bg-white/5 text-white">
-                <CardHeader>
-                    <CardTitle className="text-white/90 text-base">Admin Login</CardTitle>
-                    <CardDescription className="text-white/50 text-xs">
-                        Sign in to access the admin dashboard.
-                    </CardDescription>
+        <main className="min-h-screen bg-page flex items-center justify-center px-4 py-8">
+            <MagicCard
+                mode="gradient"
+                gradientSize={220}
+                gradientOpacity={0.36}
+                gradientColor="rgba(30,58,138,0.2)"
+                gradientFrom="rgba(30,58,138,0.45)"
+                gradientTo="rgba(14,165,164,0.35)"
+                className="w-full max-w-md rounded-2xl border border-default"
+            >
+                <CardHeader className="space-y-2 pb-2">
+                    <div className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <ShieldCheck className="h-5 w-5" />
+                    </div>
+                    <CardTitle className="text-xl">Admin Login</CardTitle>
+                    <CardDescription>Sign in to access the admin dashboard.</CardDescription>
                 </CardHeader>
 
                 <CardContent>
-                    {error && (
-                        <Alert className="mb-3 border-red-500/30 bg-red-500/10">
-                            <AlertDescription className="text-red-200 text-xs">{error}</AlertDescription>
+                    {error ? (
+                        <Alert className="mb-4 border-red-500/30 bg-red-500/10">
+                            <AlertDescription className="text-sm text-red-600 dark:text-red-300">
+                                {error}
+                            </AlertDescription>
                         </Alert>
-                    )}
+                    ) : null}
 
-                    <form onSubmit={handleLogin} className="space-y-3">
-                        <Input
-                            type="email"
-                            placeholder="Email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="border-white/10 bg-black/40 text-white placeholder:text-white/40 focus-visible:ring-white/20"
-                            required
-                        />
+                    <form onSubmit={handleLogin} className="space-y-4">
+                        <div className="space-y-2">
+                            <label htmlFor="admin-email" className="text-sm font-medium text-foreground">
+                                Email
+                            </label>
+                            <Input
+                                id="admin-email"
+                                type="email"
+                                placeholder="admin@example.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                autoComplete="email"
+                                required
+                            />
+                        </div>
 
-                        <Input
-                            type="password"
-                            placeholder="Password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="border-white/10 bg-black/40 text-white placeholder:text-white/40 focus-visible:ring-white/20"
-                            required
-                        />
+                        <div className="space-y-2">
+                            <label htmlFor="admin-password" className="text-sm font-medium text-foreground">
+                                Password
+                            </label>
+                            <Input
+                                id="admin-password"
+                                type="password"
+                                placeholder="Enter password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                autoComplete="current-password"
+                                required
+                            />
+                        </div>
 
-                        <Button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full bg-white text-black hover:bg-white/90"
-                        >
-                            {loading ? "Logging in..." : "Login"}
+                        <Button type="submit" disabled={loading} className="w-full text-white">
+                            {loading ? "Signing in..." : "Sign In"}
                         </Button>
+
+                        <p className="text-center text-xs text-muted-foreground">
+                            Authorized administrators only.
+                        </p>
                     </form>
                 </CardContent>
-            </Card>
-        </div>
+            </MagicCard>
+        </main>
     );
 }
