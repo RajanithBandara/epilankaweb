@@ -197,17 +197,6 @@ export default function MapComponent() {
 
     return (
         <div className="space-y-5 py-2">
-            {/* ── Page header ──────────────────────────────────────────────── */}
-            <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1e3a8a] to-[#2563eb]
-                    flex items-center justify-center shadow-md shrink-0">
-                    <MapIcon className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                    <h1 className="text-xl font-bold text-slate-900">Live Risk Map</h1>
-                    <p className="text-xs text-slate-400">Interactive community health intelligence</p>
-                </div>
-            </div>
 
             {/* ── Error state ──────────────────────────────────────────────── */}
             {contextError && (
