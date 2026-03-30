@@ -5,7 +5,7 @@ import * as tt from "@tomtom-international/web-sdk-maps";
 import "@tomtom-international/web-sdk-maps/dist/maps.css";
 import { useLocation } from "@/contexts/LocationContext";
 import { Badge } from "@/components/ui/badge";
-import { Map as MapIcon, Loader2, AlertTriangle, CheckCircle2, Navigation, Activity } from "lucide-react";
+import { Loader2, AlertTriangle, CheckCircle2, Navigation, Activity } from "lucide-react";
 
 type RiskLevel = "safe" | "low" | "medium" | "high";
 
