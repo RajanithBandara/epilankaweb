@@ -14,6 +14,7 @@ import {
     Zap,
 } from 'lucide-react';
 import { useLocation } from '@/contexts/LocationContext';
+import HistoricalTrendChart from './HistoricalTrendChart';
 
 type RiskLevel = 'safe' | 'low' | 'medium' | 'high';
 
@@ -39,21 +40,21 @@ const levelConfig: Record<RiskLevel, {
     bg: string; text: string; border: string; dot: string; strip: string;
     darkBg: string; darkText: string; darkBorder: string;
 }> = {
-    safe:   {
-        bg: 'bg-emerald-50',  text: 'text-emerald-700',  border: 'border-emerald-200',  dot: 'bg-emerald-500', strip: 'bg-emerald-400',
+    safe: {
+        bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500', strip: 'bg-emerald-400',
         darkBg: 'dark:bg-emerald-500/10', darkText: 'dark:text-emerald-300', darkBorder: 'dark:border-emerald-500/25',
     },
-    low:    {
-        bg: 'bg-blue-50',     text: 'text-blue-700',     border: 'border-blue-200',     dot: 'bg-blue-500',    strip: 'bg-blue-400',
-        darkBg: 'dark:bg-blue-500/10',    darkText: 'dark:text-blue-300',    darkBorder: 'dark:border-blue-500/25',
+    low: {
+        bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', dot: 'bg-blue-500', strip: 'bg-blue-400',
+        darkBg: 'dark:bg-blue-500/10', darkText: 'dark:text-blue-300', darkBorder: 'dark:border-blue-500/25',
     },
     medium: {
-        bg: 'bg-amber-50',    text: 'text-amber-700',    border: 'border-amber-200',    dot: 'bg-amber-500',   strip: 'bg-amber-400',
-        darkBg: 'dark:bg-amber-500/10',   darkText: 'dark:text-amber-300',   darkBorder: 'dark:border-amber-500/25',
+        bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500', strip: 'bg-amber-400',
+        darkBg: 'dark:bg-amber-500/10', darkText: 'dark:text-amber-300', darkBorder: 'dark:border-amber-500/25',
     },
-    high:   {
-        bg: 'bg-rose-50',     text: 'text-rose-700',     border: 'border-rose-200',     dot: 'bg-rose-500',    strip: 'bg-rose-400',
-        darkBg: 'dark:bg-rose-500/10',    darkText: 'dark:text-rose-300',    darkBorder: 'dark:border-rose-500/25',
+    high: {
+        bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', dot: 'bg-rose-500', strip: 'bg-rose-400',
+        darkBg: 'dark:bg-rose-500/10', darkText: 'dark:text-rose-300', darkBorder: 'dark:border-rose-500/25',
     },
 };
 
@@ -108,7 +109,7 @@ function StatCard({
                 ) : (
                     <>
                         <p className="text-2xl font-bold leading-tight" style={{ color: "var(--dash-text-primary)" }}>{value}</p>
-                        {sub   && <p className="text-xs mt-1 leading-snug" style={{ color: "var(--dash-text-secondary)" }}>{sub}</p>}
+                        {sub && <p className="text-xs mt-1 leading-snug" style={{ color: "var(--dash-text-secondary)" }}>{sub}</p>}
                         {badge && <div className="mt-2.5">{badge}</div>}
                     </>
                 )}
@@ -119,10 +120,10 @@ function StatCard({
 
 export default function DashboardHomeOverview() {
     const { locationData, isLoading, error, refetchLocation } = useLocation();
-    const [reportsData,    setReportsData]    = useState<LocationReportsResponse | null>(null);
+    const [reportsData, setReportsData] = useState<LocationReportsResponse | null>(null);
     const [reportsLoading, setReportsLoading] = useState(false);
-    const [reportsError,   setReportsError]   = useState<string | null>(null);
-    const [refreshing,     setRefreshing]     = useState(false);
+    const [reportsError, setReportsError] = useState<string | null>(null);
+    const [refreshing, setRefreshing] = useState(false);
 
     const districtName = locationData?.nearest_area?.district_name;
 
@@ -137,8 +138,11 @@ export default function DashboardHomeOverview() {
                 days: '30',
             });
             const response = await fetch(`/api/reports/location?${params.toString()}`);
-            if (!response.ok) throw new Error('Failed to fetch reports for current location');
-            setReportsData((await response.json()) as LocationReportsResponse);
+            const payload = await response.json().catch(() => null);
+            if (!response.ok) {
+                throw new Error(payload?.error || 'Failed to fetch reports for current location');
+            }
+            setReportsData(payload as LocationReportsResponse);
         } catch (fetchError: unknown) {
             setReportsError(fetchError instanceof Error ? fetchError.message : 'Failed to load local reports');
             setReportsData(null);
@@ -399,6 +403,12 @@ export default function DashboardHomeOverview() {
                     </div>
                 </div>
             </div>
+
+            {/* ── Historical Trends Chart ─────────────────────── */}
+            <div className="animate-fade-in-scale" style={{ animationDelay: '200ms' }}>
+                <HistoricalTrendChart districtName={districtName || ''} />
+            </div>
+
         </section>
     );
 }
