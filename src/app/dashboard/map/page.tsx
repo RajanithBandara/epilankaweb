@@ -6,14 +6,27 @@ import { Loader2 } from "lucide-react";
 const MapComponent = dynamic(() => import("@/components/dashboard-components/Map"), {
     ssr: false,
     loading: () => (
-        <div className="w-full rounded-2xl overflow-hidden border border-slate-200/80 bg-white/90 shadow-sm flex items-center justify-center"
-             style={{ minHeight: '520px' }}>
+        <div
+            className="w-full rounded-2xl overflow-hidden border flex items-center justify-center"
+            style={{
+                minHeight: '520px',
+                background: 'var(--dash-card-bg)',
+                borderColor: 'var(--dash-card-border)',
+            }}
+        >
             <div className="flex flex-col items-center gap-3 text-center px-6">
-                <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-                    <Loader2 className="h-6 w-6 text-blue-700 animate-spin" />
+                <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center"
+                    style={{ background: 'rgba(30,58,138,0.1)' }}
+                >
+                    <Loader2 className="h-6 w-6 animate-spin" style={{ color: 'var(--color-primary)' }} />
                 </div>
-                <p className="text-sm font-semibold text-slate-700">Loading map…</p>
-                <p className="text-xs text-slate-400">Fetching your location and disease risk data.</p>
+                <p className="text-sm font-semibold" style={{ color: 'var(--dash-text-primary)' }}>
+                    Loading map…
+                </p>
+                <p className="text-xs" style={{ color: 'var(--dash-text-muted)' }}>
+                    Fetching your location and disease risk data.
+                </p>
             </div>
         </div>
     ),

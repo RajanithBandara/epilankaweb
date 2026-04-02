@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import * as tt from "@tomtom-international/web-sdk-maps";
 import "@tomtom-international/web-sdk-maps/dist/maps.css";
 import { useLocation } from "@/contexts/LocationContext";
-import { Badge } from "@/components/ui/badge";
 import { Loader2, AlertTriangle, CheckCircle2, Navigation, Activity } from "lucide-react";
 
 type RiskLevel = "safe" | "low" | "medium" | "high";
@@ -16,13 +15,56 @@ interface DiseaseRisk {
     level: RiskLevel;
 }
 
-const getSeverityConfig = (severity: RiskLevel) => {
+type SeverityConfig = {
+    color: string;
+    bg: string;
+    border: string;
+    textColor: string;
+    stripColor: string;
+};
+
+const getSeverityConfig = (severity: RiskLevel): SeverityConfig => {
     switch (severity) {
-        case "high": return { bg: "bg-rose-50", text: "text-rose-700", border: "border-rose-200", color: "#e11d48", dot: "bg-rose-500", strip: "bg-rose-400" };
-        case "medium": return { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200", color: "#d97706", dot: "bg-amber-500", strip: "bg-amber-400" };
-        case "low": return { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200", color: "#2563eb", dot: "bg-blue-500", strip: "bg-blue-400" };
-        case "safe": return { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", color: "#059669", dot: "bg-emerald-500", strip: "bg-emerald-400" };
-        default: return { bg: "bg-slate-50", text: "text-slate-700", border: "border-slate-200", color: "#64748b", dot: "bg-slate-500", strip: "bg-slate-300" };
+        case "high":
+            return {
+                color: "#e11d48",
+                bg: "rgba(225,29,72,0.09)",
+                border: "rgba(225,29,72,0.28)",
+                textColor: "#be123c",
+                stripColor: "#f43f5e",
+            };
+        case "medium":
+            return {
+                color: "#d97706",
+                bg: "rgba(217,119,6,0.09)",
+                border: "rgba(217,119,6,0.28)",
+                textColor: "#b45309",
+                stripColor: "#f59e0b",
+            };
+        case "low":
+            return {
+                color: "#2563eb",
+                bg: "rgba(37,99,235,0.09)",
+                border: "rgba(37,99,235,0.22)",
+                textColor: "var(--color-primary)",
+                stripColor: "#3b82f6",
+            };
+        case "safe":
+            return {
+                color: "#059669",
+                bg: "rgba(5,150,105,0.09)",
+                border: "rgba(5,150,105,0.25)",
+                textColor: "#047857",
+                stripColor: "#10b981",
+            };
+        default:
+            return {
+                color: "#64748b",
+                bg: "var(--dash-card-header-bg)",
+                border: "var(--dash-card-border)",
+                textColor: "var(--dash-text-secondary)",
+                stripColor: "var(--dash-card-border)",
+            };
     }
 };
 
@@ -63,10 +105,8 @@ export default function MapComponent() {
         const points = 64;
         const coords: number[][] = [];
         const [lng, lat] = center;
-
         const radiusKm = radiusMeters / 1000;
         const latRad = (lat * Math.PI) / 180;
-
         for (let i = 0; i < points; i++) {
             const angle = (i / points) * 2 * Math.PI;
             const dLat = (radiusKm / 111) * Math.cos(angle);
@@ -74,7 +114,6 @@ export default function MapComponent() {
             coords.push([lng + dLng, lat + dLat]);
         }
         coords.push(coords[0]);
-
         return {
             type: "Feature" as const,
             geometry: { type: "Polygon" as const, coordinates: [coords] },
@@ -86,26 +125,14 @@ export default function MapComponent() {
         const sourceId = "radius-source";
         const fillId = "radius-layer";
         const outlineId = "radius-layer-outline";
-
         const data = {
             type: "FeatureCollection" as const,
             features: [circleGeoJson(center, radiusMeters)],
         };
-
         if (!map.getSource(sourceId)) {
             map.addSource(sourceId, { type: "geojson", data });
-            map.addLayer({
-                id: fillId,
-                type: "fill",
-                source: sourceId,
-                paint: { "fill-color": color, "fill-opacity": 0.15 },
-            });
-            map.addLayer({
-                id: outlineId,
-                type: "line",
-                source: sourceId,
-                paint: { "line-color": color, "line-width": 2, "line-opacity": 0.8 },
-            });
+            map.addLayer({ id: fillId, type: "fill", source: sourceId, paint: { "fill-color": color, "fill-opacity": 0.15 } });
+            map.addLayer({ id: outlineId, type: "line", source: sourceId, paint: { "line-color": color, "line-width": 2, "line-opacity": 0.8 } });
         } else {
             const src = map.getSource(sourceId) as tt.GeoJSONSource;
             src.setData(data);
@@ -117,18 +144,15 @@ export default function MapComponent() {
     useEffect(() => {
         if (!mapElement.current) return;
         if (mapRef.current) return;
-
         const map = tt.map({
             key: process.env.NEXT_PUBLIC_TOMTOM_API_KEY!,
             container: mapElement.current,
             center: [80.7718, 7.8731],
             zoom: 7.5,
-            language: "si",
+            language: "en-GB",
         });
-
         mapRef.current = map;
         map.on("load", () => setMapReady(true));
-
         return () => {
             userMarkerRef.current?.remove();
             nearbyMarkerRef.current?.remove();
@@ -140,7 +164,6 @@ export default function MapComponent() {
     useEffect(() => {
         const map = mapRef.current;
         if (!map || !mapReady || !locationData) return;
-
         const { latitude, longitude } = locationData.user_location;
         const userCoords: [number, number] = [longitude, latitude];
 
@@ -183,11 +206,8 @@ export default function MapComponent() {
             const bounds = new tt.LngLatBounds();
             bounds.extend(userCoords);
             bounds.extend(areaCoords);
-            // Slight delay to ensure map layout is ready before fitting bounds
             setTimeout(() => {
-                if (mapRef.current) {
-                    mapRef.current.fitBounds(bounds, { padding: 80, maxZoom: 12 });
-                }
+                if (mapRef.current) mapRef.current.fitBounds(bounds, { padding: 80, maxZoom: 12 });
             }, 100);
         } else {
             map.setCenter(userCoords);
@@ -195,49 +215,106 @@ export default function MapComponent() {
         }
     }, [locationData, mapReady, upsertCircle]);
 
-    return (
-        <div className="space-y-5 py-2">
+    const overallCfg = getSeverityConfig(overallRisk);
 
-            {/* ── Error state ──────────────────────────────────────────────── */}
+    return (
+        <div className="space-y-5">
+
+            {/* ── Page header ─────────────────────────────────────────────── */}
+            <div className="flex items-center gap-3">
+                <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md flex-shrink-0"
+                    style={{ background: "var(--color-primary)" }}
+                >
+                    <Navigation className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                    <h1 className="text-xl font-bold tracking-tight" style={{ color: "var(--dash-text-primary)" }}>
+                        Disease Risk Map
+                    </h1>
+                    <p className="text-xs" style={{ color: "var(--dash-text-muted)" }}>
+                        Real-time health risk visualization for your area
+                    </p>
+                </div>
+            </div>
+
+            {/* ── Error state ───────────────────────────────────────────── */}
             {contextError && (
-                <div className="flex items-center gap-2.5 rounded-xl border border-rose-200 bg-rose-50
-                    px-4 py-3 text-sm text-rose-700 animate-fade-in-scale">
+                <div
+                    className="flex items-center gap-2.5 rounded-xl border px-4 py-3 text-sm animate-fade-in-scale"
+                    style={{
+                        background: "rgba(220,38,38,0.08)",
+                        borderColor: "rgba(220,38,38,0.28)",
+                        color: "var(--color-danger)",
+                    }}
+                >
                     <AlertTriangle className="h-4 w-4 shrink-0" />
                     <span>{contextError}</span>
                 </div>
             )}
 
-            {/* ── Main Layout: Map & Side Panel ────────────────────────────── */}
+            {/* ── Main layout ───────────────────────────────────────────── */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
-                
-                {/* ── Interactive Map (Col span 2) ─────────────────────────── */}
-                <div className="lg:col-span-2 card-panel relative p-0 overflow-hidden h-[450px] sm:h-[550px] lg:h-[650px] flex flex-col group translate-z-0">
-                    {/* Map container */}
+
+                {/* ── Interactive Map ───────────────────────────────────── */}
+                <div
+                    className="lg:col-span-2 card-panel relative p-0 overflow-hidden h-[450px] sm:h-[550px] lg:h-[650px] flex flex-col"
+                >
                     <div ref={mapElement} className="flex-1 w-full" />
-                    
-                    {/* Overlay loaders */}
+
+                    {/* Loading overlay */}
                     {isLoading && (
-                        <div className="absolute inset-0 z-10 bg-white/40 backdrop-blur-sm flex items-center justify-center transition-all duration-300">
-                            <div className="bg-white/95 border border-slate-200 px-5 py-3.5 rounded-2xl shadow-xl flex items-center gap-3">
-                                <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-                                <span className="text-slate-800 font-semibold text-sm">
+                        <div
+                            className="absolute inset-0 z-10 flex items-center justify-center transition-all duration-300"
+                            style={{ backdropFilter: "blur(4px)", background: "rgba(var(--dash-bg), 0.4)" }}
+                        >
+                            <div
+                                className="px-5 py-3.5 rounded-2xl shadow-xl flex items-center gap-3 border"
+                                style={{
+                                    background: "var(--dash-card-bg)",
+                                    borderColor: "var(--dash-card-border)",
+                                }}
+                            >
+                                <Loader2 className="w-5 h-5 animate-spin" style={{ color: "var(--color-primary)" }} />
+                                <span className="font-semibold text-sm" style={{ color: "var(--dash-text-primary)" }}>
                                     {contextLoading ? "Locating you..." : "Initializing map..."}
                                 </span>
                             </div>
                         </div>
                     )}
-                    
-                    {/* Legend */}
+
+                    {/* Risk legend overlay */}
                     <div className="absolute left-3 top-3 z-10 pointer-events-none">
-                        <div className="bg-white/90 backdrop-blur-xl border border-slate-200 rounded-xl shadow-md p-2.5 pointer-events-auto">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 px-1">Risk Legend</p>
+                        <div
+                            className="rounded-xl border p-2.5 pointer-events-auto"
+                            style={{
+                                background: "var(--dash-card-bg)",
+                                borderColor: "var(--dash-card-border)",
+                                backdropFilter: "blur(12px)",
+                                boxShadow: "var(--shadow-md)",
+                            }}
+                        >
+                            <p
+                                className="text-[10px] font-bold uppercase tracking-widest mb-1.5 px-1"
+                                style={{ color: "var(--dash-text-muted)" }}
+                            >
+                                Risk Legend
+                            </p>
                             <div className="flex flex-col gap-1.5">
                                 {(["high", "medium", "low", "safe"] as RiskLevel[]).map((lvl) => {
                                     const c = getSeverityConfig(lvl);
                                     return (
                                         <div key={lvl} className="flex items-center gap-2 px-1">
-                                            <span className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: c.color }} />
-                                            <span className="text-xs font-semibold text-slate-700 capitalize">{lvl}</span>
+                                            <span
+                                                className="w-2.5 h-2.5 rounded-full shadow-sm flex-shrink-0"
+                                                style={{ backgroundColor: c.color }}
+                                            />
+                                            <span
+                                                className="text-xs font-semibold capitalize"
+                                                style={{ color: "var(--dash-text-secondary)" }}
+                                            >
+                                                {lvl}
+                                            </span>
                                         </div>
                                     );
                                 })}
@@ -246,50 +323,103 @@ export default function MapComponent() {
                     </div>
                 </div>
 
-                {/* ── Information Panel (Col span 1) ───────────────────────── */}
+                {/* ── Information panel ─────────────────────────────────── */}
                 <div className="lg:col-span-1 space-y-4">
-                    {/* Current Area Insight */}
                     {area ? (
-                        <div className="card-panel animate-fade-in-scale shrink-0">
-                            <div className="card-panel-header border-b border-slate-100 flex items-center justify-between">
+                        <div className="card-panel animate-fade-in-scale">
+                            {/* Panel header */}
+                            <div className="card-panel-header flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-600 to-cyan-500
-                                        flex items-center justify-center shadow-sm">
+                                    <div
+                                        className="w-7 h-7 rounded-lg flex items-center justify-center shadow-sm"
+                                        style={{ background: "var(--color-primary)" }}
+                                    >
                                         <Navigation className="h-3.5 w-3.5 text-white" />
                                     </div>
-                                    <span className="text-sm font-semibold text-slate-900">Area Insights</span>
+                                    <span
+                                        className="text-sm font-semibold"
+                                        style={{ color: "var(--dash-text-primary)" }}
+                                    >
+                                        Area Insights
+                                    </span>
                                 </div>
-                                {(() => {
-                                    const c = getSeverityConfig(overallRisk);
-                                    return (
-                                        <Badge className={`text-[10px] font-bold ${c.bg} ${c.text} ${c.border}`}>
-                                            {overallRisk} risk
-                                        </Badge>
-                                    );
-                                })()}
+                                {/* Overall risk badge */}
+                                <span
+                                    className="text-[10px] font-bold rounded-full px-2.5 py-1 border capitalize"
+                                    style={{
+                                        color: overallCfg.textColor,
+                                        background: overallCfg.bg,
+                                        borderColor: overallCfg.border,
+                                    }}
+                                >
+                                    {overallRisk} risk
+                                </span>
                             </div>
-                            
-                            <div className="p-4 sm:p-5">
-                                <h2 className="text-lg font-bold text-slate-900 mb-0.5 shrink-0">{area.district_name}</h2>
-                                <p className="text-xs text-slate-500 mb-4">{area.province_name} • {area.distance.toFixed(1)} km away</p>
 
-                                {/* Banner */}
+                            <div className="p-4 sm:p-5 space-y-4">
+                                {/* District info */}
+                                <div>
+                                    <h2
+                                        className="text-lg font-bold"
+                                        style={{ color: "var(--dash-text-primary)" }}
+                                    >
+                                        {area.district_name}
+                                    </h2>
+                                    <p className="text-xs" style={{ color: "var(--dash-text-muted)" }}>
+                                        {area.province_name} • {area.distance.toFixed(1)} km away
+                                    </p>
+                                </div>
+
+                                {/* Warning / safe banner */}
                                 {locationData?.warning && locationData.warning !== "Area is safe" ? (
-                                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 flex gap-2.5 items-start">
-                                        <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                                        <p className="text-xs font-semibold text-amber-800 leading-relaxed">{locationData.warning}</p>
+                                    <div
+                                        className="rounded-xl border p-3 flex gap-2.5 items-start"
+                                        style={{
+                                            background: "rgba(217,119,6,0.09)",
+                                            borderColor: "rgba(217,119,6,0.28)",
+                                        }}
+                                    >
+                                        <AlertTriangle
+                                            className="h-4 w-4 shrink-0 mt-0.5"
+                                            style={{ color: "#b45309" }}
+                                        />
+                                        <p
+                                            className="text-xs font-semibold leading-relaxed"
+                                            style={{ color: "#92400e" }}
+                                        >
+                                            {locationData.warning}
+                                        </p>
                                     </div>
                                 ) : (
-                                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-4 flex gap-2.5 items-start">
-                                        <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                                        <p className="text-xs font-semibold text-emerald-800 leading-relaxed">
+                                    <div
+                                        className="rounded-xl border p-3 flex gap-2.5 items-start"
+                                        style={{
+                                            background: "rgba(5,150,105,0.09)",
+                                            borderColor: "rgba(5,150,105,0.25)",
+                                        }}
+                                    >
+                                        <CheckCircle2
+                                            className="h-4 w-4 shrink-0 mt-0.5"
+                                            style={{ color: "#059669" }}
+                                        />
+                                        <p
+                                            className="text-xs font-semibold leading-relaxed"
+                                            style={{ color: "#047857" }}
+                                        >
                                             Area is currently safe with normal health activity.
                                         </p>
                                     </div>
                                 )}
 
+                                {/* Active pathogens list */}
                                 <div>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-100 pb-1.5 shrink-0">
+                                    <p
+                                        className="text-[10px] font-bold uppercase tracking-widest mb-2 border-b pb-1.5"
+                                        style={{
+                                            color: "var(--dash-text-muted)",
+                                            borderColor: "var(--dash-card-border)",
+                                        }}
+                                    >
                                         Active Pathogens
                                     </p>
                                     {riskList.length > 0 ? (
@@ -297,21 +427,56 @@ export default function MapComponent() {
                                             {riskList.map(risk => {
                                                 const c = getSeverityConfig(risk.level);
                                                 return (
-                                                    <div key={risk.disease_id} className={`relative flex items-center justify-between p-2.5 rounded-lg border ${c.bg} ${c.border} overflow-hidden group hover:shadow-sm transition-all duration-200`}>
-                                                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${c.strip}`} />
-                                                        <div className="pl-1.5 flex flex-col min-w-0 pr-2">
-                                                            <span className={`text-sm font-semibold truncate ${c.text}`}>{risk.disease_name}</span>
-                                                            <span className={`text-[10px] opacity-80 mt-0.5 ${c.text}`}>{risk.count} projected {risk.count === 1 ? 'case' : 'cases'}</span>
+                                                    <div
+                                                        key={risk.disease_id}
+                                                        className="relative flex items-center justify-between p-2.5 rounded-lg border overflow-hidden transition-all duration-200"
+                                                        style={{
+                                                            background: c.bg,
+                                                            borderColor: c.border,
+                                                        }}
+                                                    >
+                                                        {/* Severity left strip */}
+                                                        <div
+                                                            className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg"
+                                                            style={{ background: c.stripColor }}
+                                                        />
+                                                        <div className="pl-2.5 flex flex-col min-w-0 pr-2">
+                                                            <span
+                                                                className="text-sm font-semibold truncate"
+                                                                style={{ color: c.textColor }}
+                                                            >
+                                                                {risk.disease_name}
+                                                            </span>
+                                                            <span
+                                                                className="text-[10px] mt-0.5"
+                                                                style={{ color: c.textColor, opacity: 0.8 }}
+                                                            >
+                                                                {risk.count} projected {risk.count === 1 ? 'case' : 'cases'}
+                                                            </span>
                                                         </div>
-                                                        <Badge className={`text-[10px] uppercase shrink-0 ${c.bg} ${c.text} ${c.border}`}>
+                                                        <span
+                                                            className="text-[10px] font-bold uppercase rounded-full px-2.5 py-0.5 border shrink-0"
+                                                            style={{
+                                                                color: c.textColor,
+                                                                background: "rgba(255,255,255,0.35)",
+                                                                borderColor: c.border,
+                                                            }}
+                                                        >
                                                             {risk.level}
-                                                        </Badge>
+                                                        </span>
                                                     </div>
                                                 );
                                             })}
                                         </div>
                                     ) : (
-                                        <div className="py-4 text-center text-xs text-slate-500 bg-slate-50 rounded-xl border border-slate-100 border-dashed">
+                                        <div
+                                            className="py-4 text-center text-xs rounded-xl border border-dashed"
+                                            style={{
+                                                color: "var(--dash-text-muted)",
+                                                background: "var(--dash-card-header-bg)",
+                                                borderColor: "var(--dash-card-border)",
+                                            }}
+                                        >
                                             No recent reports in this area.
                                         </div>
                                     )}
@@ -319,12 +484,26 @@ export default function MapComponent() {
                             </div>
                         </div>
                     ) : (
+                        /* Awaiting location state */
                         <div className="card-panel py-10 px-6 text-center animate-fade-in-scale">
-                            <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto mb-3 shadow-sm">
-                                <Activity className="h-5 w-5 text-slate-300" />
+                            <div
+                                className="w-12 h-12 rounded-2xl border flex items-center justify-center mx-auto mb-3"
+                                style={{
+                                    background: "var(--dash-card-header-bg)",
+                                    borderColor: "var(--dash-card-border)",
+                                }}
+                            >
+                                <Activity className="h-5 w-5" style={{ color: "var(--dash-text-muted)" }} />
                             </div>
-                            <h3 className="text-sm font-semibold text-slate-700">Awaiting Location</h3>
-                            <p className="text-xs text-slate-500 mt-1 max-w-[200px] mx-auto">Stand by while we fetch your coordinates to display health insights.</p>
+                            <h3 className="text-sm font-semibold" style={{ color: "var(--dash-text-primary)" }}>
+                                Awaiting Location
+                            </h3>
+                            <p
+                                className="text-xs mt-1 max-w-[200px] mx-auto"
+                                style={{ color: "var(--dash-text-muted)" }}
+                            >
+                                Stand by while we fetch your coordinates to display health insights.
+                            </p>
                         </div>
                     )}
                 </div>
