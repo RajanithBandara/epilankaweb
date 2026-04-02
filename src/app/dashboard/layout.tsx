@@ -180,7 +180,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </div>
                     </aside>
 
-                    <main className="min-w-0 min-h-0 h-full flex flex-col px-3 sm:px-4 lg:px-5 pb-24 lg:pb-5 pt-3 lg:pt-5">
+                    <main className="min-w-0 min-h-0 h-full flex flex-col px-3 sm:px-4 lg:px-5 pb-28 lg:pb-5 pt-3 lg:pt-5">
                         <section
                             className="max-w-7xl mx-auto w-full min-h-0 h-full rounded-2xl border overflow-hidden flex flex-col"
                             style={{
@@ -195,45 +195,47 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </main>
                 </div>
 
-                <nav
-                    className="lg:hidden fixed bottom-3 left-3 right-3 z-50 rounded-xl border overflow-hidden"
-                    style={{
-                        background: "var(--dash-sidebar-bg)",
-                        borderColor: "var(--dash-sidebar-border)",
-                    }}
-                >
-                    <div className="h-16 grid grid-cols-5 gap-1 p-1.5">
-                        {navItems.map((item) => {
-                            const Icon = item.icon;
-                            const isActive = pathname === item.href;
-                            return (
-                                <Link key={item.href} href={item.href} className="min-w-0">
-                                    <div
-                                        className="h-full rounded-lg flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium"
-                                        style={
-                                            isActive
-                                                ? { background: "var(--color-primary)", color: "#fff" }
-                                                : { color: "var(--dash-text-muted)" }
-                                        }
-                                    >
-                                        <Icon className="h-[15px] w-[15px]" />
-                                        {item.label}
-                                    </div>
-                                </Link>
-                            );
-                        })}
-                        <div className="h-full flex items-center justify-center">
-                            <AnimatedThemeToggler
-                                className="h-9 w-9 rounded-lg border flex items-center justify-center"
-                                style={{
-                                    borderColor: "var(--dash-card-border)",
-                                    color: "var(--dash-text-secondary)",
-                                    background: "var(--dash-card-bg)",
-                                }}
-                            />
+                <div className="lg:hidden fixed inset-x-0 bottom-0 z-50 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
+                    <nav
+                        className="rounded-xl border overflow-hidden"
+                        style={{
+                            background: "var(--dash-sidebar-bg)",
+                            borderColor: "var(--dash-sidebar-border)",
+                        }}
+                    >
+                        <div className="h-16 grid grid-cols-5 gap-1 p-1.5">
+                            {navItems.map((item) => {
+                                const Icon = item.icon;
+                                const isActive = pathname === item.href;
+                                return (
+                                    <Link key={item.href} href={item.href} className="min-w-0">
+                                        <div
+                                            className="h-full rounded-lg flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium"
+                                            style={
+                                                isActive
+                                                    ? { background: "var(--color-primary)", color: "#fff" }
+                                                    : { color: "var(--dash-text-muted)" }
+                                            }
+                                        >
+                                            <Icon className="h-[15px] w-[15px]" />
+                                            {item.label}
+                                        </div>
+                                    </Link>
+                                );
+                            })}
+                            <div className="h-full flex items-center justify-center">
+                                <AnimatedThemeToggler
+                                    className="h-9 w-9 rounded-lg border flex items-center justify-center"
+                                    style={{
+                                        borderColor: "var(--dash-card-border)",
+                                        color: "var(--dash-text-secondary)",
+                                        background: "var(--dash-card-bg)",
+                                    }}
+                                />
+                            </div>
                         </div>
-                    </div>
-                </nav>
+                    </nav>
+                </div>
             </div>
         </LocationProvider>
     );
