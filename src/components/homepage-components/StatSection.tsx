@@ -69,12 +69,12 @@ function StatSection() {
                                 initial="hidden"
                                 whileInView="visible"
                                 viewport={{ once: true, amount: 0.5 }}
-                                className="group relative p-8 text-center cursor-pointer"
+                                className="group relative p-8 text-center"
                                 whileHover={{ backgroundColor: 'rgba(255,255,255,0.04)' }}
                             >
                                 {/* Icon container */}
                                 <div className="inline-flex items-center justify-center mb-4">
-                                    <div className="p-3 bg-white rounded-xl border border-[#1E3A8A]/15 shadow-md group-hover:scale-110 group-hover:rotate-3 group-hover:border-[#0EA5A4]/40 transition-all duration-300">
+                                    <div className="p-3 bg-white rounded-xl border border-[#1E3A8A]/15 shadow-md group-hover:scale-110 group-hover:border-[#0EA5A4]/40 transition-all duration-300">
                                         {stat.icon}
                                     </div>
                                 </div>

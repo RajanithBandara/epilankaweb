@@ -115,7 +115,7 @@ function FeaturesSection() {
                                 <motion.div
                                     key={index}
                                     variants={itemVariants}
-                                    className="group relative flex flex-col p-5 bg-white/[0.05] rounded-2xl border border-white/10 hover:border-[#0EA5A4]/40 hover:bg-white/[0.08] transition-all duration-300 cursor-pointer overflow-hidden"
+                                    className="group relative flex flex-col p-5 bg-white/[0.05] rounded-2xl border border-white/10 hover:border-[#0EA5A4]/40 hover:bg-white/[0.08] transition-all duration-300 overflow-hidden"
                                     whileHover={{ y: -3 }}
                                     transition={{ type: 'spring', stiffness: 320, damping: 24 }}
                                 >
@@ -124,7 +124,7 @@ function FeaturesSection() {
 
                                     {/* Icon + Title row */}
                                     <div className="flex items-center gap-3 mb-3">
-                                        <div className="flex-shrink-0 p-2.5 bg-white rounded-xl border border-[#1E3A8A]/15 shadow-sm group-hover:scale-110 group-hover:rotate-3 group-hover:border-[#0EA5A4]/40 transition-all duration-300">
+                                        <div className="flex-shrink-0 p-2.5 bg-white rounded-xl border border-[#1E3A8A]/15 shadow-sm group-hover:scale-110 group-hover:border-[#0EA5A4]/40 transition-all duration-300">
                                             {feature.icon}
                                         </div>
                                         <h3 className="text-base font-bold text-white leading-snug">
