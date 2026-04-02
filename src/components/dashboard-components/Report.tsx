@@ -61,42 +61,88 @@ interface HistoryReport {
     created_at: string;
 }
 
-const getSeverityConfig = (severity: string) => {
+type SeverityConfig = { color: string; bg: string; border: string };
+type StatusConfig  = { color: string; bg: string; border: string };
+
+const getSeverityConfig = (severity: string): SeverityConfig => {
     switch (severity.toLowerCase()) {
         case "high":
         case "severe":
-            return { bg: "bg-rose-50",   text: "text-rose-700",   border: "border-rose-200",   strip: "bg-rose-400"   };
+            return { color: "#be123c", bg: "rgba(225,29,72,0.08)",  border: "rgba(225,29,72,0.25)"  };
         case "medium":
         case "moderate":
-            return { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200", strip: "bg-orange-400" };
+            return { color: "#c2410c", bg: "rgba(234,88,12,0.08)",  border: "rgba(234,88,12,0.25)"  };
         case "low":
         case "mild":
-            return { bg: "bg-amber-50",  text: "text-amber-700",  border: "border-amber-200",  strip: "bg-amber-400"  };
+            return { color: "#b45309", bg: "rgba(245,158,11,0.08)", border: "rgba(245,158,11,0.25)" };
         default:
-            return { bg: "bg-slate-50",  text: "text-slate-700",  border: "border-slate-200",  strip: "bg-slate-300"  };
+            return { color: "var(--dash-text-secondary)", bg: "var(--dash-card-header-bg)", border: "var(--dash-card-border)" };
     }
 };
 
-const getStatusConfig = (status: string | null) => {
+const getSeverityStripColor = (severity: string): string => {
+    switch (severity.toLowerCase()) {
+        case "high":   case "severe":   return "#f43f5e";
+        case "medium": case "moderate": return "#f97316";
+        case "low":    case "mild":     return "#f59e0b";
+        default: return "var(--dash-card-border)";
+    }
+};
+
+const getStatusConfig = (status: string | null): StatusConfig => {
     switch (status?.toLowerCase()) {
         case "verified":
         case "confirmed":
-            return { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" };
+            return { color: "#15803d", bg: "rgba(22,163,74,0.09)",  border: "rgba(22,163,74,0.28)"  };
         case "pending":
-            return { bg: "bg-blue-50",    text: "text-blue-700",    border: "border-blue-200"    };
+            return { color: "var(--color-primary)", bg: "rgba(30,58,138,0.09)", border: "rgba(30,58,138,0.22)" };
         case "investigating":
-            return { bg: "bg-violet-50",  text: "text-violet-700",  border: "border-violet-200"  };
+            return { color: "#7c3aed", bg: "rgba(124,58,237,0.09)", border: "rgba(124,58,237,0.25)" };
         default:
-            return { bg: "bg-slate-50",   text: "text-slate-600",   border: "border-slate-200"   };
+            return { color: "var(--dash-text-secondary)", bg: "var(--dash-card-header-bg)", border: "var(--dash-card-border)" };
     }
 };
 
 function InfoChip({ label, value }: { label: string; value: React.ReactNode }) {
     return (
-        <div className="rounded-xl border px-3 py-2.5 shadow-sm" style={{ background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)" }}>
-            <p className="text-[10px] font-bold uppercase tracking-wider mb-0.5" style={{ color: "var(--dash-text-muted)" }}>{label}</p>
-            <p className="text-sm font-semibold" style={{ color: "var(--dash-text-primary)" }}>{value}</p>
+        <div
+            className="rounded-xl border px-3 py-2.5"
+            style={{ background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)" }}
+        >
+            <p
+                className="text-[10px] font-bold uppercase tracking-wider mb-0.5"
+                style={{ color: "var(--dash-text-muted)" }}
+            >
+                {label}
+            </p>
+            <p className="text-sm font-semibold" style={{ color: "var(--dash-text-primary)" }}>
+                {value}
+            </p>
         </div>
+    );
+}
+
+function SeverityBadge({ severity }: { severity: string }) {
+    const cfg = getSeverityConfig(severity);
+    return (
+        <span
+            className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border"
+            style={{ color: cfg.color, background: cfg.bg, borderColor: cfg.border }}
+        >
+            {severity}
+        </span>
+    );
+}
+
+function StatusBadge({ status }: { status: string | null }) {
+    const cfg = getStatusConfig(status);
+    return (
+        <span
+            className="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold border shrink-0"
+            style={{ color: cfg.color, background: cfg.bg, borderColor: cfg.border }}
+        >
+            {status || "pending"}
+        </span>
     );
 }
 
@@ -177,269 +223,447 @@ export default function DiseaseReportPage() {
     };
 
     return (
-        <div className="max-w-2xl mx-auto space-y-6 py-2">
+        <div className="w-full max-w-7xl mx-auto space-y-5">
 
-            {/* ── Page header ──────────────────────────────────────────────── */}
-            <div className="flex items-center gap-3 pt-1">
-                <div className="w-10 h-10 rounded-xl bg-linear-to-br from-blue-600 to-blue-700
-                    flex items-center justify-center shadow-md shadow-blue-500/25 flex-shrink-0">
+            {/* ── Page header ─────────────────────────────────────────────── */}
+            <div className="flex items-center gap-3">
+                <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md flex-shrink-0"
+                    style={{ background: "var(--color-primary)" }}
+                >
                     <FileText className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                    <h1 className="text-xl font-bold tracking-tight" style={{ color: "var(--dash-text-primary)" }}>Health Incident Report</h1>
-                    <p className="text-xs" style={{ color: "var(--dash-text-muted)" }}>AI-powered community health monitoring</p>
-                </div>
-            </div>
-
-            {/* ── Location pill ─────────────────────────────────────────────  */}
-            {locationLoading ? (
-                <div className="flex items-center gap-3 rounded-xl border px-4 py-3 shadow-sm animate-pulse" style={{ background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)" }}>
-                    <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                    <span className="text-sm" style={{ color: "var(--dash-text-secondary)" }}>Detecting location…</span>
-                </div>
-            ) : locationError ? (
-                <div className="flex items-center gap-3 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 px-4 py-3">
-                    <AlertCircle className="h-4 w-4 text-rose-600 dark:text-rose-400 shrink-0" />
-                    <span className="text-sm text-rose-700 dark:text-rose-300">{locationError}</span>
-                </div>
-            ) : locationData?.nearest_area ? (
-                <div className="flex items-center gap-3 rounded-xl border border-blue-100 dark:border-blue-500/25 bg-blue-50/70 dark:bg-blue-500/10 px-4 py-3 shadow-sm">
-                    <div className="w-8 h-8 rounded-lg border border-blue-100 dark:border-blue-500/25 flex items-center justify-center shrink-0 shadow-sm" style={{ background: "var(--dash-card-bg)" }}>
-                        <MapPin className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <div className="flex-1 min-w-0 text-sm">
-                        <span className="font-semibold" style={{ color: "var(--dash-text-primary)" }}>{locationData.nearest_area.district_name}</span>
-                        <span style={{ color: "var(--dash-text-secondary)" }}>, {locationData.nearest_area.province_name}</span>
-                    </div>
-                    <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/25 rounded-full px-2.5 py-1 shrink-0">
-                        ✓ Detected
-                    </span>
-                </div>
-            ) : null}
-
-            {/* ── Report form card ──────────────────────────────────────────── */}
-            <div className="card-panel">
-                {/* Gradient header bar */}
-                <div className="card-panel-header border-b border-slate-100">
-                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-600 to-blue-700
-                        flex items-center justify-center shadow-sm">
-                        <Sparkles className="h-3.5 w-3.5 text-white" />
-                    </div>
-                    <div>
-                        <h2 className="text-sm font-semibold text-slate-900">Describe the Health Incident</h2>
-                        <p className="text-xs text-slate-400">Be specific — AI will extract key details</p>
-                    </div>
-                </div>
-
-                <div className="p-5 space-y-4">
-                    <Textarea
-                        placeholder="Describe symptoms, number of cases, affected age group, and timeline…"
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        rows={5}
-                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200
-                            focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100
-                            text-slate-800 placeholder:text-slate-400 resize-none transition-all duration-200 text-sm"
-                        disabled={loading || locationLoading}
-                    />
-                    <p className="text-xs text-slate-400">
-                        Include symptoms, location specifics, and timeline for accurate AI analysis.
+                    <h1 className="text-xl font-bold tracking-tight" style={{ color: "var(--dash-text-primary)" }}>
+                        Health Incident Report
+                    </h1>
+                    <p className="text-xs" style={{ color: "var(--dash-text-muted)" }}>
+                        AI-powered community health monitoring
                     </p>
-
-                    <Button
-                        onClick={analyzeAndSubmit}
-                        disabled={loading || locationLoading || !locationData}
-                        className="w-full bg-gradient-to-r from-[#1e3a8a] to-[#2563eb] hover:opacity-90
-                            text-white font-semibold py-2.5 rounded-xl shadow-md
-                            hover:shadow-blue-200/60 transition-all duration-200 disabled:opacity-60"
-                    >
-                        {loading ? (
-                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Analyzing with AI…</>
-                        ) : (
-                            <><Send className="mr-2 h-4 w-4" />Submit Report</>
-                        )}
-                    </Button>
-
-                    {/* Error */}
-                    {error && (
-                        <div className="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50
-                            px-4 py-3 text-sm text-rose-700 animate-fade-in-scale">
-                            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                            <span>{error}</span>
-                        </div>
-                    )}
-
-                    {/* Success banner */}
-                    {submitResponse && (
-                        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 space-y-3 animate-fade-in-scale">
-                            <div className="flex items-center gap-2.5">
-                                <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
-                                <div>
-                                    <p className="text-sm font-semibold text-emerald-800">Report Submitted Successfully</p>
-                                    <p className="text-xs text-emerald-600">ID: #{submitResponse.data.report_id}</p>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                                <InfoChip label="Disease" value={submitResponse.data.extracted_data.disease_name || "Unknown"} />
-                                <InfoChip label="Type"    value={submitResponse.data.extracted_data.disease_type} />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Analysis preview */}
-                    {extractedData && !submitResponse && (
-                        <div className="card-panel animate-fade-in-scale">
-                            <div className="card-panel-header border-b border-slate-100">
-                                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-600 to-violet-600
-                                    flex items-center justify-center shadow-sm">
-                                    <BrainCircuit className="h-3.5 w-3.5 text-white" />
-                                </div>
-                                <span className="text-sm font-semibold text-slate-900">AI Analysis Complete</span>
-                                <Badge className="ml-auto bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-bold">
-                                    {extractedData.confidence} confidence
-                                </Badge>
-                            </div>
-                            <div className="p-4 space-y-3">
-                                <div className="grid grid-cols-2 gap-2">
-                                    <InfoChip label="Disease"  value={extractedData.disease_name || "Unknown"} />
-                                    <InfoChip label="Cases"    value={extractedData.cases_reported ?? "N/A"} />
-                                    <InfoChip label="Type"     value={extractedData.disease_type} />
-                                    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Severity</p>
-                                        {(() => { const c = getSeverityConfig(extractedData.severity); return (
-                                            <Badge className={`text-xs ${c.bg} ${c.text} ${c.border}`}>{extractedData.severity}</Badge>
-                                        ); })()}
-                                    </div>
-                                </div>
-                                {extractedData.symptoms.length > 0 && (
-                                    <div>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-                                            Detected Symptoms
-                                        </p>
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {extractedData.symptoms.map((s, i) => (
-                                                <Badge key={i} className="bg-white border border-slate-200 text-slate-700 text-xs">
-                                                    {s}
-                                                </Badge>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
 
-            {/* ── Recent reports section ─────────────────────────────────────── */}
-            <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4" style={{ color: "var(--dash-text-muted)" }} />
-                        <h2 className="text-base font-semibold" style={{ color: "var(--dash-text-primary)" }}>Recent Reports</h2>
-                    </div>
-                    {locationData?.nearest_area && (
-                        <span className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/25 rounded-full px-2.5 py-1">
-                            {locationData.nearest_area.district_name}
-                        </span>
-                    )}
-                </div>
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
 
-                {historyLoading ? (
-                    <div className="flex items-center justify-center gap-3 rounded-2xl border px-6 py-10 shadow-sm" style={{ background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)" }}>
-                        <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-                        <span className="text-sm" style={{ color: "var(--dash-text-secondary)" }}>Loading reports…</span>
-                    </div>
-                ) : history.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center rounded-2xl border py-14 text-center shadow-sm" style={{ background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)" }}>
-                        <div className="w-12 h-12 rounded-2xl border flex items-center justify-center mb-3 shadow-sm" style={{ background: "var(--dash-panel-bg)", borderColor: "var(--dash-card-border)" }}>
-                            <FileText className="h-6 w-6" style={{ color: "var(--dash-text-muted)" }} />
+                {/* ── Left column: form ─────────────────────────────────────── */}
+                <div className="xl:col-span-5 space-y-4">
+
+                    {/* Location pill */}
+                    {locationLoading ? (
+                        <div
+                            className="flex items-center gap-3 rounded-xl border px-4 py-3 animate-pulse"
+                            style={{ background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)" }}
+                        >
+                            <Loader2 className="h-4 w-4 animate-spin" style={{ color: "var(--color-primary)" }} />
+                            <span className="text-sm" style={{ color: "var(--dash-text-secondary)" }}>
+                                Detecting location…
+                            </span>
                         </div>
-                        <p className="text-sm font-semibold" style={{ color: "var(--dash-text-secondary)" }}>No reports found</p>
-                        <p className="text-xs mt-1" style={{ color: "var(--dash-text-muted)" }}>No disease reports for this area yet.</p>
-                    </div>
-                ) : (
-                    <div className="space-y-3">
-                        {history.map((report, index) => {
-                            const statusCfg   = getStatusConfig(report.status);
-                            const severityCfg = report.extracted_data
-                                ? getSeverityConfig(report.extracted_data.severity)
-                                : null;
-                            return (
+                    ) : locationError ? (
+                        <div
+                            className="flex items-center gap-3 rounded-xl border px-4 py-3"
+                            style={{
+                                background: "rgba(220,38,38,0.08)",
+                                borderColor: "rgba(220,38,38,0.28)",
+                            }}
+                        >
+                            <AlertCircle className="h-4 w-4 shrink-0" style={{ color: "var(--color-danger)" }} />
+                            <span className="text-sm" style={{ color: "var(--color-danger)" }}>
+                                {locationError}
+                            </span>
+                        </div>
+                    ) : locationData?.nearest_area ? (
+                        <div
+                            className="flex items-center gap-3 rounded-xl border px-4 py-3"
+                            style={{
+                                background: "rgba(30,58,138,0.07)",
+                                borderColor: "rgba(30,58,138,0.2)",
+                            }}
+                        >
+                            <div
+                                className="w-8 h-8 rounded-lg border flex items-center justify-center shrink-0"
+                                style={{
+                                    background: "var(--dash-card-bg)",
+                                    borderColor: "rgba(30,58,138,0.18)",
+                                }}
+                            >
+                                <MapPin className="h-4 w-4" style={{ color: "var(--color-primary)" }} />
+                            </div>
+                            <div className="flex-1 min-w-0 text-sm">
+                                <span className="font-semibold" style={{ color: "var(--dash-text-primary)" }}>
+                                    {locationData.nearest_area.district_name}
+                                </span>
+                                <span style={{ color: "var(--dash-text-secondary)" }}>
+                                    , {locationData.nearest_area.province_name}
+                                </span>
+                            </div>
+                            <span
+                                className="text-xs font-semibold rounded-full px-2.5 py-1 shrink-0 border"
+                                style={{
+                                    color: "var(--color-success)",
+                                    background: "rgba(22,163,74,0.09)",
+                                    borderColor: "rgba(22,163,74,0.28)",
+                                }}
+                            >
+                                ✓ Detected
+                            </span>
+                        </div>
+                    ) : null}
+
+                    {/* Report form card */}
+                    <div className="card-panel">
+                        <div className="card-panel-header">
+                            <div
+                                className="w-7 h-7 rounded-lg flex items-center justify-center shadow-sm"
+                                style={{ background: "var(--color-primary)" }}
+                            >
+                                <Sparkles className="h-3.5 w-3.5 text-white" />
+                            </div>
+                            <div>
+                                <h2 className="text-sm font-semibold" style={{ color: "var(--dash-text-primary)" }}>
+                                    Describe the Health Incident
+                                </h2>
+                                <p className="text-xs" style={{ color: "var(--dash-text-muted)" }}>
+                                    Be specific — AI will extract key details
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="p-5 space-y-4">
+                            <Textarea
+                                placeholder="Describe symptoms, number of cases, affected age group, and timeline…"
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                rows={5}
+                                className="w-full px-4 py-3 rounded-xl resize-none transition-all duration-200 text-sm border outline-none"
+                                style={{
+                                    background: "var(--dash-input-bg)",
+                                    borderColor: "var(--dash-input-border)",
+                                    color: "var(--dash-input-text)",
+                                }}
+                                disabled={loading || locationLoading}
+                            />
+                            <p className="text-xs" style={{ color: "var(--dash-text-muted)" }}>
+                                Include symptoms, location specifics, and timeline for accurate AI analysis.
+                            </p>
+
+                            <Button
+                                onClick={analyzeAndSubmit}
+                                disabled={loading || locationLoading || !locationData}
+                                className="w-full text-white font-semibold py-2.5 rounded-xl shadow-md transition-all duration-200 disabled:opacity-60"
+                                style={{
+                                    background: "linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%)",
+                                }}
+                            >
+                                {loading ? (
+                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Analyzing with AI…</>
+                                ) : (
+                                    <><Send className="mr-2 h-4 w-4" />Submit Report</>
+                                )}
+                            </Button>
+
+                            {/* Error */}
+                            {error && (
                                 <div
-                                    key={report.report_id}
-                                    className="card-panel animate-fade-in-scale overflow-hidden"
-                                    style={{ animationDelay: `${index * 50}ms` }}
+                                    className="flex items-start gap-2.5 rounded-xl border px-4 py-3 text-sm animate-fade-in-scale"
+                                    style={{
+                                        background: "rgba(220,38,38,0.08)",
+                                        borderColor: "rgba(220,38,38,0.28)",
+                                        color: "var(--color-danger)",
+                                    }}
                                 >
-                                    {/* Severity left strip */}
-                                    {severityCfg && (
-                                        <div className={`h-1 w-full ${severityCfg.strip}`} />
-                                    )}
+                                    <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                                    <span>{error}</span>
+                                </div>
+                            )}
 
-                                    <div className="p-4 sm:p-5 space-y-3">
-                                        {/* Header */}
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="text-sm font-semibold text-slate-900 truncate">
-                                                    {report.extracted_data?.disease_name || "Unverified Report"}
-                                                </h3>
-                                                <p className="text-xs text-slate-400 mt-0.5">
-                                                    {new Date(report.created_at).toLocaleDateString("en-US", {
-                                                        month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
-                                                    })}
-                                                </p>
-                                            </div>
-                                            <Badge className={`text-xs shrink-0 ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}>
-                                                {report.status || "pending"}
-                                            </Badge>
+                            {/* Success banner */}
+                            {submitResponse && (
+                                <div
+                                    className="rounded-xl border p-4 space-y-3 animate-fade-in-scale"
+                                    style={{
+                                        background: "rgba(22,163,74,0.08)",
+                                        borderColor: "rgba(22,163,74,0.28)",
+                                    }}
+                                >
+                                    <div className="flex items-center gap-2.5">
+                                        <CheckCircle2 className="h-5 w-5 shrink-0" style={{ color: "var(--color-success)" }} />
+                                        <div>
+                                            <p className="text-sm font-semibold" style={{ color: "var(--color-success)" }}>
+                                                Report Submitted Successfully
+                                            </p>
+                                            <p className="text-xs" style={{ color: "var(--dash-text-secondary)" }}>
+                                                ID: #{submitResponse.data.report_id}
+                                            </p>
                                         </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <InfoChip label="Disease" value={submitResponse.data.extracted_data.disease_name || "Unknown"} />
+                                        <InfoChip label="Type"    value={submitResponse.data.extracted_data.disease_type} />
+                                    </div>
+                                </div>
+                            )}
 
-                                        {/* Description */}
-                                        <p className="text-sm text-slate-600 line-clamp-2">{report.description}</p>
-
-                                        {/* Stats chips */}
-                                        {report.extracted_data && (
-                                            <div className="grid grid-cols-3 gap-2">
-                                                <InfoChip label="Cases"    value={report.extracted_data.cases_reported ?? "N/A"} />
-                                                <InfoChip label="Type"     value={report.extracted_data.disease_type} />
-                                                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Severity</p>
-                                                    {(() => { const c = getSeverityConfig(report.extracted_data.severity); return (
-                                                        <Badge className={`text-[10px] ${c.bg} ${c.text} ${c.border}`}>
-                                                            {report.extracted_data.severity}
-                                                        </Badge>
-                                                    ); })()}
+                            {/* Analysis preview */}
+                            {extractedData && !submitResponse && (
+                                <div className="card-panel animate-fade-in-scale">
+                                    <div className="card-panel-header">
+                                        <div
+                                            className="w-7 h-7 rounded-lg flex items-center justify-center shadow-sm"
+                                            style={{
+                                                background: "linear-gradient(135deg, var(--color-primary) 0%, #7c3aed 100%)",
+                                            }}
+                                        >
+                                            <BrainCircuit className="h-3.5 w-3.5 text-white" />
+                                        </div>
+                                        <span
+                                            className="text-sm font-semibold"
+                                            style={{ color: "var(--dash-text-primary)" }}
+                                        >
+                                            AI Analysis Complete
+                                        </span>
+                                        <span
+                                            className="ml-auto text-[10px] font-bold rounded-full px-2.5 py-1 border"
+                                            style={{
+                                                color: "var(--color-primary)",
+                                                background: "rgba(30,58,138,0.09)",
+                                                borderColor: "rgba(30,58,138,0.22)",
+                                            }}
+                                        >
+                                            {extractedData.confidence} confidence
+                                        </span>
+                                    </div>
+                                    <div className="p-4 space-y-3">
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <InfoChip label="Disease" value={extractedData.disease_name || "Unknown"} />
+                                            <InfoChip label="Cases"   value={extractedData.cases_reported ?? "N/A"} />
+                                            <InfoChip label="Type"    value={extractedData.disease_type} />
+                                            <div
+                                                className="rounded-xl border px-3 py-2.5"
+                                                style={{
+                                                    background: "var(--dash-card-bg)",
+                                                    borderColor: "var(--dash-card-border)",
+                                                }}
+                                            >
+                                                <p
+                                                    className="text-[10px] font-bold uppercase tracking-wider mb-1"
+                                                    style={{ color: "var(--dash-text-muted)" }}
+                                                >
+                                                    Severity
+                                                </p>
+                                                <SeverityBadge severity={extractedData.severity} />
+                                            </div>
+                                        </div>
+                                        {extractedData.symptoms.length > 0 && (
+                                            <div>
+                                                <p
+                                                    className="text-[10px] font-bold uppercase tracking-wider mb-2"
+                                                    style={{ color: "var(--dash-text-muted)" }}
+                                                >
+                                                    Detected Symptoms
+                                                </p>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {extractedData.symptoms.map((s, i) => (
+                                                        <span
+                                                            key={i}
+                                                            className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                                                            style={{
+                                                                background: "var(--dash-card-bg)",
+                                                                borderColor: "var(--dash-card-border)",
+                                                                color: "var(--dash-text-secondary)",
+                                                            }}
+                                                        >
+                                                            {s}
+                                                        </span>
+                                                    ))}
                                                 </div>
                                             </div>
                                         )}
-
-                                        {/* Vote button */}
-                                        <Button
-                                            onClick={() => upvoteReport(report.report_id)}
-                                            className="w-full bg-slate-50 hover:bg-blue-50 border border-slate-200
-                                                hover:border-blue-200 text-slate-600 hover:text-blue-700
-                                                shadow-none transition-all duration-200 rounded-xl text-xs font-semibold"
-                                            size="sm"
-                                        >
-                                            <ThumbsUp className="mr-2 h-3.5 w-3.5" />
-                                            I have the same problem
-                                        </Button>
-
-                                        {/* Location footer */}
-                                        {report.district_info && (
-                                            <div className="flex items-center gap-2 pt-2.5 border-t border-slate-100 text-xs text-slate-400">
-                                                <MapPin className="h-3.5 w-3.5 text-slate-300 shrink-0" />
-                                                <span>{report.district_info.district_name}</span>
-                                                <ChevronRight className="h-3 w-3 text-slate-200" />
-                                                <span>{report.district_info.distance_km.toFixed(1)} km away</span>
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
-                            );
-                        })}
+                            )}
+                        </div>
                     </div>
-                )}
+                </div>
+
+                {/* ── Right column: recent reports ─────────────────────────── */}
+                <aside className="xl:col-span-7 space-y-3 xl:sticky xl:top-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4" style={{ color: "var(--dash-text-muted)" }} />
+                            <h2 className="text-base font-semibold" style={{ color: "var(--dash-text-primary)" }}>
+                                Recent Reports
+                            </h2>
+                        </div>
+                        {locationData?.nearest_area && (
+                            <span
+                                className="text-xs font-medium rounded-full px-2.5 py-1 border"
+                                style={{
+                                    color: "var(--color-primary)",
+                                    background: "rgba(30,58,138,0.08)",
+                                    borderColor: "rgba(30,58,138,0.2)",
+                                }}
+                            >
+                                {locationData.nearest_area.district_name}
+                            </span>
+                        )}
+                    </div>
+
+                    {historyLoading ? (
+                        <div
+                            className="flex items-center justify-center gap-3 rounded-2xl border px-6 py-10"
+                            style={{ background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)" }}
+                        >
+                            <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--color-primary)" }} />
+                            <span className="text-sm" style={{ color: "var(--dash-text-secondary)" }}>
+                                Loading reports…
+                            </span>
+                        </div>
+                    ) : history.length === 0 ? (
+                        <div
+                            className="flex flex-col items-center justify-center rounded-2xl border py-14 text-center"
+                            style={{ background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)" }}
+                        >
+                            <div
+                                className="w-12 h-12 rounded-2xl border flex items-center justify-center mb-3"
+                                style={{
+                                    background: "var(--dash-card-header-bg)",
+                                    borderColor: "var(--dash-card-border)",
+                                }}
+                            >
+                                <FileText className="h-6 w-6" style={{ color: "var(--dash-text-muted)" }} />
+                            </div>
+                            <p className="text-sm font-semibold" style={{ color: "var(--dash-text-secondary)" }}>
+                                No reports found
+                            </p>
+                            <p className="text-xs mt-1" style={{ color: "var(--dash-text-muted)" }}>
+                                No disease reports for this area yet.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3 xl:max-h-[calc(100vh-13rem)] xl:overflow-y-auto xl:pr-1">
+                            {history.map((report, index) => {
+                                const severityStripColor = report.extracted_data
+                                    ? getSeverityStripColor(report.extracted_data.severity)
+                                    : null;
+                                return (
+                                    <div
+                                        key={report.report_id}
+                                        className="card-panel animate-fade-in-scale overflow-hidden"
+                                        style={{ animationDelay: `${index * 50}ms` }}
+                                    >
+                                        {/* Severity top strip */}
+                                        {severityStripColor && (
+                                            <div
+                                                className="h-1 w-full"
+                                                style={{ background: severityStripColor }}
+                                            />
+                                        )}
+
+                                        <div className="p-4 sm:p-5 space-y-3">
+                                            {/* Header */}
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex-1 min-w-0">
+                                                    <h3
+                                                        className="text-sm font-semibold truncate"
+                                                        style={{ color: "var(--dash-text-primary)" }}
+                                                    >
+                                                        {report.extracted_data?.disease_name || "Unverified Report"}
+                                                    </h3>
+                                                    <p
+                                                        className="text-xs mt-0.5"
+                                                        style={{ color: "var(--dash-text-muted)" }}
+                                                    >
+                                                        {new Date(report.created_at).toLocaleDateString("en-US", {
+                                                            month: "short",
+                                                            day: "numeric",
+                                                            hour: "2-digit",
+                                                            minute: "2-digit",
+                                                        })}
+                                                    </p>
+                                                </div>
+                                                <StatusBadge status={report.status} />
+                                            </div>
+
+                                            {/* Description */}
+                                            <p
+                                                className="text-sm line-clamp-2"
+                                                style={{ color: "var(--dash-text-secondary)" }}
+                                            >
+                                                {report.description}
+                                            </p>
+
+                                            {/* Stats chips */}
+                                            {report.extracted_data && (
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    <InfoChip label="Cases" value={report.extracted_data.cases_reported ?? "N/A"} />
+                                                    <InfoChip label="Type"  value={report.extracted_data.disease_type} />
+                                                    <div
+                                                        className="rounded-xl border px-3 py-2.5"
+                                                        style={{
+                                                            background: "var(--dash-card-bg)",
+                                                            borderColor: "var(--dash-card-border)",
+                                                        }}
+                                                    >
+                                                        <p
+                                                            className="text-[10px] font-bold uppercase tracking-wider mb-1"
+                                                            style={{ color: "var(--dash-text-muted)" }}
+                                                        >
+                                                            Severity
+                                                        </p>
+                                                        <SeverityBadge severity={report.extracted_data.severity} />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Vote button */}
+                                            <button
+                                                onClick={() => upvoteReport(report.report_id)}
+                                                className="w-full flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-xs font-semibold transition-all duration-200"
+                                                style={{
+                                                    background: "var(--dash-card-header-bg)",
+                                                    borderColor: "var(--dash-card-border)",
+                                                    color: "var(--dash-text-secondary)",
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    const el = e.currentTarget as HTMLElement;
+                                                    el.style.background = "rgba(30,58,138,0.08)";
+                                                    el.style.borderColor = "rgba(30,58,138,0.25)";
+                                                    el.style.color = "var(--color-primary)";
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    const el = e.currentTarget as HTMLElement;
+                                                    el.style.background = "var(--dash-card-header-bg)";
+                                                    el.style.borderColor = "var(--dash-card-border)";
+                                                    el.style.color = "var(--dash-text-secondary)";
+                                                }}
+                                            >
+                                                <ThumbsUp className="h-3.5 w-3.5" />
+                                                I have the same problem
+                                            </button>
+
+                                            {/* Location footer */}
+                                            {report.district_info && (
+                                                <div
+                                                    className="flex items-center gap-2 pt-2.5 border-t text-xs"
+                                                    style={{
+                                                        borderColor: "var(--dash-card-border)",
+                                                        color: "var(--dash-text-muted)",
+                                                    }}
+                                                >
+                                                    <MapPin className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--dash-text-muted)" }} />
+                                                    <span>{report.district_info.district_name}</span>
+                                                    <ChevronRight className="h-3 w-3" style={{ opacity: 0.4 }} />
+                                                    <span>{report.district_info.distance_km.toFixed(1)} km away</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </aside>
             </div>
         </div>
     );

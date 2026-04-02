@@ -2,6 +2,11 @@
 @import "tw-animate-css";
 @import "../styles/theme.css";
 
+@theme inline {
+    --font-sans: var(--font-inter);
+    --font-mono: var(--font-jetbrains-mono);
+}
+
 @layer utilities {
     .glass {
         background: rgba(255, 255, 255, 0.1);
@@ -438,6 +443,7 @@ html {
 }
 
 body {
+    font-family: var(--font-inter), sans-serif;
     min-height: 100%;
     margin: 0;
     padding: 0;
@@ -445,6 +451,38 @@ body {
     background-color: var(--color-background);
     color: var(--color-text-primary);
     transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-heading), sans-serif;
+    font-weight: 600;
+}
+
+code,
+kbd,
+samp,
+pre {
+    font-family: var(--font-jetbrains-mono), monospace;
+}
+
+.font-data,
+.numeric-data,
+time,
+[data-numeric="true"] {
+    font-family: var(--font-jetbrains-mono), monospace;
+    font-variant-numeric: tabular-nums;
 }
 
 body.not-found-page .app-navbar {

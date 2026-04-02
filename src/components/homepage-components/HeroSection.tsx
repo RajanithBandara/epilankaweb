@@ -33,12 +33,12 @@ function HeroSection() {
                 </motion.div>
 
                 {/* Main Heading */}
-                <motion.h1
+                <motion.p
                     {...fadeUp(0.1)}
-                    className="text-6xl md:text-8xl font-black mb-8 leading-tight text-white drop-shadow-2xl"
+                    className="text-6xl font-bold md:text-7xl mb-8 leading-tight text-white drop-shadow-2xl"
                 >
                     EpiWatch Lanka
-                </motion.h1>
+                </motion.p>
 
                 {/* Subheading */}
                 <motion.p
@@ -92,14 +92,6 @@ function HeroSection() {
                     transition={{ delay: 0.9, duration: 0.6 }}
                     className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
                 >
-                    <span className="text-white/50 text-xs tracking-widest uppercase">Scroll</span>
-                    <motion.div
-                        animate={{ y: [0, 6, 0] }}
-                        transition={{ repeat: Infinity, duration: 1.4, ease: 'easeInOut' }}
-                        className="w-5 h-8 rounded-full border-2 border-white/30 flex items-start justify-center pt-1.5"
-                    >
-                        <div className="w-1 h-2 bg-white/60 rounded-full" />
-                    </motion.div>
                 </motion.div>
             </div>
         </section>
