@@ -8,8 +8,6 @@ import {
     LogOut,
     User,
     CalendarDays,
-    Menu,
-    X,
     ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
@@ -36,7 +34,6 @@ const baseNavItemClass = "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     const handleLogout = () => {
         localStorage.clear();
@@ -184,122 +181,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </aside>
 
                     <main className="min-w-0 min-h-0 h-full flex flex-col px-3 sm:px-4 lg:px-5 pb-24 lg:pb-5 pt-3 lg:pt-5">
-                        <header
-                            className="lg:hidden rounded-xl border px-3 py-2.5 mb-3"
-                            style={{
-                                background: "var(--dash-sidebar-bg)",
-                                borderColor: "var(--dash-sidebar-border)",
-                            }}
-                        >
-                            <div className="flex items-center justify-between gap-2">
-                                <Link href="/dashboard" className="flex items-center gap-2.5 min-w-0">
-                                    <div
-                                        className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-semibold"
-                                        style={{ background: "var(--color-primary)", color: "#fff" }}
-                                    >
-                                        E
-                                    </div>
-                                    <p className="text-sm font-semibold truncate" style={{ color: "var(--dash-text-primary)" }}>
-                                        EpiLanka Dashboard
-                                    </p>
-                                </Link>
-
-                                <div className="flex items-center gap-2">
-                                    <AnimatedThemeToggler
-                                        className="h-8 w-8 rounded-lg border flex items-center justify-center"
-                                        style={{
-                                            borderColor: "var(--dash-card-border)",
-                                            color: "var(--dash-text-secondary)",
-                                            background: "var(--dash-card-bg)",
-                                        }}
-                                    />
-                                    <button
-                                        onClick={() => setMobileMenuOpen((v) => !v)}
-                                        className="h-8 w-8 rounded-lg border flex items-center justify-center"
-                                        style={{
-                                            borderColor: "var(--dash-card-border)",
-                                            color: "var(--dash-text-secondary)",
-                                            background: "var(--dash-card-bg)",
-                                        }}
-                                        aria-label="Toggle menu"
-                                    >
-                                        {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-                                    </button>
-                                </div>
-                            </div>
-
-                            {mobileMenuOpen && (
-                                <div className="mt-2 pt-2 border-t space-y-1" style={{ borderColor: "var(--dash-card-border)" }}>
-                                    {navItems.map((item) => {
-                                        const Icon = item.icon;
-                                        const isActive = pathname === item.href;
-                                        return (
-                                            <Link
-                                                key={item.href}
-                                                href={item.href}
-                                                onClick={() => setMobileMenuOpen(false)}
-                                                className={`${baseNavItemClass} ${isActive ? "" : "hover:bg-(--dash-nav-hover-bg)"}`}
-                                                style={
-                                                    isActive
-                                                        ? { background: "var(--color-primary)", color: "#fff" }
-                                                        : { color: "var(--dash-text-secondary)" }
-                                                }
-                                            >
-                                                <Icon className="h-4 w-4" />
-                                                <span className="flex-1">{item.label}</span>
-                                            </Link>
-                                        );
-                                    })}
-                                    <button
-                                        onClick={() => {
-                                            setMobileMenuOpen(false);
-                                            handleLogout();
-                                        }}
-                                        className="w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium"
-                                        style={{ color: "#dc2626" }}
-                                    >
-                                        Sign Out
-                                    </button>
-                                </div>
-                            )}
-                        </header>
-
-                        <div
-                            className="hidden md:flex lg:hidden items-center gap-1.5 rounded-xl border px-1.5 py-1.5 mb-3 overflow-x-auto"
-                            style={{
-                                background: "var(--dash-sidebar-bg)",
-                                borderColor: "var(--dash-sidebar-border)",
-                            }}
-                        >
-                            {navItems.map((item) => {
-                                const Icon = item.icon;
-                                const isActive = pathname === item.href;
-                                return (
-                                    <Link key={item.href} href={item.href} className="shrink-0">
-                                        <div
-                                            className="flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium"
-                                            style={
-                                                isActive
-                                                    ? { background: "var(--color-primary)", color: "#fff" }
-                                                    : { color: "var(--dash-text-secondary)" }
-                                            }
-                                        >
-                                            <Icon className="h-3.5 w-3.5" />
-                                            {item.label}
-                                        </div>
-                                    </Link>
-                                );
-                            })}
-                            <AnimatedThemeToggler
-                                className="ml-auto h-8 w-8 rounded-lg border flex items-center justify-center shrink-0"
-                                style={{
-                                    borderColor: "var(--dash-card-border)",
-                                    color: "var(--dash-text-secondary)",
-                                    background: "var(--dash-card-bg)",
-                                }}
-                            />
-                        </div>
-
                         <section
                             className="max-w-7xl mx-auto w-full min-h-0 h-full rounded-2xl border overflow-hidden flex flex-col"
                             style={{
