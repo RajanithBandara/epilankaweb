@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
-import { adminApi } from "@/lib/adminApi";
+import { cookies } from "next/headers";
+import { makeAdminApi } from "@/lib/adminApi";
 
 export async function DELETE(
-    req: Request,
+    _req: Request,
     context: { params: Promise<{ id: string }> }
 ) {
     try {
         const { id } = await context.params;
-        const res = await adminApi.delete(`/admin/users/${id}`);
+        const jwt = (await cookies()).get("appwrite-admin-jwt")?.value;
+        const api = makeAdminApi(jwt);
+        const res = await api.delete(`/admin/users/${id}`);
         return NextResponse.json(res.data);
     } catch (err: unknown) {
         const error = err as { response?: { data?: unknown; status?: number } };
@@ -17,4 +20,3 @@ export async function DELETE(
         );
     }
 }
-

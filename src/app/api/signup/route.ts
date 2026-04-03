@@ -1,35 +1,13 @@
-import axios from "axios";
+export const runtime = 'nodejs';
 
-export async function POST(req: Request) {
-    const body = await req.json();
-
-    try {
-
-        const response = await axios.post(
-            `${process.env.NEXT_PUBLIC_API_URL}/users/register`,
-            body,
-            {
-                headers: {
-                    "x-api-key": process.env.NEXT_PUBLIC_SECRET_KEY!,
-                    "Content-Type": "application/json",
-                },
-            }
-        );
-
-        return Response.json(response.data, {
-            status: response.status,
-        });
-    } catch (err: unknown) {
-        const axiosError = err as { response?: { data?: { message?: string }; status?: number } };
-        return Response.json(
-            {
-                message:
-                    axiosError.response?.data?.message || "Signup failed",
-                status: axiosError.response?.status || 500,
-            },
-            {
-                status: axiosError.response?.status || 500,
-            }
-        );
-    }
+/**
+ * POST /api/signup
+ * Signup now happens client-side via the Appwrite SDK.
+ * This stub remains for any backwards-compatible calls.
+ */
+export async function POST() {
+  return Response.json(
+    { message: 'Use client-side Appwrite SDK for signup. See AuthPage.tsx.' },
+    { status: 400 }
+  );
 }

@@ -30,8 +30,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const router   = useRouter();
 
     const handleLogout = async () => {
+        try {
+            await import("@/lib/appwrite").then(({ account }) =>
+                account.deleteSession("current")
+            );
+        } catch {
+            // session may already be expired
+        }
         await fetch("/api/admin/auth/logout", { method: "POST" });
-        localStorage.clear();
         router.push("/admin/login");
     };
 

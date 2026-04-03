@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
-import { adminApi } from "@/lib/adminApi";
+import { cookies } from "next/headers";
+import { makeAdminApi } from "@/lib/adminApi";
 
 export async function GET() {
     try {
-        const res = await adminApi.get("/users/getall");
+        const jwt = (await cookies()).get("appwrite-admin-jwt")?.value;
+        const api = makeAdminApi(jwt);
+        const res = await api.get("/users/getall");
         return NextResponse.json(res.data);
     } catch (err: unknown) {
         const error = err as { response?: { data?: unknown; status?: number } };

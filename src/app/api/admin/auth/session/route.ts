@@ -1,27 +1,29 @@
 import { NextResponse } from "next/server";
 
-// If you want to verify token here, you can with Firebase Admin SDK.
-// For now: just store it as HttpOnly cookie (still better than JS cookie).
+/**
+ * POST /api/admin/auth/session
+ * Stores the Appwrite JWT for an admin in an HttpOnly cookie.
+ */
 export async function POST(req: Request) {
-    try {
-        const { token } = (await req.json()) as { token?: string };
+  try {
+    const { jwt } = (await req.json()) as { jwt?: string };
 
-        if (!token) {
-            return NextResponse.json({ error: "Missing token" }, { status: 400 });
-        }
-
-        const res = NextResponse.json({ ok: true });
-
-        res.cookies.set("firebase-token", token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            path: "/",
-            maxAge: 60 * 60,
-        });
-
-        return res;
-    } catch {
-        return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    if (!jwt) {
+      return NextResponse.json({ message: "Missing JWT" }, { status: 400 });
     }
+
+    const res = NextResponse.json({ ok: true });
+
+    res.cookies.set("appwrite-admin-jwt", jwt, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 55, // 55 min — Appwrite JWTs expire in 1h
+    });
+
+    return res;
+  } catch {
+    return NextResponse.json({ message: "Invalid request" }, { status: 400 });
+  }
 }
