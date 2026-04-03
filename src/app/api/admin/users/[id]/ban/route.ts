@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { adminApi } from "@/lib/adminApi";
+import { cookies } from "next/headers";
+import { makeAdminApi } from "@/lib/adminApi";
 
 export async function PUT(
     req: Request,
@@ -8,12 +9,14 @@ export async function PUT(
     try {
         const { id } = await context.params;
         const body = await req.json();
+        const jwt = (await cookies()).get("appwrite-admin-jwt")?.value;
+        const api = makeAdminApi(jwt);
 
-        const res = await adminApi.put(`/admin/users/${id}/ban`, null, {
+        const res = await api.put(`/admin/users/${id}/ban`, null, {
             params: {
                 is_banned: body.is_banned ?? true,
-                reason: body.reason || null
-            }
+                reason: body.reason || null,
+            },
         });
 
         return NextResponse.json(res.data);

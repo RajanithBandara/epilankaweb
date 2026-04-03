@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { adminApi } from "@/lib/adminApi";
+import { cookies } from "next/headers";
+import { makeAdminApi } from "@/lib/adminApi";
 
 export async function POST(
     req: Request,
@@ -8,8 +9,10 @@ export async function POST(
     try {
         const { id } = await context.params;
         const body = await req.json();
+        const jwt = (await cookies()).get("appwrite-admin-jwt")?.value;
+        const api = makeAdminApi(jwt);
 
-        const res = await adminApi.post(`/admin/users/${id}/reset-password`, {
+        const res = await api.post(`/admin/users/${id}/reset-password`, {
             new_password: body.new_password,
         });
 

@@ -1,43 +1,24 @@
-import axios, { AxiosError } from "axios";
 import { NextResponse } from "next/server";
-
-type ApiError = { detail?: string; msg?: string };
-
-const BACKEND_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
-const API_KEY = process.env.NEXT_PUBLIC_SECRET_KEY || "";
+import { cookies } from "next/headers";
+import { makeAdminApi } from "@/lib/adminApi";
 
 /**
  * GET /api/admin/historical-data
- * Supported query params forwarded to FastAPI:
- *   week_number, year, district_id, disease_id, skip, limit
+ * Forwarded query params: week_number, year, district_id, disease_id, skip, limit
  */
 export async function GET(req: Request) {
     try {
         const url = new URL(req.url);
         const qs = url.searchParams.toString();
-        const endpoint = `${BACKEND_BASE_URL}/admin/historical-data${qs ? `?${qs}` : ""}`;
+        const jwt = (await cookies()).get("appwrite-admin-jwt")?.value;
+        const api = makeAdminApi(jwt);
 
-        const res = await axios.get(endpoint, {
-            headers: {
-                "x-api-key": API_KEY,
-                Accept: "application/json",
-            },
-            timeout: 30_000,
-        });
-
+        const res = await api.get(`/admin/historical-data${qs ? `?${qs}` : ""}`);
         return NextResponse.json(res.data, { status: 200 });
-    } catch (e: unknown) {
-        const ax = e as AxiosError<ApiError>;
-        const status = ax.response?.status ?? 500;
-        const msg =
-            ax.response?.data?.detail ||
-            ax.response?.data?.msg ||
-            ax.message ||
-            "Failed to fetch historical records";
-        console.error("[historical-data GET]", ax.code, ax.message, ax.response?.status, ax.response?.data);
-        return NextResponse.json({ error: msg, code: ax.code }, { status });
+    } catch (err: unknown) {
+        const error = err as { response?: { data?: { detail?: string; msg?: string }; status?: number }; message?: string };
+        const msg = error?.response?.data?.detail || error?.response?.data?.msg || error?.message || "Failed to fetch records";
+        return NextResponse.json({ error: msg }, { status: error?.response?.status ?? 500 });
     }
 }
 
@@ -48,31 +29,14 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
     try {
         const body = await req.json();
+        const jwt = (await cookies()).get("appwrite-admin-jwt")?.value;
+        const api = makeAdminApi(jwt);
 
-        const res = await axios.post(
-            `${BACKEND_BASE_URL}/admin/historical-data`,
-            body,
-            {
-                headers: {
-                    "x-api-key": API_KEY,
-                    "Content-Type": "application/json",
-                },
-                timeout: 30_000,
-            }
-        );
-
+        const res = await api.post("/admin/historical-data", body);
         return NextResponse.json(res.data, { status: res.status });
-    } catch (e: unknown) {
-        const ax = e as AxiosError<ApiError>;
-        const status = ax.response?.status ?? 500;
-        const msg =
-            ax.response?.data?.detail ||
-            ax.response?.data?.msg ||
-            ax.message ||
-            "Failed to create historical record";
-        console.error("[historical-data POST]", ax.code, ax.message, ax.response?.status, ax.response?.data);
-        return NextResponse.json({ error: msg, detail: msg }, { status });
+    } catch (err: unknown) {
+        const error = err as { response?: { data?: { detail?: string; msg?: string }; status?: number }; message?: string };
+        const msg = error?.response?.data?.detail || error?.response?.data?.msg || error?.message || "Failed to create record";
+        return NextResponse.json({ error: msg, detail: msg }, { status: error?.response?.status ?? 500 });
     }
 }
-
-

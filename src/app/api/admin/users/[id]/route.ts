@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { adminApi } from "@/lib/adminApi";
+import { cookies } from "next/headers";
+import { makeAdminApi } from "@/lib/adminApi";
 
 export async function PATCH(
     req: Request,
@@ -8,7 +9,9 @@ export async function PATCH(
     try {
         const { id } = await context.params;
         const body = await req.json();
-        const res = await adminApi.put(`/users/profile/${id}`, body);
+        const jwt = (await cookies()).get("appwrite-admin-jwt")?.value;
+        const api = makeAdminApi(jwt);
+        const res = await api.put(`/users/profile/${id}`, body);
         return NextResponse.json(res.data);
     } catch (err: unknown) {
         const error = err as { response?: { data?: unknown; status?: number } };

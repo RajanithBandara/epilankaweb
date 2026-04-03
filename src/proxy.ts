@@ -4,36 +4,35 @@ import type { NextRequest } from "next/server";
 export function proxy(request: NextRequest) {
     const path = request.nextUrl.pathname;
 
-    const firebaseToken = request.cookies.get("firebase-token")?.value;
-    const isAdminRoute = path.startsWith("/admindashboard");
-    const isAdminLoginRoute = path === "/admin/login" || path === "/admin/login";
+    // ── Appwrite JWT cookies (set by /api/auth/session routes) ──────────────
+    const userJwt    = request.cookies.get("appwrite-jwt")?.value;
+    const adminJwt   = request.cookies.get("appwrite-admin-jwt")?.value;
 
-    if (isAdminRoute && !firebaseToken) {
+    const isAdminRoute      = path.startsWith("/admindashboard");
+    const isAdminLoginRoute = path === "/admin/login";
+    const isUserDashRoute   = path.startsWith("/dashboard");
+    const isUserLoginRoute  = path === "/login";
+
+    // ── Admin dashboard guard ────────────────────────────────────────────────
+    if (isAdminRoute && !adminJwt) {
         const url = request.nextUrl.clone();
-        url.pathname = "/admin/login"; // ✅ choose ONE admin login route
+        url.pathname = "/admin/login";
         return NextResponse.redirect(url);
     }
 
-    if (firebaseToken && isAdminLoginRoute) {
+    if (adminJwt && isAdminLoginRoute) {
         const url = request.nextUrl.clone();
         url.pathname = "/admindashboard";
         return NextResponse.redirect(url);
     }
 
-    const token =
-        request.cookies.get("token")?.value ||
-        request.cookies.get("auth-token")?.value ||
-        request.cookies.get("session")?.value;
-
-    const isUserDashboardRoute = path.startsWith("/dashboard");
-    const isUserLoginRoute = path === "/login";
-
-    if (isUserDashboardRoute && !token) {
+    // ── User dashboard guard ─────────────────────────────────────────────────
+    if (isUserDashRoute && !userJwt) {
         return NextResponse.redirect(new URL("/login", request.url));
     }
 
-    // Optional: if user already logged in, prevent seeing login page
-    if (token && isUserLoginRoute) {
+    // Prevent logged-in users from seeing login page
+    if (userJwt && isUserLoginRoute) {
         return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 

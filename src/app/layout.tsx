@@ -4,6 +4,7 @@ import "./globals.css";
 import NavbarHandler from "@/app/NavbarHandler";
 import NavBar from "@/components/NavBar";
 import { LoadingProvider } from "@/contexts/LoadingContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import PageTransition from "@/components/PageTransition";
 import { ThemeProvider } from "next-themes";
 
@@ -41,14 +42,16 @@ export default function RootLayout({
         className={`${inter.variable} ${manrope.variable} ${jetBrainsMono.variable} antialiased`}
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange={false}>
-          <LoadingProvider>
-            <NavbarHandler>
-              <NavBar/>
-            </NavbarHandler>
-            <PageTransition>
-              {children}
-            </PageTransition>
-          </LoadingProvider>
+          <AuthProvider>
+            <LoadingProvider>
+              <NavbarHandler>
+                <NavBar/>
+              </NavbarHandler>
+              <PageTransition>
+                {children}
+              </PageTransition>
+            </LoadingProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

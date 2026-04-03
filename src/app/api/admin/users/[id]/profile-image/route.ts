@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { adminApi } from "@/lib/adminApi";
+import { cookies } from "next/headers";
+import { makeAdminApi } from "@/lib/adminApi";
 
 export async function POST(
     req: Request,
@@ -8,29 +9,21 @@ export async function POST(
     try {
         const { id } = await context.params;
         const formData = await req.formData();
-        const file = formData.get('file') as File;
+        const file = formData.get("file") as File;
 
         if (!file) {
-            return NextResponse.json(
-                { error: "No file provided" },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: "No file provided" }, { status: 400 });
         }
 
-        // Create FormData for backend
-        const backendFormData = new FormData();
-        backendFormData.append('file', file);
+        const jwt = (await cookies()).get("appwrite-admin-jwt")?.value;
+        const api = makeAdminApi(jwt);
 
-        // Send to FastAPI backend
-        const res = await adminApi.post(
-            `/users/profilepic/${id}`,
-            backendFormData,
-            {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            }
-        );
+        const backendFormData = new FormData();
+        backendFormData.append("file", file);
+
+        const res = await api.post(`/users/profilepic/${id}`, backendFormData, {
+            headers: { "Content-Type": "multipart/form-data" },
+        });
 
         return NextResponse.json(res.data);
     } catch (err: unknown) {

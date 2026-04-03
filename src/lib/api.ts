@@ -1,4 +1,5 @@
 import axios from "axios";
+import { account } from "@/lib/appwrite";
 
 const api = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -8,11 +9,16 @@ const api = axios.create({
     },
 });
 
-// Attach token automatically
-api.interceptors.request.use((config) => {
-    const token = localStorage.getItem("access_token");
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+/**
+ * Attach a fresh Appwrite JWT to every request.
+ * account.createJWT() is lightweight and Appwrite caches the session.
+ */
+api.interceptors.request.use(async (config) => {
+    try {
+        const jwtObj = await account.createJWT();
+        config.headers.Authorization = `Bearer ${jwtObj.jwt}`;
+    } catch {
+        // Not logged in — request proceeds without auth header
     }
     return config;
 });
