@@ -150,11 +150,19 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpUserId, setOtpUserId] = useState('');
+  const [otpStep, setOtpStep] = useState(false);
+  const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const isLogin = mode === 'login';
 
   useEffect(() => {
+    setOtpCode('');
+    setOtpUserId('');
+    setOtpStep(false);
+    setNotice('');
     setError('');
     setLoading(false);
   }, [mode]);
@@ -191,14 +199,51 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
       const failureURL = `${window.location.origin}/login?error=Google login cancelled or failed`;
       
       account.createOAuth2Session(OAuthProvider.Google, successURL, failureURL);
-    } catch (err) {
+    } catch {
       setError('Failed to initialize Google login');
+    }
+  }
+
+  async function sendSignupOtp(targetEmail: string, userId: string) {
+    const token = await account.createEmailToken({
+      userId,
+      email: targetEmail,
+    });
+
+    setOtpUserId(token.userId);
+    setOtpStep(true);
+    setNotice(`We sent a one-time code to ${targetEmail}. Enter it below to verify your email.`);
+  }
+
+  async function handleResendOtp() {
+    if (!email || !otpUserId) {
+      setError('Missing email or user context. Please restart signup.');
+      return;
+    }
+
+    setError('');
+    setNotice('');
+    setLoading(true);
+
+    try {
+      await sendSignupOtp(email, otpUserId);
+    } catch (err) {
+      if (err instanceof AppwriteException) {
+        setError(err.message);
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to resend OTP. Please try again.');
+      }
+    } finally {
+      setLoading(false);
     }
   }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError('');
+    setNotice('');
     setLoading(true);
 
     try {
@@ -229,22 +274,42 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
         await refreshUser();
         router.push('/dashboard');
       } else {
-        // 1. Create Appwrite account
-        await account.create(ID.unique(), email, password, username);
+        if (!otpStep) {
+          // 1. Create Appwrite account with password
+          const newUserId = ID.unique();
+          await account.create(newUserId, email, password, username);
 
-        // 2. Auto-login immediately
-        await account.createEmailPasswordSession(email, password);
+          // 2. Send email OTP for verification
+          await sendSignupOtp(email, newUserId);
+        } else {
+          if (!otpUserId) {
+            throw new Error('Missing OTP session. Please restart signup.');
+          }
 
-        // 3. Get JWT & store session
-        const jwtObj = await account.createJWT();
-        await fetch('/api/auth/session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ jwt: jwtObj.jwt }),
-        });
+          if (!otpCode.trim()) {
+            throw new Error('Enter the verification code sent to your email.');
+          }
 
-        await refreshUser();
-        router.push('/success');
+          // 3. Verify OTP by creating a session with token userId + secret code
+          try { await account.deleteSession('current'); } catch { /* no session */ }
+          await account.createSession(otpUserId, otpCode.trim());
+
+          // 4. Get JWT & store session
+          const jwtObj = await account.createJWT();
+          const res = await fetch('/api/auth/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jwt: jwtObj.jwt }),
+          });
+
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.message || 'Session creation failed');
+          }
+
+          await refreshUser();
+          router.push('/success');
+        }
       }
     } catch (err) {
       if (err instanceof AppwriteException) {
@@ -401,6 +466,21 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
               )}
             </AnimatePresence>
 
+            <AnimatePresence>
+              {notice && (
+                <motion.div
+                  className="mb-5 flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3"
+                  initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Mail className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-500" />
+                  <p className="text-sm font-medium text-blue-700">{notice}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Form */}
             <AnimatePresence mode="wait">
               <motion.form
@@ -413,7 +493,7 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
                 transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
               >
                 <AnimatePresence mode="popLayout">
-                  {!isLogin && (
+                  {!isLogin && !otpStep && (
                     <motion.div
                       key="username-field"
                       initial={{ opacity: 0, height: 0 }}
@@ -436,33 +516,62 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
                   )}
                 </AnimatePresence>
 
-                <InputField
-                  id="email"
-                  label="Email address"
-                  type="email"
-                  placeholder="you@example.com"
-                  icon={<Mail className="h-4 w-4" />}
-                  value={email}
-                  onChange={setEmail}
-                  required
-                />
+                {(!otpStep || isLogin) ? (
+                  <>
+                    <InputField
+                      id="email"
+                      label="Email address"
+                      type="email"
+                      placeholder="you@example.com"
+                      icon={<Mail className="h-4 w-4" />}
+                      value={email}
+                      onChange={setEmail}
+                      required
+                    />
 
-                <InputField
-                  id="password"
-                  label="Password"
-                  type="password"
-                  placeholder={isLogin ? '••••••••' : 'Create a strong password'}
-                  icon={<Lock className="h-4 w-4" />}
-                  value={password}
-                  onChange={setPassword}
-                  required
-                  hint={
-                    isLogin
-                      ? 'Sessions are secured by Appwrite.'
-                      : 'Use 8+ characters with numbers and symbols.'
-                  }
-                  showToggle
-                />
+                    <InputField
+                      id="password"
+                      label="Password"
+                      type="password"
+                      placeholder={isLogin ? '••••••••' : 'Create a strong password'}
+                      icon={<Lock className="h-4 w-4" />}
+                      value={password}
+                      onChange={setPassword}
+                      required
+                      hint={
+                        isLogin
+                          ? 'Sessions are secured by Appwrite.'
+                          : 'Use 8+ characters with numbers and symbols.'
+                      }
+                      showToggle
+                    />
+                  </>
+                ) : (
+                  <>
+                    <InputField
+                      id="otp"
+                      label="Email verification code"
+                      type="text"
+                      placeholder="Enter code from your email"
+                      icon={<Mail className="h-4 w-4" />}
+                      value={otpCode}
+                      onChange={setOtpCode}
+                      required
+                      hint="Code expires in about 15 minutes."
+                    />
+
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={handleResendOtp}
+                        disabled={loading}
+                        className="text-xs font-semibold text-[#1e40af] hover:text-[#1e3a8a] transition-colors duration-150 disabled:opacity-50"
+                      >
+                        Resend code
+                      </button>
+                    </div>
+                  </>
+                )}
 
                 {isLogin && (
                   <div className="flex justify-end">
@@ -490,11 +599,11 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
                     {loading ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        {isLogin ? 'Signing in…' : 'Creating account…'}
+                        {isLogin ? 'Signing in…' : otpStep ? 'Verifying code…' : 'Sending verification code…'}
                       </>
                     ) : (
                       <>
-                        {isLogin ? 'Sign in' : 'Create account'}
+                        {isLogin ? 'Sign in' : otpStep ? 'Verify email' : 'Send verification code'}
                         <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
                       </>
                     )}

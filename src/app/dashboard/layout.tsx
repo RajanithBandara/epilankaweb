@@ -16,6 +16,8 @@ import React, { useMemo } from "react";
 import { LocationProvider } from "@/contexts/LocationContext";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+
 
 type NavItem = {
   label: string;
@@ -40,6 +42,7 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const router = useRouter();
 
   const displayName = user?.name || user?.email?.split("@")[0] || "User";
   const avatarLetter = displayName ? displayName[0].toUpperCase() : null;
@@ -72,7 +75,7 @@ export default function DashboardLayout({
               className="px-5 pt-5 pb-4 shrink-0 border-b"
               style={{ borderColor: "var(--dash-sidebar-border)" }}
             >
-              <Link href="/dashboard" className="flex items-center gap-3">
+              <Link href="/" className="flex items-center gap-3">
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold"
                   style={{ background: "var(--color-primary)", color: "#fff" }}
@@ -101,7 +104,7 @@ export default function DashboardLayout({
                 className="px-2 text-[11px] font-semibold uppercase tracking-wide"
                 style={{ color: "var(--dash-text-muted)" }}
               >
-                Navigation
+                Menu List
               </p>
             </div>
 
