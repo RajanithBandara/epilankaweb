@@ -653,7 +653,7 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
                 </button>
 
                 <p className="pt-2 text-center text-sm text-slate-500">
-                  {isLogin ? "Don&apos;t have an account?" : 'Already have an account?'}{' '}
+                  {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
                   <button
                     type="button"
                     onClick={() => setMode(isLogin ? 'signup' : 'login')}
