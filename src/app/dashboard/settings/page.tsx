@@ -395,6 +395,7 @@ export default function UserSettings() {
                                         <input
                                             type="email"
                                             value={newEmail}
+                                            readOnly={true}
                                             onChange={(e) => setNewEmail(e.target.value)}
                                             placeholder="Enter new email"
                                             className={inputClass} style={inputStyle}
