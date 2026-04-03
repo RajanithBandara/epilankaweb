@@ -21,6 +21,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { account, ID } from '@/lib/appwrite';
 import { AppwriteException, OAuthProvider } from 'appwrite';
 import { useAuth } from '@/contexts/AuthContext';
+import ForgotPasswordModal from './ForgotPasswordModal';
 
 type AuthMode = 'login' | 'signup';
 
@@ -156,6 +157,7 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
   const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const isLogin = mode === 'login';
 
   useEffect(() => {
@@ -267,7 +269,8 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
 
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.message || 'Session creation failed');
+          setError(data.message || 'Session creation failed');
+          return;
         }
 
         // Refresh AuthContext so the dashboard immediately has the user
@@ -283,11 +286,13 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
           await sendSignupOtp(email, newUserId);
         } else {
           if (!otpUserId) {
-            throw new Error('Missing OTP session. Please restart signup.');
+            setError('Missing OTP session. Please restart signup.');
+            return;
           }
 
           if (!otpCode.trim()) {
-            throw new Error('Enter the verification code sent to your email.');
+            setError('Enter the verification code sent to your email.');
+            return;
           }
 
           // 3. Verify OTP by creating a session with token userId + secret code
@@ -304,7 +309,8 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
 
           if (!res.ok) {
             const data = await res.json().catch(() => ({}));
-            throw new Error(data.message || 'Session creation failed');
+            setError(data.message || 'Session creation failed');
+            return;
           }
 
           await refreshUser();
@@ -577,6 +583,7 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
                   <div className="flex justify-end">
                     <button
                       type="button"
+                      onClick={() => setForgotPasswordOpen(true)}
                       className="text-xs font-semibold text-[#1e40af] hover:text-[#1e3a8a] transition-colors duration-150"
                     >
                       Forgot password?
@@ -670,8 +677,14 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
               .
             </p>
           </div>
-        </motion.div>
-      </div>
-    </div>
-  );
+           </motion.div>
+       </div>
+
+       {/* Forgot Password Modal */}
+       <ForgotPasswordModal 
+         isOpen={forgotPasswordOpen} 
+         onClose={() => setForgotPasswordOpen(false)}
+       />
+     </div>
+   );
 }
