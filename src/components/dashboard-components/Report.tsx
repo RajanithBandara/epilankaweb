@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+import { Toggle } from "@/components/ui/toggle";
 import {
     MapPin,
     Loader2,
@@ -18,6 +18,8 @@ import {
     BrainCircuit,
 } from "lucide-react";
 import { useLocation } from "@/contexts/LocationContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { account } from "@/lib/appwrite";
 import axios from "axios";
 
 interface ExtractedData {
@@ -58,6 +60,8 @@ interface HistoryReport {
     } | null;
     extracted_data: ExtractedData | null;
     status: string | null;
+    score?: number;
+    has_voted?: boolean;
     created_at: string;
 }
 
@@ -154,7 +158,9 @@ export default function DiseaseReportPage() {
     const [error,          setError]          = useState<string | null>(null);
     const [history,        setHistory]        = useState<HistoryReport[]>([]);
     const [historyLoading, setHistoryLoading] = useState(false);
+    const [voteLoadingByReport, setVoteLoadingByReport] = useState<Record<string, boolean>>({});
 
+    const { user } = useAuth();
     const { locationData, isLoading: locationLoading, error: locationError } = useLocation();
 
     const analyzeAndSubmit = async () => {
@@ -162,24 +168,19 @@ export default function DiseaseReportPage() {
         if (!locationData?.user_location) { setError("Location data not available. Please refresh the page."); return; }
         setLoading(true); setError(null); setExtractedData(null); setSubmitResponse(null);
         try {
-            const getCookie = (name: string) => {
-                const value = `; ${document.cookie}`;
-                const parts = value.split(`; ${name}=`);
-                if (parts.length === 2) return parts.pop()?.split(";").shift();
-                return null;
-            };
-            const token  = getCookie("token");
-            const userId = localStorage.getItem("user_id");
-            if (!token || !userId) throw new Error("Authentication required. Please log in again.");
+            if (!user?.$id) throw new Error("Authentication required. Please log in again.");
+            const jwtObj = await account.createJWT();
             const response = await fetch("/api/extract-disease-info", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${jwtObj.jwt}`,
+                },
                 body: JSON.stringify({
                     description: description.trim(),
-                    user_id: userId,
+                    user_id: user.$id,
                     latitude:  locationData.user_location.latitude,
                     longitude: locationData.user_location.longitude,
-                    token,
                 }),
             });
             const data = await response.json();
@@ -197,29 +198,65 @@ export default function DiseaseReportPage() {
         try {
             setHistoryLoading(true);
             const response = await axios.get("/api/reports/location", {
-                params: { district_name: locationData.nearest_area.district_name },
+                params: {
+                    district_name: locationData.nearest_area.district_name,
+                    user_id: user?.$id,
+                },
             });
             setHistory(response.data.reports || []);
         } catch { setHistory([]); }
         finally { setHistoryLoading(false); }
-    }, [locationData?.nearest_area?.district_name]);
+    }, [locationData?.nearest_area?.district_name, user?.$id]);
 
     useEffect(() => {
         if (locationData?.nearest_area?.district_name) fetchReportHistory();
     }, [locationData?.nearest_area?.district_name, fetchReportHistory]);
 
-    const upvoteReport = async (reportId: string) => {
+    const toggleVoteReport = async (reportId: string, isCurrentlyVoted: boolean) => {
         try {
-            const userId = localStorage.getItem("user_id");
-            if (!userId) { setError("Please log in to vote"); return; }
+            if (!user?.$id) { setError("Please log in to vote"); return; }
             if (!locationData?.nearest_area?.district_name) { setError("Location data not available"); return; }
+
+            setVoteLoadingByReport((prev) => ({ ...prev, [reportId]: true }));
+
             await axios.post("/api/reports/upvote", {
                 reportid: reportId,
-                userid:   userId,
+                userid:   user.$id,
                 location: locationData.nearest_area.district_name,
+                action: isCurrentlyVoted ? "unvote" : "vote",
             });
+
+            setHistory((prev) =>
+                prev.map((report) => {
+                    if (report.report_id !== reportId) return report;
+                    const currentScore = report.score ?? 0;
+                    return {
+                        ...report,
+                        has_voted: !isCurrentlyVoted,
+                        score: isCurrentlyVoted
+                            ? Math.max(0, currentScore - 1)
+                            : currentScore + 1,
+                    };
+                })
+            );
+
             await fetchReportHistory();
-        } catch { setError("User has already voted for this report"); }
+        } catch (err) {
+            if (axios.isAxiosError(err)) {
+                const msg =
+                    (err.response?.data as { error?: string })?.error ||
+                    "Failed to update vote. Please try again.";
+                setError(msg);
+            } else {
+                setError("Failed to update vote. Please try again.");
+            }
+        } finally {
+            setVoteLoadingByReport((prev) => {
+                const copy = { ...prev };
+                delete copy[reportId];
+                return copy;
+            });
+        }
     };
 
     return (
@@ -228,7 +265,7 @@ export default function DiseaseReportPage() {
             {/* ── Page header ─────────────────────────────────────────────── */}
             <div className="flex items-center gap-3">
                 <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md flex-shrink-0"
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md shrink-0"
                     style={{ background: "var(--color-primary)" }}
                 >
                     <FileText className="w-5 h-5 text-white" />
@@ -350,7 +387,7 @@ export default function DiseaseReportPage() {
                             <Button
                                 onClick={analyzeAndSubmit}
                                 disabled={loading || locationLoading || !locationData}
-                                className="w-full text-white font-semibold py-2.5 rounded-xl shadow-md transition-all duration-200 disabled:opacity-60"
+                                className="cursor-pointer w-full text-white font-semibold py-2.5 rounded-xl shadow-md transition-all duration-200 disabled:opacity-60"
                                 style={{
                                     background: "linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%)",
                                 }}
@@ -397,10 +434,7 @@ export default function DiseaseReportPage() {
                                             </p>
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <InfoChip label="Disease" value={submitResponse.data.extracted_data.disease_name || "Unknown"} />
-                                        <InfoChip label="Type"    value={submitResponse.data.extracted_data.disease_type} />
-                                    </div>
+                                
                                 </div>
                             )}
 
@@ -616,31 +650,40 @@ export default function DiseaseReportPage() {
                                                 </div>
                                             )}
 
-                                            {/* Vote button */}
-                                            <button
-                                                onClick={() => upvoteReport(report.report_id)}
-                                                className="w-full flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-xs font-semibold transition-all duration-200"
-                                                style={{
-                                                    background: "var(--dash-card-header-bg)",
-                                                    borderColor: "var(--dash-card-border)",
-                                                    color: "var(--dash-text-secondary)",
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    const el = e.currentTarget as HTMLElement;
-                                                    el.style.background = "rgba(30,58,138,0.08)";
-                                                    el.style.borderColor = "rgba(30,58,138,0.25)";
-                                                    el.style.color = "var(--color-primary)";
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    const el = e.currentTarget as HTMLElement;
-                                                    el.style.background = "var(--dash-card-header-bg)";
-                                                    el.style.borderColor = "var(--dash-card-border)";
-                                                    el.style.color = "var(--dash-text-secondary)";
-                                                }}
+                                            {/* Vote toggle */}
+                                            <Toggle
+                                                pressed={Boolean(report.has_voted)}
+                                                disabled={Boolean(voteLoadingByReport[report.report_id]) || !user?.$id}
+                                                onPressedChange={() =>
+                                                    toggleVoteReport(report.report_id, Boolean(report.has_voted))
+                                                }
+                                                className="cursor-pointer w-full flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-xs font-semibold transition-all duration-200"
+                                                style={
+                                                    report.has_voted
+                                                        ? {
+                                                            background: "rgba(30,58,138,0.12)",
+                                                            borderColor: "rgba(30,58,138,0.32)",
+                                                            color: "var(--color-primary)",
+                                                        }
+                                                        : {
+                                                            background: "var(--dash-card-header-bg)",
+                                                            borderColor: "var(--dash-card-border)",
+                                                            color: "var(--dash-text-secondary)",
+                                                        }
+                                                }
                                             >
-                                                <ThumbsUp className="h-3.5 w-3.5" />
-                                                I have the same problem
-                                            </button>
+                                                {voteLoadingByReport[report.report_id] ? (
+                                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                ) : report.has_voted ? (
+                                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                                ) : (
+                                                    <ThumbsUp className="h-3.5 w-3.5" />
+                                                )}
+                                                <span>
+                                                    {report.has_voted ? "Voted • Remove vote" : "I have the same problem"}
+                                                </span>
+                                                <span className="text-[11px] font-bold">({report.score ?? 0})</span>
+                                            </Toggle>
 
                                             {/* Location footer */}
                                             {report.district_info && (

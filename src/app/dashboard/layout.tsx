@@ -12,11 +12,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { LocationProvider } from "@/contexts/LocationContext";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "next/navigation";
+import api from "@/lib/api";
 
 
 type NavItem = {
@@ -42,10 +42,53 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  const router = useRouter();
 
   const displayName = user?.name || user?.email?.split("@")[0] || "User";
   const avatarLetter = displayName ? displayName[0].toUpperCase() : null;
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+
+  const userPrefs = (user?.prefs ?? {}) as Record<string, unknown>;
+  const googleImageCandidates = [
+    userPrefs.profile_image,
+    userPrefs.avatar,
+    userPrefs.picture,
+    userPrefs.photoURL,
+    userPrefs.photo_url,
+    userPrefs.image,
+  ];
+  const oauthImage = googleImageCandidates.find(
+    (value): value is string => typeof value === "string" && /^https?:\/\//.test(value)
+  ) ?? null;
+
+  const resolvedAvatarImage = profileImage || oauthImage;
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const loadSidebarProfileImage = async () => {
+      if (!user) {
+        setProfileImage(null);
+        return;
+      }
+
+      try {
+        const res = await api.get("/users/me");
+        const image =
+          typeof res?.data?.user?.profile_image === "string" && res.data.user.profile_image.trim().length > 0
+            ? res.data.user.profile_image
+            : null;
+
+        if (!isCancelled) setProfileImage(image);
+      } catch {
+        if (!isCancelled) setProfileImage(null);
+      }
+    };
+
+    void loadSidebarProfileImage();
+    return () => {
+      isCancelled = true;
+    };
+  }, [user]);
 
   const todayLabel = useMemo(
     () =>
@@ -169,12 +212,22 @@ export default function DashboardLayout({
                   borderColor: "var(--dash-card-border)",
                 }}
               >
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-semibold"
-                  style={{ background: "var(--color-primary)", color: "#fff" }}
-                >
-                  {avatarLetter ?? <User className="h-4 w-4" />}
-                </div>
+                {resolvedAvatarImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={resolvedAvatarImage}
+                    alt="User profile"
+                    className="h-8 w-8 rounded-lg object-cover border"
+                    style={{ borderColor: "var(--dash-card-border)" }}
+                  />
+                ) : (
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-semibold"
+                    style={{ background: "var(--color-primary)", color: "#fff" }}
+                  >
+                    {avatarLetter ?? <User className="h-4 w-4" />}
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <p
                     className="text-sm font-medium truncate"

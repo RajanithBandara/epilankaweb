@@ -114,11 +114,6 @@ export default function HomePage() {
             <CtaSection />
           </div>
         </div>
-
-        {/* Footer */}
-        <div data-home-scroll-section>
-          <Footer />
-        </div>
       </div>
     </main>
   );

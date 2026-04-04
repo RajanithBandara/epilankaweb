@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const district_name = searchParams.get('district_name')?.trim() || null;
     const province_name = searchParams.get('province_name')?.trim() || null;
+    const user_id = searchParams.get('user_id')?.trim() || null;
     const limit = searchParams.get('limit');
     const skip = searchParams.get('skip');
     const days = searchParams.get('days');
@@ -26,9 +27,20 @@ export async function GET(request: NextRequest) {
     }
 
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+    const apiKey =
+        process.env.API_SECRET_KEY ||
+        process.env.NEXT_PUBLIC_SECRET_KEY ||
+        process.env.NEXT_PUBLIC_API_KEY;
     if (!apiBaseUrl) {
         return NextResponse.json(
             { error: 'API base URL is not configured' },
+            { status: 500 }
+        );
+    }
+
+    if (!apiKey) {
+        return NextResponse.json(
+            { error: 'Backend API key is not configured' },
             { status: 500 }
         );
     }
@@ -51,6 +63,7 @@ export async function GET(request: NextRequest) {
     const params: Record<string, string | number> = {};
     if (district_name) params.district_name = district_name;
     if (province_name) params.province_name = province_name;
+    if (user_id) params.user_id = user_id;
     if (parsedLimit !== undefined) params.limit = parsedLimit;
     if (parsedSkip !== undefined) params.skip = parsedSkip;
     if (parsedDays !== undefined) params.days = parsedDays;
@@ -61,7 +74,7 @@ export async function GET(request: NextRequest) {
             {
                 params,
                 headers: {
-                    'x-api-key': process.env.NEXT_PUBLIC_SECRET_KEY!,
+                    'x-api-key': apiKey,
                     'Content-Type': 'application/json',
                 },
             }

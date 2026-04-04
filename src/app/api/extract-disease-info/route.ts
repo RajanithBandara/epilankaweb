@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import axios from "axios";
 
@@ -14,9 +14,13 @@ interface ExtractedData {
     confidence: string;
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
     try {
-        const { description, user_id, latitude, longitude, token } = await req.json();
+        const { description, user_id, latitude, longitude } = await req.json();
+        const apiKey =
+            process.env.API_SECRET_KEY ||
+            process.env.NEXT_PUBLIC_SECRET_KEY ||
+            process.env.NEXT_PUBLIC_API_KEY;
 
         if (!description || typeof description !== 'string') {
             return NextResponse.json(
@@ -25,6 +29,12 @@ export async function POST(req: Request) {
             );
         }
 
+        const authHeader = req.headers.get("authorization");
+        const headerToken = authHeader?.startsWith("Bearer ")
+            ? authHeader.slice(7).trim()
+            : undefined;
+        const cookieToken = req.cookies.get("appwrite-jwt")?.value;
+        const token = headerToken || cookieToken;
         if (!token) {
             return NextResponse.json(
                 { error: "Authentication is required" },
@@ -32,15 +42,15 @@ export async function POST(req: Request) {
             );
         }
 
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) {
+        const geminiApiKey = process.env.GEMINI_API_KEY;
+        if (!geminiApiKey) {
             return NextResponse.json(
                 { error: "Gemini API key not configured" },
                 { status: 500 }
             );
         }
 
-        const genAI = new GoogleGenerativeAI(apiKey);
+        const genAI = new GoogleGenerativeAI(geminiApiKey);
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
         const prompt = `You are a medical data extraction assistant. Analyze the following disease report and extract structured information.
@@ -115,29 +125,55 @@ export async function POST(req: Request) {
         const fastApiUrl = process.env.NEXT_PUBLIC_API_URL;
 
         try {
-            if (!user_id || !latitude || !longitude) {
+            const parsedLatitude = Number(latitude);
+            const parsedLongitude = Number(longitude);
+
+            if (!user_id || Number.isNaN(parsedLatitude) || Number.isNaN(parsedLongitude)) {
                 return NextResponse.json(
                     {
                         success: false,
                         extracted_data: finalData,
-                        error: "Missing user ID, latitude, or longitude",
+                        error: "Missing or invalid user ID, latitude, or longitude",
                     },
                     {status: 400}
                 );
             }
+
+            if (!fastApiUrl) {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        extracted_data: finalData,
+                        error: "Backend API URL is not configured",
+                    },
+                    { status: 500 }
+                );
+            }
+
+            if (!apiKey) {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        extracted_data: finalData,
+                        error: "Backend API key is not configured",
+                    },
+                    { status: 500 }
+                );
+            }
+
             const submitResponse = await axios.post(
                 `${fastApiUrl}/user_reports/submit`,
                 {
                     user_id: user_id,
                     description: description.trim(),
-                    latitude: parseFloat(latitude),
-                    longitude: parseFloat(longitude),
+                    latitude: parsedLatitude,
+                    longitude: parsedLongitude,
                     extracted_data: finalData,
                 },
                 {
                     headers: {
                         "Content-Type": "application/json",
-                        "x-api-key": process.env.NEXT_PUBLIC_SECRET_KEY!,
+                        "x-api-key": apiKey,
                         "Authorization": `Bearer ${token}`,
                     },
                 }
