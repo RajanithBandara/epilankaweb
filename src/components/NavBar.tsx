@@ -46,11 +46,11 @@ function NavBar() {
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ delay: 0.4, duration: 0.5 }}
                             >
-                                <a href="#about" className="px-4 py-2 text-white/90 hover:text-white hover:bg-white/10 rounded-full font-medium transition-all duration-200 text-sm">
-                                    About
+                                <a href="\" className="px-4 py-2 text-white/90 hover:text-white hover:bg-white/10 rounded-full font-medium transition-all duration-200 text-sm">
+                                    Home
                                 </a>
-                                <a href="#features" className="px-4 py-2 text-white/90 hover:text-white hover:bg-white/10 rounded-full font-medium transition-all duration-200 text-sm">
-                                    Features
+                                <a href="/map" className="px-4 py-2 text-white/90 hover:text-white hover:bg-white/10 rounded-full font-medium transition-all duration-200 text-sm">
+                                    Map
                                 </a>
                                 <a href="/dashboard" className="px-4 py-2 text-white/90 hover:text-white hover:bg-white/10 rounded-full font-medium transition-all duration-200 text-sm">
                                     Dashboard

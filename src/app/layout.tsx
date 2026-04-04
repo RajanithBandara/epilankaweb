@@ -7,6 +7,8 @@ import { LoadingProvider } from "@/contexts/LoadingContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import PageTransition from "@/components/PageTransition";
 import { ThemeProvider } from "next-themes";
+import FooterHandler from "./FooterHandler";
+import Footer from "@/components/Footer";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -45,11 +47,14 @@ export default function RootLayout({
           <AuthProvider>
             <LoadingProvider>
               <NavbarHandler>
-                <NavBar/>
+                <NavBar />
               </NavbarHandler>
               <PageTransition>
                 {children}
               </PageTransition>
+              <FooterHandler>
+                <Footer />
+              </FooterHandler>
             </LoadingProvider>
           </AuthProvider>
         </ThemeProvider>
