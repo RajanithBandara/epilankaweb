@@ -152,7 +152,7 @@ function NavBar() {
                                 </div>
 
                                 {/* Mobile Action Buttons */}
-                                <div className="pt-4 border-t border-white/10 space-y-2">
+                                <div className="cursor-pointer pt-4 border-t border-white/10 space-y-2">
                                     <button
                                         className="w-full px-4 py-3 bg-white/10 backdrop-blur-md text-white rounded-xl border border-white/20 hover:bg-white/20 font-semibold transition-all duration-300"
                                         onClick={() => {

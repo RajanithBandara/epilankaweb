@@ -10,7 +10,7 @@ interface FooterHandlerProps {
 export default function FooterHandler({ children }: FooterHandlerProps) {
     const pathname = usePathname();
 
-    const hideFooterRoutes = ['/login','/reset-password','/success', '/dashboard', '/signup', '/admindashboard', '/admin/login'];
+    const hideFooterRoutes = ['/login','/reset-password','/success', '/dashboard', '/signup', '/admindashboard', '/officerdashboard', '/admin/login', '/officer/login'];
 
     const shouldHideFooter = hideFooterRoutes.some(route =>
         pathname === route || pathname?.startsWith(`${route}/`)

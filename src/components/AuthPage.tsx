@@ -418,7 +418,7 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
                   key={item}
                   type="button"
                   onClick={() => setMode(item)}
-                  className="relative flex-1 rounded-lg py-2 text-sm font-semibold transition-colors duration-200"
+                  className="cursor-pointer relative flex-1 rounded-lg py-2 text-sm font-semibold transition-colors duration-200"
                   style={{ color: mode === item ? '#1e3a8a' : '#64748b' }}
                 >
                   {mode === item && (
@@ -571,7 +571,7 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
                         type="button"
                         onClick={handleResendOtp}
                         disabled={loading}
-                        className="text-xs font-semibold text-[#1e40af] hover:text-[#1e3a8a] transition-colors duration-150 disabled:opacity-50"
+                        className="cursor-pointer text-xs font-semibold text-[#1e40af] hover:text-[#1e3a8a] transition-colors duration-150 disabled:opacity-50"
                       >
                         Resend code
                       </button>
@@ -584,7 +584,7 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
                     <button
                       type="button"
                       onClick={() => setForgotPasswordOpen(true)}
-                      className="text-xs font-semibold text-[#1e40af] hover:text-[#1e3a8a] transition-colors duration-150"
+                      className="cursor-pointer text-xs font-semibold text-[#1e40af] hover:text-[#1e3a8a] transition-colors duration-150"
                     >
                       Forgot password?
                     </button>
@@ -594,7 +594,7 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
                 <motion.button
                   type="submit"
                   disabled={loading}
-                  className="group relative mt-2 w-full overflow-hidden rounded-xl py-3 text-sm font-bold text-white shadow-lg shadow-blue-300/30 transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="cursor-pointer group relative mt-2 w-full overflow-hidden rounded-xl py-3 text-sm font-bold text-white shadow-lg shadow-blue-300/30 transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-60"
                   style={{
                     background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #0c7bb3 100%)',
                   }}
@@ -628,7 +628,7 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
                   type="button"
                   onClick={handleGoogleLogin}
                   disabled={loading}
-                  className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:shadow disabled:opacity-50"
+                  className="cursor-pointer flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:shadow disabled:opacity-50"
                 >
                   <svg className="h-5 w-5" viewBox="0 0 24 24">
                     <path
@@ -657,7 +657,7 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
                   <button
                     type="button"
                     onClick={() => setMode(isLogin ? 'signup' : 'login')}
-                    className="font-semibold text-[#1e3a8a] underline-offset-2 hover:underline transition-colors duration-150"
+                    className="cursor-pointer font-semibold text-[#1e3a8a] underline-offset-2 hover:underline transition-colors duration-150"
                   >
                     {isLogin ? 'Sign up' : 'Sign in'}
                   </button>

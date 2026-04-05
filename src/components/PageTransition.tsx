@@ -12,7 +12,11 @@ export default function PageTransition({ children }: { children: React.ReactNode
   const safePath = pathname ?? "";
 
   const isAppRoute = useMemo(() => {
-    return safePath.startsWith("/dashboard") || safePath.startsWith("/admindashboard");
+    return (
+      safePath.startsWith("/dashboard") ||
+      safePath.startsWith("/admindashboard") ||
+      safePath.startsWith("/officerdashboard")
+    );
   }, [safePath]);
 
   useEffect(() => {

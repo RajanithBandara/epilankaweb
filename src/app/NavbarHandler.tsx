@@ -1,26 +1,36 @@
-'use client';
+"use client";
 
-import { usePathname } from 'next/navigation';
-import { ReactNode } from 'react';
+import { usePathname } from "next/navigation";
+import { ReactNode } from "react";
 
 interface NavbarHandlerProps {
-    children: ReactNode;
+  children: ReactNode;
 }
 
 export default function NavbarHandler({ children }: NavbarHandlerProps) {
-    const pathname = usePathname();
+  const pathname = usePathname();
 
-    const hideNavbarRoutes = ['/login','/reset-password','/success', '/dashboard', '/signup', '/admindashboard', '/admin/login'];
+  const hideNavbarRoutes = [
+    "/login",
+    "/reset-password",
+    "/success",
+    "/dashboard",
+    "/signup",
+    "/admindashboard",
+    "/officerdashboard",
+    "/admin/login",
+    "/officer/login",
+  ];
 
-    const shouldHideNavbar = hideNavbarRoutes.some(route =>
-        pathname === route || pathname?.startsWith(`${route}/`)
-    );
+  const shouldHideNavbar = hideNavbarRoutes.some((route) =>
+    pathname === route || pathname?.startsWith(`${route}/`)
+  );
 
-    // Don't render navbar on specified routes
-    if (shouldHideNavbar) {
-        return null;
-    }
+  // Don't render navbar on specified routes
+  if (shouldHideNavbar) {
+    return null;
+  }
 
-    // Render navbar on all other routes
-    return <>{children}</>;
+  // Render navbar on all other routes
+  return <>{children}</>;
 }

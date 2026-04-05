@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Toggle } from "@/components/ui/toggle";
@@ -20,6 +20,7 @@ import {
 import { useLocation } from "@/contexts/LocationContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { account } from "@/lib/appwrite";
+import { getDashboardCache, setDashboardCache } from "@/lib/dashboardCache";
 import axios from "axios";
 
 interface ExtractedData {
@@ -67,6 +68,8 @@ interface HistoryReport {
 
 type SeverityConfig = { color: string; bg: string; border: string };
 type StatusConfig  = { color: string; bg: string; border: string };
+
+const HISTORY_CACHE_TTL_MS = 2 * 60 * 1000;
 
 const getSeverityConfig = (severity: string): SeverityConfig => {
     switch (severity.toLowerCase()) {
@@ -163,6 +166,12 @@ export default function DiseaseReportPage() {
     const { user } = useAuth();
     const { locationData, isLoading: locationLoading, error: locationError } = useLocation();
 
+    const historyCacheKey = useMemo(() => {
+        const district = locationData?.nearest_area?.district_name;
+        if (!district) return null;
+        return `reports-history:${district}:user:${user?.$id ?? "guest"}`;
+    }, [locationData?.nearest_area?.district_name, user?.$id]);
+
     const analyzeAndSubmit = async () => {
         if (!description.trim()) { setError("Please enter a disease report."); return; }
         if (!locationData?.user_location) { setError("Location data not available. Please refresh the page."); return; }
@@ -186,15 +195,25 @@ export default function DiseaseReportPage() {
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || "Failed to process report");
             setExtractedData(data.extracted_data);
-            if (data.submission) { setSubmitResponse(data.submission); await fetchReportHistory(); }
+            if (data.submission) { setSubmitResponse(data.submission); await fetchReportHistory(true); }
             setDescription("");
         } catch (err) {
             setError(err instanceof Error ? err.message : "An unexpected error occurred");
         } finally { setLoading(false); }
     };
 
-    const fetchReportHistory = useCallback(async () => {
+    const fetchReportHistory = useCallback(async (forceRefresh = false) => {
         if (!locationData?.nearest_area?.district_name) return;
+
+        if (!forceRefresh && historyCacheKey) {
+            const cached = getDashboardCache<HistoryReport[]>(historyCacheKey, HISTORY_CACHE_TTL_MS);
+            if (cached) {
+                setHistory(cached);
+                setHistoryLoading(false);
+                return;
+            }
+        }
+
         try {
             setHistoryLoading(true);
             const response = await axios.get("/api/reports/location", {
@@ -203,10 +222,14 @@ export default function DiseaseReportPage() {
                     user_id: user?.$id,
                 },
             });
-            setHistory(response.data.reports || []);
+            const nextHistory = (response.data.reports || []) as HistoryReport[];
+            setHistory(nextHistory);
+            if (historyCacheKey) {
+                setDashboardCache(historyCacheKey, nextHistory);
+            }
         } catch { setHistory([]); }
         finally { setHistoryLoading(false); }
-    }, [locationData?.nearest_area?.district_name, user?.$id]);
+    }, [locationData?.nearest_area?.district_name, user?.$id, historyCacheKey]);
 
     useEffect(() => {
         if (locationData?.nearest_area?.district_name) fetchReportHistory();
@@ -227,7 +250,8 @@ export default function DiseaseReportPage() {
             });
 
             setHistory((prev) =>
-                prev.map((report) => {
+                {
+                    const updated = prev.map((report) => {
                     if (report.report_id !== reportId) return report;
                     const currentScore = report.score ?? 0;
                     return {
@@ -237,10 +261,15 @@ export default function DiseaseReportPage() {
                             ? Math.max(0, currentScore - 1)
                             : currentScore + 1,
                     };
-                })
-            );
+                });
 
-            await fetchReportHistory();
+                    if (historyCacheKey) {
+                        setDashboardCache(historyCacheKey, updated);
+                    }
+
+                    return updated;
+                }
+            );
         } catch (err) {
             if (axios.isAxiosError(err)) {
                 const msg =
