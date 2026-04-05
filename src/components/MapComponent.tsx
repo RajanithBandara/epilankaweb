@@ -89,8 +89,43 @@ const isDistrictFeatureCollection = (value: unknown): value is RawDistrictFeatur
 
 type TomTomSdk = typeof import('@tomtom-international/web-sdk-maps');
 type TomTomMap = import('@tomtom-international/web-sdk-maps').Map;
+type MapVariant = 'default' | 'mono';
 
-const getRiskColor = (risk: RiskLevel) => {
+const getRiskColor = (risk: RiskLevel, variant: MapVariant = 'default') => {
+    if (variant === 'mono') {
+        switch (risk) {
+            case 'high':
+                return {
+                    cardName: 'bg-white/6 rounded-xl border-l-[4px] border-l-zinc-100 border-y border-r border-white/15 hover:bg-white/10 transition-colors',
+                    text: 'text-zinc-100',
+                    marker: '#f5f5f5',
+                    badgeClass: 'px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider bg-zinc-100/10 text-zinc-100 border border-zinc-100/30 font-sans'
+                };
+            case 'medium':
+                return {
+                    cardName: 'bg-white/6 rounded-xl border-l-[4px] border-l-zinc-300 border-y border-r border-white/15 hover:bg-white/10 transition-colors',
+                    text: 'text-zinc-300',
+                    marker: '#d4d4d4',
+                    badgeClass: 'px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider bg-zinc-300/10 text-zinc-200 border border-zinc-300/30 font-sans'
+                };
+            case 'low':
+                return {
+                    cardName: 'bg-white/6 rounded-xl border-l-[4px] border-l-zinc-400 border-y border-r border-white/15 hover:bg-white/10 transition-colors',
+                    text: 'text-zinc-400',
+                    marker: '#a3a3a3',
+                    badgeClass: 'px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider bg-zinc-400/10 text-zinc-300 border border-zinc-400/30 font-sans'
+                };
+            case 'safe':
+            default:
+                return {
+                    cardName: 'bg-white/6 rounded-xl border-l-[4px] border-l-zinc-500 border-y border-r border-white/15 hover:bg-white/10 transition-colors',
+                    text: 'text-zinc-500',
+                    marker: '#737373',
+                    badgeClass: 'px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider bg-zinc-500/10 text-zinc-400 border border-zinc-500/30 font-sans'
+                };
+        }
+    }
+
     switch (risk) {
         case 'high':
             return {
@@ -124,7 +159,11 @@ const getRiskColor = (risk: RiskLevel) => {
     }
 };
 
-export default function MapComponent() {
+interface MapComponentProps {
+    variant?: MapVariant;
+}
+
+export default function MapComponent({ variant = 'default' }: MapComponentProps) {
     const mapContainer = useRef<HTMLDivElement>(null);
     const mapPanelRef = useRef<HTMLDivElement>(null);
     const map = useRef<TomTomMap | null>(null);
@@ -163,7 +202,8 @@ export default function MapComponent() {
     const normalizeDistrictName = (name: string) =>
         name.toLowerCase().replace(/\bdistrict\b/g, '').replace(/[^a-z]/g, '');
 
-    const getRiskHexColor = (risk: RiskLevel) => getRiskColor(risk).marker;
+    const isMono = variant === 'mono';
+    const getRiskHexColor = (risk: RiskLevel) => getRiskColor(risk, variant).marker;
 
     // Initialize map — runs once AFTER the map container div is in the DOM.
     // We always render the map div (just hidden while data loads), so the ref
@@ -326,7 +366,7 @@ export default function MapComponent() {
                         type: 'fill',
                         source: sourceId,
                         paint: {
-                            'fill-color': ['coalesce', ['get', 'fill_color'], '#10b981'],
+                            'fill-color': ['coalesce', ['get', 'fill_color'], isMono ? '#737373' : '#10b981'],
                             'fill-opacity': 0.38,
                         },
                     });
@@ -336,7 +376,7 @@ export default function MapComponent() {
                         type: 'line',
                         source: sourceId,
                         paint: {
-                            'line-color': '#1E3A8A',
+                            'line-color': isMono ? '#ffffff' : '#1E3A8A',
                             'line-width': 1.1,
                             'line-opacity': 0.45,
                         },
@@ -444,10 +484,10 @@ export default function MapComponent() {
         };
 
         upsertDistrictPolygons();
-    }, [mapReady, mapData]);
+    }, [mapReady, mapData, isMono]);
 
     return (
-        <div className="w-full h-full flex flex-col md:flex-row bg-white/5 backdrop-blur-md">
+        <div className={`w-full h-full flex flex-col md:flex-row backdrop-blur-md ${isMono ? 'bg-black/80 text-white' : 'bg-white/5'}`}>
 
             {/* ─── Left: Map area ─────────────────── */}
             <div ref={mapPanelRef} className="flex-1 relative overflow-hidden" style={{ minHeight: 400 }}>
@@ -463,9 +503,9 @@ export default function MapComponent() {
                 {/* Loading overlay — sits on top of the map div, doesn't remove it */}
                 {(!mapReady || dataLoading) && !mapError && (
                     <div
-                        className="absolute inset-0 z-20 flex items-center justify-center bg-[#1E3A8A]/30 backdrop-blur-md"
+                        className={`absolute inset-0 z-20 flex items-center justify-center backdrop-blur-md ${isMono ? 'bg-black/60' : 'bg-[#1E3A8A]/30'}`}
                     >
-                        <div className="text-center p-6 bg-white/10 rounded-2xl border border-white/20 shadow-xl backdrop-blur-lg">
+                        <div className={`text-center p-6 rounded-2xl border shadow-xl backdrop-blur-lg ${isMono ? 'bg-black/70 border-white/25' : 'bg-white/10 border-white/20'}`}>
                             <Loader2 className="w-10 h-10 animate-spin mx-auto mb-3 text-white" />
                             <p className="font-medium text-sm text-white drop-shadow-md">
                                 {dataLoading ? 'Loading map data...' : 'Initializing map...'}
@@ -476,9 +516,9 @@ export default function MapComponent() {
 
                 {/* Error overlay */}
                 {mapError && (
-                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#1E3A8A]/30 backdrop-blur-md">
-                        <div className="text-center p-8 bg-rose-500/10 rounded-2xl border border-rose-500/30 backdrop-blur-lg">
-                            <AlertCircle className="w-12 h-12 text-rose-400 mx-auto mb-3" />
+                    <div className={`absolute inset-0 z-20 flex items-center justify-center backdrop-blur-md ${isMono ? 'bg-black/60' : 'bg-[#1E3A8A]/30'}`}>
+                        <div className={`text-center p-8 rounded-2xl border backdrop-blur-lg ${isMono ? 'bg-black/80 border-white/30' : 'bg-rose-500/10 border-rose-500/30'}`}>
+                            <AlertCircle className={`w-12 h-12 mx-auto mb-3 ${isMono ? 'text-zinc-200' : 'text-rose-400'}`} />
                             <p className="font-bold mb-1 text-white text-lg">Map Could Not Load</p>
                             <p className="text-sm text-white/80">{mapError}</p>
                         </div>
@@ -491,17 +531,17 @@ export default function MapComponent() {
                         {!legendOpen ? (
                             <button
                                 onClick={() => setLegendOpen(true)}
-                                className="bg-blue-900/10 backdrop-blur-xl border border-white/20 shadow-xl p-3 rounded-xl flex items-center justify-center hover:bg-white/25 transition-all animate-fade-in text-white group"
+                                className={`backdrop-blur-xl border shadow-xl p-3 rounded-xl flex items-center justify-center transition-all animate-fade-in text-white group ${isMono ? 'bg-black/70 border-white/25 hover:bg-white/10' : 'bg-blue-900/10 border-white/20 hover:bg-white/25'}`}
                                 aria-label="Show map options and details"
                             >
                                 <Activity className="w-5 h-5 text-white mr-2 group-hover:scale-110 transition-transform" />
                                 <span className="text-sm font-bold tracking-wide">Options & Details</span>
                             </button>
                         ) : (
-                            <div className="bg-blue-900/10 backdrop-blur-2xl border border-white/20 shadow-2xl p-5 rounded-2xl animate-fade-in-up text-white" style={{ maxWidth: 280 }}>
+                            <div className={`backdrop-blur-2xl border shadow-2xl p-5 rounded-2xl animate-fade-in-up text-white ${isMono ? 'bg-black/75 border-white/25' : 'bg-blue-900/10 border-white/20'}`} style={{ maxWidth: 280 }}>
                                 <div className="flex items-center justify-between gap-3 mb-4">
                                     <div className="flex items-center gap-2">
-                                        <div className="p-2 rounded-lg bg-white/10 border border-white/20">
+                                        <div className={`p-2 rounded-lg border ${isMono ? 'bg-white/5 border-white/25' : 'bg-white/10 border-white/20'}`}>
                                             <Activity className="w-4 h-4 text-white" />
                                         </div>
                                         <div>
@@ -516,23 +556,47 @@ export default function MapComponent() {
                                         <X className="w-4 h-4" />
                                     </button>
                                 </div>
-                                <div className="mb-4 rounded-xl border border-white/20 p-3 bg-white/5">
+                                <div className={`mb-4 rounded-xl border p-3 ${isMono ? 'border-white/25 bg-white/5' : 'border-white/20 bg-white/5'}`}>
                                     <label htmlFor="risk-date" className="block text-xs font-semibold mb-1.5 text-white/90">
                                         Select Date
                                     </label>
                                     <div className="light-theme-forced-if-needed">
-                                        <DatePicker date={selectedDate} onDateChange={setSelectedDate} className="h-8 text-xs w-full bg-white/10 border-white/30 text-white hover:bg-white/20 placeholder:text-white/50" />
+                                        <DatePicker date={selectedDate} onDateChange={setSelectedDate} className={`h-8 text-xs w-full text-white placeholder:text-white/50 ${isMono ? 'bg-black/60 border-white/25 hover:bg-white/10' : 'bg-white/10 border-white/30 hover:bg-white/20'}`} />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
                                     {[
-                                        { count: mapData?.high_risk_count, label: 'High', color: 'bg-rose-400', bg: 'bg-rose-500/20 border border-rose-500/30', text: 'text-rose-200' },
-                                        { count: mapData?.medium_risk_count, label: 'Medium', color: 'bg-amber-400', bg: 'bg-amber-500/20 border border-amber-500/30', text: 'text-amber-200' },
-                                        { count: mapData?.low_risk_count, label: 'Low', color: 'bg-blue-400', bg: 'bg-blue-500/20 border border-blue-500/30', text: 'text-blue-200' },
-                                        { count: mapData?.safe_count, label: 'Safe', color: 'bg-emerald-400', bg: 'bg-emerald-500/20 border border-emerald-500/30', text: 'text-emerald-200' },
+                                        {
+                                            count: mapData?.high_risk_count,
+                                            label: 'High',
+                                            color: isMono ? 'bg-zinc-100' : 'bg-rose-400',
+                                            bg: isMono ? 'bg-zinc-100/10 border border-zinc-100/30' : 'bg-rose-500/20 border border-rose-500/30',
+                                            text: isMono ? 'text-zinc-100' : 'text-rose-200',
+                                        },
+                                        {
+                                            count: mapData?.medium_risk_count,
+                                            label: 'Medium',
+                                            color: isMono ? 'bg-zinc-300' : 'bg-amber-400',
+                                            bg: isMono ? 'bg-zinc-300/10 border border-zinc-300/30' : 'bg-amber-500/20 border border-amber-500/30',
+                                            text: isMono ? 'text-zinc-200' : 'text-amber-200',
+                                        },
+                                        {
+                                            count: mapData?.low_risk_count,
+                                            label: 'Low',
+                                            color: isMono ? 'bg-zinc-400' : 'bg-blue-400',
+                                            bg: isMono ? 'bg-zinc-400/10 border border-zinc-400/30' : 'bg-blue-500/20 border border-blue-500/30',
+                                            text: isMono ? 'text-zinc-300' : 'text-blue-200',
+                                        },
+                                        {
+                                            count: mapData?.safe_count,
+                                            label: 'Safe',
+                                            color: isMono ? 'bg-zinc-500' : 'bg-emerald-400',
+                                            bg: isMono ? 'bg-zinc-500/10 border border-zinc-500/30' : 'bg-emerald-500/20 border border-emerald-500/30',
+                                            text: isMono ? 'text-zinc-400' : 'text-emerald-200',
+                                        },
                                     ].map(({ count, label, color, bg, text }) => (
                                         <div key={label} className={`flex items-center gap-2 p-2.5 rounded-xl ${bg}`}>
-                                            <div className={`w-2 h-2 rounded-full ${color} flex-shrink-0 shadow-[0_0_8px_${color}]`}></div>
+                                            <div className={`w-2 h-2 rounded-full ${color} shrink-0 shadow-[0_0_8px_${color}]`}></div>
                                             <div>
                                                 <div className={`font-bold text-sm ${text}`}>{count ?? '–'}</div>
                                                 <div className={`text-[10px] uppercase tracking-wider ${text} opacity-80 font-semibold`}>{label}</div>
@@ -605,7 +669,7 @@ export default function MapComponent() {
                                         </div>
                                         <div className="flex justify-between items-center">
                                             <p className="text-[11px] text-white/80 font-medium tracking-wide">Overall Risk:</p>
-                                            <p className={`text-[10px] font-bold uppercase ${getRiskColor(tooltipDistrict.overall_risk).text}`}>
+                                            <p className={`text-[10px] font-bold uppercase ${getRiskColor(tooltipDistrict.overall_risk, variant).text}`}>
                                                 {tooltipDistrict.overall_risk}
                                             </p>
                                         </div>
@@ -615,7 +679,7 @@ export default function MapComponent() {
                                             <div className="pt-1.5 mt-1.5 border-t border-white/20 space-y-0.5">
                                                 <p className="text-[9px] text-white/50 uppercase font-bold tracking-wider mb-1">Active Conditions</p>
                                                 {activeDiseases.map(d => {
-                                                    const dColor = getRiskColor(d.level);
+                                                    const dColor = getRiskColor(d.level, variant);
                                                     return (
                                                         <div key={d.disease_id} className="flex justify-between items-center py-px">
                                                             <span className="text-[11px] text-white/90">{d.disease_name}</span>
@@ -634,10 +698,10 @@ export default function MapComponent() {
             </div>
 
             {/* ─── Right: Alerts Sidebar ─────────── */}
-            <div className="w-full md:w-80 lg:w-96 flex flex-col border-t md:border-t-0 md:border-l border-white/20 bg-white/5 backdrop-blur-xl" style={{ maxHeight: '100%' }}>
+            <div className={`w-full md:w-80 lg:w-96 flex flex-col border-t md:border-t-0 md:border-l backdrop-blur-xl ${isMono ? 'border-white/25 bg-black/70' : 'border-white/20 bg-white/5'}`} style={{ maxHeight: '100%' }}>
                 {/* Header */}
-                <div className="p-4 border-b border-white/20 bg-white/5 flex-shrink-0 flex items-center gap-3">
-                    <div className="flex shrink-0 w-9 h-9 items-center justify-center rounded-xl bg-blue-500 shadow-lg shadow-purple-500/30">
+                <div className={`p-4 border-b shrink-0 flex items-center gap-3 ${isMono ? 'border-white/25 bg-black/60' : 'border-white/20 bg-white/5'}`}>
+                    <div className={`flex shrink-0 w-9 h-9 items-center justify-center rounded-xl ${isMono ? 'bg-zinc-800 shadow-lg shadow-black/40' : 'bg-blue-500 shadow-lg shadow-purple-500/30'}`}>
                         <Bell className="w-4 h-4 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -657,7 +721,7 @@ export default function MapComponent() {
                     ) : mapData?.current_alerts && mapData.current_alerts.length > 0 ? (
                         <div className="space-y-3">
                             {mapData.current_alerts.map((alert, idx) => {
-                                const rc = getRiskColor(alert.level);
+                                const rc = getRiskColor(alert.level, variant);
                                 const isExpanded = expandedAlert === idx;
                                 
                                 // Find other diseases in the same district
@@ -689,7 +753,7 @@ export default function MapComponent() {
                                                         {alert.count} case{alert.count !== 1 ? 's' : ''} reported
                                                     </p>
                                                 </div>
-                                                <Info className={`w-4 h-4 flex-shrink-0 mt-0.5 ${rc.text}`} />
+                                                <Info className={`w-4 h-4 shrink-0 mt-0.5 ${rc.text}`} />
                                             </div>
                                             {isExpanded && (
                                                 <div className="mt-3 pt-3 space-y-2 text-xs text-left border-t border-white/10">
@@ -711,9 +775,9 @@ export default function MapComponent() {
                                                             <p className="font-bold text-white mb-2 tracking-wide">Other Active Conditions</p>
                                                             <div className="space-y-1.5">
                                                                 {otherDiseases.map(od => {
-                                                                    const odColor = getRiskColor(od.level);
+                                                                    const odColor = getRiskColor(od.level, variant);
                                                                     return (
-                                                                        <div key={od.disease_id} className="flex items-center justify-between bg-white/5 px-2 py-1.5 rounded-lg border border-white/5">
+                                                                        <div key={od.disease_id} className={`flex items-center justify-between px-2 py-1.5 rounded-lg ${isMono ? 'bg-white/10 border border-white/10' : 'bg-white/5 border border-white/5'}`}>
                                                                             <span className="text-white/90 font-medium">
                                                                                 {od.disease_name} <span className="text-white/50">({od.count})</span>
                                                                             </span>
@@ -735,8 +799,8 @@ export default function MapComponent() {
                         </div>
                     ) : (
                         <div className="text-center flex flex-col items-center justify-center h-full">
-                            <div className="w-12 h-12 rounded-2xl border border-white/20 bg-white/10 flex items-center justify-center mb-3 shadow-xl backdrop-blur-md">
-                                <CheckCircle2 className="h-6 w-6 text-emerald-400" />
+                            <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center mb-3 shadow-xl backdrop-blur-md ${isMono ? 'border-white/30 bg-white/10' : 'border-white/20 bg-white/10'}`}>
+                                <CheckCircle2 className={`h-6 w-6 ${isMono ? 'text-zinc-200' : 'text-emerald-400'}`} />
                             </div>
                             <p className="font-bold text-sm text-white drop-shadow-sm">No Active Alerts</p>
                             <p className="text-xs mt-1 text-white/70 font-medium">All districts currently safe</p>
@@ -745,11 +809,11 @@ export default function MapComponent() {
                 </div>
 
                 {/* Footer */}
-                <div className="border-t border-white/20 p-3 flex items-center justify-between flex-shrink-0 bg-white/5 backdrop-blur-md">
+                <div className={`border-t p-3 flex items-center justify-between shrink-0 backdrop-blur-md ${isMono ? 'border-white/25 bg-black/60' : 'border-white/20 bg-white/5'}`}>
                     <span className="text-[11px] font-medium text-white/60">Real-time surveillance active</span>
                     <button
                         onClick={() => window.location.reload()}
-                        className="bg-white/15 hover:bg-white/25 border border-white/30 text-white font-semibold text-xs py-1.5 px-4 rounded-xl transition-all shadow-md"
+                        className={`text-white font-semibold text-xs py-1.5 px-4 rounded-xl transition-all shadow-md ${isMono ? 'bg-white/10 hover:bg-white/20 border border-white/25' : 'bg-white/15 hover:bg-white/25 border border-white/30'}`}
                     >
                         <FaSyncAlt size={20} />
                     </button>

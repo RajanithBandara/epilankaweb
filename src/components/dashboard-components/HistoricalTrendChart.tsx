@@ -12,12 +12,18 @@ import {
     Legend,
 } from 'recharts';
 import { Activity, AlertTriangle, TrendingUp } from 'lucide-react';
+import { getDashboardCache, setDashboardCache } from '@/lib/dashboardCache';
 
 interface ChartDataPoint {
     period: string;
     year: number;
     week: number;
     [key: string]: string | number;
+}
+
+interface TuberculosisPoint {
+    period: string;
+    value: number;
 }
 
 // Define a type for the tooltip payload entry
@@ -32,6 +38,12 @@ interface CustomTooltipProps {
     payload?: CustomTooltipPayload[];
     label?: string;
 }
+
+const HISTORICAL_CHART_CACHE_TTL_MS = 10 * 60 * 1000;
+const TUBERCULOSIS_KEY_PATTERN = /(tuberculosis|\btb\b)/i;
+const TUBERCULOSIS_PREVIEW_POINTS = 8;
+const TARGET_HISTORY_YEAR = 2024;
+const MAX_DISEASES_TO_SHOW = 3;
 
 const COLORS = [
     '#3b82f6', // blue-500
@@ -78,6 +90,15 @@ export default function HistoricalTrendChart({ districtName }: { districtName: s
     useEffect(() => {
         if (!districtName) return;
 
+        const cacheKey = `reports-historical-chart:${districtName}`;
+        const cached = getDashboardCache<ChartDataPoint[]>(cacheKey, HISTORICAL_CHART_CACHE_TTL_MS);
+        if (cached) {
+            setData(cached);
+            setError(null);
+            setLoading(false);
+            return;
+        }
+
         const fetchData = async () => {
             setLoading(true);
             setError(null);
@@ -86,9 +107,13 @@ export default function HistoricalTrendChart({ districtName }: { districtName: s
                 const res = await fetch(`/api/reports/historical-chart?${params.toString()}`);
                 const result = await res.json().catch(() => null);
                 if (!res.ok) {
-                    throw new Error(result?.error || 'Failed to fetch historical data');
+                    setError(result?.error || 'Failed to fetch historical data');
+                    setData([]);
+                    return;
                 }
-                setData(result);
+                const nextData = result as ChartDataPoint[];
+                setData(nextData);
+                setDashboardCache(cacheKey, nextData);
             } catch (err: unknown) {
                 if (err instanceof Error) {
                     setError(err.message || 'Error fetching chart data');
@@ -103,10 +128,51 @@ export default function HistoricalTrendChart({ districtName }: { districtName: s
         fetchData();
     }, [districtName]);
 
+    const filteredData = useMemo(() => {
+        const yearFiltered = data.filter((item) => item.year === TARGET_HISTORY_YEAR);
+        if (yearFiltered.length === 0) {
+            return yearFiltered;
+        }
+
+        const diseaseTotals = new Map<string, number>();
+        yearFiltered.forEach((item) => {
+            Object.entries(item).forEach(([key, value]) => {
+                if (key === 'period' || key === 'year' || key === 'week') {
+                    return;
+                }
+                const numericValue = typeof value === 'number' ? value : Number(value) || 0;
+                diseaseTotals.set(key, (diseaseTotals.get(key) ?? 0) + numericValue);
+            });
+        });
+
+        const selectedDiseaseKeys = Array.from(diseaseTotals.entries())
+            .sort((a, b) => {
+                const totalDiff = b[1] - a[1];
+                return totalDiff !== 0 ? totalDiff : a[0].localeCompare(b[0]);
+            })
+            .slice(0, MAX_DISEASES_TO_SHOW)
+            .map(([key]) => key);
+
+        return yearFiltered.map((item) => {
+            const nextPoint: ChartDataPoint = {
+                period: item.period,
+                year: item.year,
+                week: item.week,
+            };
+
+            selectedDiseaseKeys.forEach((diseaseKey) => {
+                const rawValue = item[diseaseKey];
+                nextPoint[diseaseKey] = typeof rawValue === 'number' ? rawValue : Number(rawValue) || 0;
+            });
+
+            return nextPoint;
+        });
+    }, [data]);
+
     // Extract all unique disease names from the data to render dynamic areas
     const diseaseKeys = useMemo(() => {
         const keys = new Set<string>();
-        data.forEach(item => {
+        filteredData.forEach(item => {
             Object.keys(item).forEach(k => {
                 if (k !== 'period' && k !== 'year' && k !== 'week') {
                     keys.add(k);
@@ -114,7 +180,27 @@ export default function HistoricalTrendChart({ districtName }: { districtName: s
             });
         });
         return Array.from(keys);
-    }, [data]);
+    }, [filteredData]);
+
+    const tuberculosisSeries = useMemo<TuberculosisPoint[]>(() => {
+        const tuberculosisKey = diseaseKeys.find((key) => TUBERCULOSIS_KEY_PATTERN.test(key));
+        if (!tuberculosisKey) return [];
+
+        return filteredData
+            .map((item) => {
+                const rawValue = item[tuberculosisKey];
+                return {
+                    period: item.period,
+                    value: typeof rawValue === 'number' ? rawValue : Number(rawValue) || 0,
+                };
+            })
+            .slice(-TUBERCULOSIS_PREVIEW_POINTS);
+    }, [filteredData, diseaseKeys]);
+
+    const tuberculosisTotal = useMemo(
+        () => tuberculosisSeries.reduce((sum, point) => sum + point.value, 0),
+        [tuberculosisSeries]
+    );
 
     if (!districtName) return null;
 
@@ -129,7 +215,7 @@ export default function HistoricalTrendChart({ districtName }: { districtName: s
                         Historical Disease Trends
                     </h3>
                     <p className="text-xs" style={{ color: "var(--dash-text-muted)" }}>
-                        Reported cases over time in {districtName}
+                        Showing {TARGET_HISTORY_YEAR} only (top {MAX_DISEASES_TO_SHOW} diseases) in {districtName}
                     </p>
                 </div>
             </div>
@@ -145,18 +231,18 @@ export default function HistoricalTrendChart({ districtName }: { districtName: s
                         <AlertTriangle className="h-6 w-6 opacity-80" />
                         <p className="text-sm font-medium">{error}</p>
                     </div>
-                ) : data.length === 0 ? (
+                ) : filteredData.length === 0 ? (
                     <div className="flex h-full w-full flex-col items-center justify-center text-center">
                         <div className="w-12 h-12 rounded-2xl border flex items-center justify-center mb-3 shadow-sm border-slate-200 bg-slate-50 dark:border-white/5 dark:bg-white/5">
                             <Activity className="h-5 w-5 text-slate-400" />
                         </div>
-                        <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">No historical data</p>
-                        <p className="mt-1 text-xs text-slate-500">There are no localized disease records available over time.</p>
+                        <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">No 2024 historical data</p>
+                        <p className="mt-1 text-xs text-slate-500">There are no localized disease records available for {TARGET_HISTORY_YEAR}.</p>
                     </div>
                 ) : (
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart
-                            data={data}
+                            data={filteredData}
                             margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                         >
                             <defs>
@@ -215,6 +301,60 @@ export default function HistoricalTrendChart({ districtName }: { districtName: s
                     </ResponsiveContainer>
                 )}
             </div>
+
+            {!loading && !error && (
+                <div className="px-4 sm:px-5 pb-4 sm:pb-5">
+                    <div
+                        className="rounded-xl border p-3.5 sm:p-4"
+                        style={{
+                            background: 'var(--dash-card-bg)',
+                            borderColor: 'var(--dash-card-border)',
+                        }}
+                    >
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                            <p className="text-sm font-semibold" style={{ color: 'var(--dash-text-primary)' }}>
+                                Tuberculosis History
+                            </p>
+                            <span
+                                className="text-xs font-semibold rounded-full px-2.5 py-1 border"
+                                style={{
+                                    color: 'var(--color-primary)',
+                                    borderColor: 'rgba(30,58,138,0.22)',
+                                    background: 'rgba(30,58,138,0.08)',
+                                }}
+                            >
+                                Total: {tuberculosisTotal}
+                            </span>
+                        </div>
+
+                        {tuberculosisSeries.length === 0 ? (
+                            <p className="text-xs" style={{ color: 'var(--dash-text-muted)' }}>
+                                No tuberculosis-specific records found in the current historical dataset.
+                            </p>
+                        ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                {tuberculosisSeries.map((point) => (
+                                    <div
+                                        key={`tb-${point.period}`}
+                                        className="rounded-lg border px-2.5 py-2"
+                                        style={{
+                                            borderColor: 'var(--dash-card-border)',
+                                            background: 'var(--dash-card-header-bg)',
+                                        }}
+                                    >
+                                        <p className="text-[11px] font-medium" style={{ color: 'var(--dash-text-muted)' }}>
+                                            {point.period}
+                                        </p>
+                                        <p className="text-sm font-bold" style={{ color: 'var(--dash-text-primary)' }}>
+                                            {point.value}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

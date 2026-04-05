@@ -15,8 +15,11 @@ import {
 } from 'lucide-react';
 import { useLocation } from '@/contexts/LocationContext';
 import HistoricalTrendChart from './HistoricalTrendChart';
+import { getDashboardCache, setDashboardCache } from '@/lib/dashboardCache';
 
 type RiskLevel = 'safe' | 'low' | 'medium' | 'high';
+
+const LOCATION_REPORTS_CACHE_TTL_MS = 2 * 60 * 1000;
 
 interface LocationReport {
     report_id: string;
@@ -127,7 +130,19 @@ export default function DashboardHomeOverview() {
 
     const districtName = locationData?.nearest_area?.district_name;
 
-    const fetchReportsForDistrict = useCallback(async (district: string) => {
+    const fetchReportsForDistrict = useCallback(async (district: string, forceRefresh = false) => {
+        const cacheKey = `reports-location:${district}:limit-5:days-30`;
+
+        if (!forceRefresh) {
+            const cached = getDashboardCache<LocationReportsResponse>(cacheKey, LOCATION_REPORTS_CACHE_TTL_MS);
+            if (cached) {
+                setReportsData(cached);
+                setReportsError(null);
+                setReportsLoading(false);
+                return;
+            }
+        }
+
         setReportsLoading(true);
         setReportsError(null);
         try {
@@ -140,9 +155,13 @@ export default function DashboardHomeOverview() {
             const response = await fetch(`/api/reports/location?${params.toString()}`);
             const payload = await response.json().catch(() => null);
             if (!response.ok) {
-                throw new Error(payload?.error || 'Failed to fetch reports for current location');
+                setReportsError(payload?.error || 'Failed to fetch reports for current location');
+                setReportsData(null);
+                return;
             }
-            setReportsData(payload as LocationReportsResponse);
+            const nextData = payload as LocationReportsResponse;
+            setReportsData(nextData);
+            setDashboardCache(cacheKey, nextData);
         } catch (fetchError: unknown) {
             setReportsError(fetchError instanceof Error ? fetchError.message : 'Failed to load local reports');
             setReportsData(null);
@@ -171,7 +190,7 @@ export default function DashboardHomeOverview() {
     const onRefresh = async () => {
         setRefreshing(true);
         await refetchLocation();
-        if (districtName) await fetchReportsForDistrict(districtName);
+        if (districtName) await fetchReportsForDistrict(districtName, true);
         setRefreshing(false);
     };
 
