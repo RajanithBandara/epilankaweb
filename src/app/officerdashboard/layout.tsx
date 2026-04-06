@@ -6,7 +6,6 @@ import {
     FilePenLine,
     BarChart3,
     Map,
-    AppWindow,
     Microscope,
     Activity,
     LogOut,
@@ -26,7 +25,6 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 
 const navItems = [
     { label: "Update Records", href: "/officerdashboard/update-records", icon: FilePenLine },
@@ -112,18 +110,18 @@ export default function OfficerLayout({ children }: { children: React.ReactNode 
     return (
         <div className="h-screen bg-white text-black dark:bg-black dark:text-white">
             <div className="flex h-full pb-16 lg:pb-0">
-                <aside className="hidden h-screen w-72 shrink-0 border-r border-black/10 bg-white lg:sticky lg:top-0 lg:flex lg:flex-col dark:border-white/15 dark:bg-black">
+                <aside className="hidden h-screen w-72 shrink-0 border-r border-white/10 bg-black text-white lg:sticky lg:top-0 lg:flex lg:flex-col dark:border-white/15 dark:bg-black dark:text-white">
                     <div className="flex h-14 items-center gap-3 px-4">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-black bg-black text-white dark:border-white dark:bg-white dark:text-black">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-white bg-white text-black dark:border-white dark:bg-white dark:text-black">
                             <Activity className="h-4 w-4" />
                         </div>
                         <div className="min-w-0">
                             <p className="truncate text-sm font-semibold tracking-tight">EpiLanka</p>
-                            <p className="text-xs text-black/60 dark:text-white/60">Officer Console</p>
+                            <p className="text-xs text-white/60 dark:text-white/60">Officer Console</p>
                         </div>
                     </div>
 
-                    <Separator className="bg-black/10 dark:bg-white/15" />
+                    <Separator className="bg-white/10 dark:bg-white/15" />
 
                     <nav className="flex-1 space-y-1 p-3">
                         {navItems.map((item) => {
@@ -138,8 +136,8 @@ export default function OfficerLayout({ children }: { children: React.ReactNode 
                                     className={cn(
                                         "h-10 w-full justify-start gap-3 rounded-lg px-3 font-medium",
                                         active
-                                            ? "bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
-                                            : "text-black/75 hover:bg-black/10 hover:text-black dark:text-white/75 dark:hover:bg-white/10 dark:hover:text-white"
+                                            ? "bg-white text-black hover:bg-white/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
+                                            : "text-white/75 hover:bg-white/10 hover:text-white dark:text-white/75 dark:hover:bg-white/10 dark:hover:text-white"
                                     )}
                                 >
                                     <Link href={item.href} prefetch scroll={false}>
@@ -152,11 +150,11 @@ export default function OfficerLayout({ children }: { children: React.ReactNode 
                     </nav>
 
                     <div className="p-3">
-                        <Separator className="mb-3 bg-black/10 dark:bg-white/15" />
+                        <Separator className="mb-3 bg-white/10 dark:bg-white/15" />
                         <Button
                             onClick={() => void handleLogout()}
                             variant="ghost"
-                            className="h-10 w-full justify-start gap-3 rounded-lg px-3 text-black/75 hover:bg-black/10 hover:text-black dark:text-white/75 dark:hover:bg-white/10 dark:hover:text-white"
+                            className="h-10 w-full justify-start gap-3 rounded-lg px-3 text-white/75 hover:bg-white/10 hover:text-white dark:text-white/75 dark:hover:bg-white/10 dark:hover:text-white"
                         >
                             <LogOut className="h-4 w-4" />
                             Sign out
@@ -179,7 +177,7 @@ export default function OfficerLayout({ children }: { children: React.ReactNode 
                                             <Menu className="h-5 w-5" />
                                         </Button>
                                     </SheetTrigger>
-                                    <SheetContent side="left" className="border-black/20 bg-white text-black dark:border-white/20 dark:bg-black dark:text-white">
+                                    <SheetContent side="left" className="border-white/15 bg-black text-white dark:border-white/20 dark:bg-black dark:text-white">
                                         <SheetHeader>
                                             <SheetTitle>Officer Navigation</SheetTitle>
                                         </SheetHeader>
@@ -196,8 +194,8 @@ export default function OfficerLayout({ children }: { children: React.ReactNode 
                                                         className={cn(
                                                             "h-10 w-full justify-start gap-3 rounded-lg px-3",
                                                             active
-                                                                ? "bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
-                                                                : "text-black/75 hover:bg-black/10 hover:text-black dark:text-white/75 dark:hover:bg-white/10 dark:hover:text-white"
+                                                                    ? "bg-white text-black hover:bg-white/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
+                                                                    : "text-white/75 hover:bg-white/10 hover:text-white dark:text-white/75 dark:hover:bg-white/10 dark:hover:text-white"
                                                         )}
                                                     >
                                                         <Link href={item.href} prefetch scroll={false}>
@@ -228,7 +226,7 @@ export default function OfficerLayout({ children }: { children: React.ReactNode 
                 </div>
             </div>
 
-            <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-black/10 bg-white/95 p-2 backdrop-blur lg:hidden dark:border-white/15 dark:bg-black/95">
+            <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-white/10 bg-black/95 p-2 backdrop-blur lg:hidden dark:border-white/15 dark:bg-black/95">
                 {navItems.map((item) => {
                     const Icon = item.icon;
                     const active = isActivePath(pathname, item.href);
@@ -241,8 +239,8 @@ export default function OfficerLayout({ children }: { children: React.ReactNode 
                             className={cn(
                                 "h-11 flex-col gap-1 rounded-lg px-1 text-[11px]",
                                 active
-                                    ? "bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black"
-                                    : "text-black/70 hover:bg-black/10 dark:text-white/70 dark:hover:bg-white/10"
+                                        ? "bg-white text-black hover:bg-white/90 dark:bg-white dark:text-black"
+                                        : "text-white/70 hover:bg-white/10 dark:text-white/70 dark:hover:bg-white/10"
                             )}
                         >
                             <Link href={item.href} prefetch scroll={false}>
