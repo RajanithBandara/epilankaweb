@@ -2,22 +2,24 @@ import Login from "@/pages/Login";
 import { redirect } from "next/navigation";
 
 type LoginPageProps = {
-    searchParams?: {
+    searchParams?: Promise<{
         userId?: string;
         secret?: string;
         expire?: string;
         error?: string;
-    };
+    }>;
 };
 
-function LoginPage({ searchParams }: LoginPageProps) {
-    if (searchParams?.userId && searchParams?.secret) {
-        const params = new URLSearchParams();
-        params.set('userId', searchParams.userId);
-        params.set('secret', searchParams.secret);
+async function LoginPage({ searchParams }: LoginPageProps) {
+    const paramsObj = searchParams ? await searchParams : undefined;
 
-        if (searchParams.expire) {
-            params.set('expire', searchParams.expire);
+    if (paramsObj?.userId && paramsObj?.secret) {
+        const params = new URLSearchParams();
+        params.set('userId', paramsObj.userId);
+        params.set('secret', paramsObj.secret);
+
+        if (paramsObj.expire) {
+            params.set('expire', paramsObj.expire);
         }
 
         redirect(`/reset-password?${params.toString()}`);
