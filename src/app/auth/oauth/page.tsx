@@ -13,6 +13,13 @@ export default function OAuthCallback() {
 
   useEffect(() => {
     async function handleCallback() {
+      const params = new URLSearchParams(window.location.search);
+      const rawProvider = params.get("provider") ?? "OAuth";
+      const providerName =
+        rawProvider.length > 0
+          ? rawProvider.charAt(0).toUpperCase() + rawProvider.slice(1)
+          : "OAuth";
+
       try {
         // The user was redirected here after a successful Appwrite OAuth login.
         // Appwrite SDK should now have a valid session locally.
@@ -44,7 +51,7 @@ export default function OAuthCallback() {
         console.error("OAuth handler failed:", err);
         // Delete any invalid session to stay clean
         try { await account.deleteSession("current"); } catch {}
-        router.push("/login?error=Google login verification failed. Please try again.");
+        router.push(`/login?error=${encodeURIComponent(`${providerName} login verification failed. Please try again.`)}`);
       }
     }
 
