@@ -9,6 +9,7 @@ import {
   User,
   CalendarDays,
   ChevronRight,
+  HeartPulse,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -29,6 +30,7 @@ const navItems: NavItem[] = [
   { label: "Home", href: "/dashboard", icon: Home },
   { label: "Map", href: "/dashboard/map", icon: Map },
   { label: "Reports", href: "/dashboard/report", icon: FileText },
+  { label: "Take Care", href: "/dashboard/takecare", icon: HeartPulse },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
@@ -282,7 +284,7 @@ export default function DashboardLayout({
               borderColor: "var(--dash-sidebar-border)",
             }}
           >
-            <div className="h-16 grid grid-cols-5 gap-1 p-1.5">
+            <div className="h-16 grid grid-cols-6 gap-1 p-1.5">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;

@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
     { label: "Update Records", href: "/officerdashboard/update-records", icon: FilePenLine },
     { label: "Diseases", href: "/officerdashboard/diseases", icon: Microscope },
+    { label: "Reports", href: "/officerdashboard/reports", icon: FilePenLine },
     { label: "Analytics", href: "/officerdashboard/analytics", icon: BarChart3 },
     { label: "Map", href: "/officerdashboard/map", icon: Map },
     { label: "Settings", href: "/officerdashboard/settings", icon: Settings },
@@ -194,8 +195,8 @@ export default function OfficerLayout({ children }: { children: React.ReactNode 
                                                         className={cn(
                                                             "h-10 w-full justify-start gap-3 rounded-lg px-3",
                                                             active
-                                                                    ? "bg-white text-black hover:bg-white/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
-                                                                    : "text-white/75 hover:bg-white/10 hover:text-white dark:text-white/75 dark:hover:bg-white/10 dark:hover:text-white"
+                                                                ? "bg-white text-black hover:bg-white/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
+                                                                : "text-white/75 hover:bg-white/10 hover:text-white dark:text-white/75 dark:hover:bg-white/10 dark:hover:text-white"
                                                         )}
                                                     >
                                                         <Link href={item.href} prefetch scroll={false}>
@@ -239,8 +240,8 @@ export default function OfficerLayout({ children }: { children: React.ReactNode 
                             className={cn(
                                 "h-11 flex-col gap-1 rounded-lg px-1 text-[11px]",
                                 active
-                                        ? "bg-white text-black hover:bg-white/90 dark:bg-white dark:text-black"
-                                        : "text-white/70 hover:bg-white/10 dark:text-white/70 dark:hover:bg-white/10"
+                                    ? "bg-white text-black hover:bg-white/90 dark:bg-white dark:text-black"
+                                    : "text-white/70 hover:bg-white/10 dark:text-white/70 dark:hover:bg-white/10"
                             )}
                         >
                             <Link href={item.href} prefetch scroll={false}>

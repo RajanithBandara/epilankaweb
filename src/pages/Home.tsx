@@ -6,7 +6,6 @@ import StatSection from "@/components/homepage-components/StatSection";
 import AboutSection from "@/components/homepage-components/AboutSection";
 import FeaturesSection from "@/components/homepage-components/FeaturesSection";
 import CtaSection from "@/components/homepage-components/CtaSection";
-import Footer from "@/components/Footer";
 import dynamic from "next/dynamic";
 import { getGsap } from "@/lib/gsap";
 

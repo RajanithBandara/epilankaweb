@@ -4,9 +4,45 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import * as tt from "@tomtom-international/web-sdk-maps";
 import "@tomtom-international/web-sdk-maps/dist/maps.css";
 import { useLocation } from "@/contexts/LocationContext";
-import { Loader2, AlertTriangle, CheckCircle2, Navigation, Activity } from "lucide-react";
+import { Loader2, AlertTriangle, CheckCircle2, Navigation, Activity, ChevronDown, ChevronUp, ShieldCheck, HeartPulse, Sparkles, Hospital, TriangleAlert } from "lucide-react";
+
+type DiseaseDetail = {
+    disease_id: number;
+    symptoms: string[];
+    precautions: string[];
+};
 
 type RiskLevel = "safe" | "low" | "medium" | "high";
+
+type SymptomCategory = { category: string; icon: string; items: string[] };
+type PrecautionCategory = { category: string; icon: string; items: string[] };
+
+type EnhancedInfo = {
+    disease_name: string;
+    severity_level: "low" | "moderate" | "high" | "critical";
+    brief_summary: string;
+    symptom_categories: SymptomCategory[];
+    precaution_categories: PrecautionCategory[];
+    when_to_seek_help: string;
+};
+
+async function enhanceDisease(name: string, details: DiseaseDetail): Promise<EnhancedInfo | null> {
+    try {
+        const res = await fetch("/api/groq/enhance-disease", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                disease_name: name,
+                symptoms: details?.symptoms ?? [],
+                precautions: details?.precautions ?? [],
+            }),
+        });
+        if (!res.ok) return null;
+        return await res.json() as EnhancedInfo;
+    } catch {
+        return null;
+    }
+}
 
 interface DiseaseRisk {
     disease_id: number;
@@ -26,45 +62,15 @@ type SeverityConfig = {
 const getSeverityConfig = (severity: RiskLevel): SeverityConfig => {
     switch (severity) {
         case "high":
-            return {
-                color: "#e11d48",
-                bg: "rgba(225,29,72,0.09)",
-                border: "rgba(225,29,72,0.28)",
-                textColor: "#be123c",
-                stripColor: "#f43f5e",
-            };
+            return { color: "#e11d48", bg: "rgba(225,29,72,0.09)", border: "rgba(225,29,72,0.28)", textColor: "#be123c", stripColor: "#f43f5e" };
         case "medium":
-            return {
-                color: "#d97706",
-                bg: "rgba(217,119,6,0.09)",
-                border: "rgba(217,119,6,0.28)",
-                textColor: "#b45309",
-                stripColor: "#f59e0b",
-            };
+            return { color: "#d97706", bg: "rgba(217,119,6,0.09)", border: "rgba(217,119,6,0.28)", textColor: "#b45309", stripColor: "#f59e0b" };
         case "low":
-            return {
-                color: "#2563eb",
-                bg: "rgba(37,99,235,0.09)",
-                border: "rgba(37,99,235,0.22)",
-                textColor: "var(--color-primary)",
-                stripColor: "#3b82f6",
-            };
+            return { color: "#2563eb", bg: "rgba(37,99,235,0.09)", border: "rgba(37,99,235,0.22)", textColor: "var(--color-primary)", stripColor: "#3b82f6" };
         case "safe":
-            return {
-                color: "#059669",
-                bg: "rgba(5,150,105,0.09)",
-                border: "rgba(5,150,105,0.25)",
-                textColor: "#047857",
-                stripColor: "#10b981",
-            };
+            return { color: "#059669", bg: "rgba(5,150,105,0.09)", border: "rgba(5,150,105,0.25)", textColor: "#047857", stripColor: "#10b981" };
         default:
-            return {
-                color: "#64748b",
-                bg: "var(--dash-card-header-bg)",
-                border: "var(--dash-card-border)",
-                textColor: "var(--dash-text-secondary)",
-                stripColor: "var(--dash-card-border)",
-            };
+            return { color: "#64748b", bg: "var(--dash-card-header-bg)", border: "var(--dash-card-border)", textColor: "var(--dash-text-secondary)", stripColor: "var(--dash-card-border)" };
     }
 };
 
@@ -76,6 +82,190 @@ const getMaxRiskLevel = (riskLevels: Record<string, DiseaseRisk>): RiskLevel => 
     );
 };
 
+/* ── Pathogen Row Component ─────────────────────────────────────────────── */
+
+function ActivePathogenRow({ risk, detail, isExpanded, onToggle }: { risk: DiseaseRisk, detail?: DiseaseDetail, isExpanded: boolean, onToggle: () => void }) {
+    const c = getSeverityConfig(risk.level);
+    const hasDetail = detail && (detail.symptoms.length > 0 || detail.precautions.length > 0);
+
+    const [enhanced, setEnhanced] = useState<EnhancedInfo | null>(null);
+    const [enhancing, setEnhancing] = useState(false);
+    const [enhanceFailed, setEnhanceFailed] = useState(false);
+
+    const handleToggle = async () => {
+        onToggle();
+
+        const shouldLoadEnhancement = !isExpanded && hasDetail && !enhanced && !enhancing && !enhanceFailed;
+        if (!shouldLoadEnhancement || !detail) return;
+
+        setEnhancing(true);
+        try {
+            const res = await enhanceDisease(risk.disease_name, detail);
+            if (res) setEnhanced(res);
+            else setEnhanceFailed(true);
+        } catch {
+            setEnhanceFailed(true);
+        } finally {
+            setEnhancing(false);
+        }
+    };
+
+    return (
+        <div>
+            <button
+                type="button"
+                onClick={() => void handleToggle()}
+                className="relative w-full flex items-center justify-between p-2.5 rounded-lg border overflow-hidden transition-all duration-200 text-left"
+                style={{ background: c.bg, borderColor: c.border }}
+            >
+                <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg" style={{ background: c.stripColor }} />
+                <div className="pl-2.5 flex flex-col min-w-0 pr-2">
+                    <span className="text-sm font-semibold truncate" style={{ color: c.textColor }}>{risk.disease_name}</span>
+                    <span className="text-[10px] mt-0.5" style={{ color: c.textColor, opacity: 0.8 }}>
+                        {risk.count} projected {risk.count === 1 ? 'case' : 'cases'}
+                    </span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-[10px] font-bold uppercase rounded-full px-2.5 py-0.5 border" style={{ color: c.textColor, background: "rgba(255,255,255,0.35)", borderColor: c.border }}>
+                        {risk.level}
+                    </span>
+                    {hasDetail && (
+                        isExpanded ? <ChevronUp className="h-3.5 w-3.5" style={{ color: c.textColor }} /> : <ChevronDown className="h-3.5 w-3.5" style={{ color: c.textColor }} />
+                    )}
+                </div>
+            </button>
+
+            {/* Expandable Panel */}
+            {isExpanded && hasDetail && (
+                <div className="mt-1 rounded-lg border px-3 py-3 space-y-3" style={{ background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)" }}>
+                    {enhancing ? (
+                        <div className="flex flex-col items-center py-4 gap-2 text-center" style={{ color: "var(--dash-text-secondary)" }}>
+                            <Loader2 className="h-4 w-4 animate-spin mb-1" style={{ color: "var(--color-primary)" }} />
+                            <span className="text-xs font-medium">Analyzing with AI...</span>
+                        </div>
+                    ) : enhanced ? (
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-widest" style={{ color: "var(--dash-text-muted)" }}>
+                                <Sparkles className="h-3 w-3 text-violet-500" />
+                                AI-organized by Groq
+                            </div>
+                            
+                            {enhanced.brief_summary && (
+                                <p className="text-xs leading-relaxed" style={{ color: "var(--dash-text-secondary)" }}>{enhanced.brief_summary}</p>
+                            )}
+                            
+                            {enhanced.symptom_categories.length > 0 && (
+                                <div>
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                        <HeartPulse className="h-3 w-3 text-red-500 shrink-0" />
+                                        <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "var(--dash-text-muted)" }}>Symptoms</p>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {enhanced.symptom_categories.map((cat) => (
+                                            <div key={cat.category}>
+                                                <p className="text-[11px] font-bold mb-1 flex items-center gap-1" style={{ color: "#dc2626" }}>
+                                                    <span>{cat.icon}</span> {cat.category}
+                                                </p>
+                                                <div className="flex flex-wrap gap-1">
+                                                    {cat.items.map((item) => (
+                                                        <span key={item} className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium" style={{ background: "rgba(239,68,68,0.08)", borderColor: "rgba(239,68,68,0.20)", color: "#dc2626" }}>
+                                                            {item}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {enhanced.precaution_categories.length > 0 && (
+                                <div>
+                                    <div className="flex items-center gap-1.5 mb-1.5 border-t pt-2" style={{ borderColor: "var(--dash-card-border)" }}>
+                                        <ShieldCheck className="h-3 w-3 text-emerald-500 shrink-0" />
+                                        <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "var(--dash-text-muted)" }}>Precautions</p>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {enhanced.precaution_categories.map((cat) => (
+                                            <div key={cat.category}>
+                                                <p className="text-[11px] font-bold mb-1 flex items-center gap-1" style={{ color: "#059669" }}>
+                                                    <span>{cat.icon}</span> {cat.category}
+                                                </p>
+                                                <ol className="space-y-1">
+                                                    {cat.items.map((item, ii) => (
+                                                        <li key={item} className="flex items-start gap-1.5 text-[11px]" style={{ color: "var(--dash-text-secondary)" }}>
+                                                            <span className="shrink-0 mt-0.5 inline-flex items-center justify-center h-4 w-4 rounded-full text-[9px] font-bold" style={{ background: "rgba(16,185,129,0.12)", color: "#059669", border: "1px solid rgba(16,185,129,0.25)" }}>
+                                                                {ii + 1}
+                                                            </span>
+                                                            {item}
+                                                        </li>
+                                                    ))}
+                                                </ol>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {enhanced.when_to_seek_help && (
+                                <div className="mt-3 rounded-lg border p-2 flex items-start gap-2" style={{ background: "rgba(239,68,68,0.05)", borderColor: "rgba(239,68,68,0.15)" }}>
+                                    <Hospital className="h-3.5 w-3.5 mt-0.5 text-red-500 shrink-0" />
+                                    <p className="text-[10px] leading-relaxed" style={{ color: "var(--dash-text-secondary)" }}>
+                                        <span className="font-bold text-red-500 block mb-0.5">When to seek help</span>
+                                        {enhanced.when_to_seek_help}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {enhanceFailed && (
+                                <div className="flex items-center gap-2 text-[10px] rounded p-2" style={{ background: "rgba(245,158,11,0.1)", color: "#d97706" }}>
+                                    <TriangleAlert className="h-3 w-3 shrink-0" />
+                                    AI enhancement unavailable — showing raw data
+                                </div>
+                            )}
+                            {detail?.symptoms.length > 0 && (
+                                <div>
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                        <HeartPulse className="h-3 w-3 text-red-500" />
+                                        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--dash-text-muted)" }}>Symptoms</p>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1">
+                                        {detail.symptoms.map((s) => (
+                                            <span key={s} className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium" style={{ background: "rgba(239,68,68,0.08)", borderColor: "rgba(239,68,68,0.20)", color: "#dc2626" }}>
+                                                {s}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {detail?.precautions.length > 0 && (
+                                <div>
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                        <ShieldCheck className="h-3 w-3 text-emerald-500" />
+                                        <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--dash-text-muted)" }}>Precautions</p>
+                                    </div>
+                                    <ol className="space-y-1">
+                                        {detail.precautions.map((p, i) => (
+                                            <li key={p} className="flex items-start gap-1.5 text-[11px]" style={{ color: "var(--dash-text-secondary)" }}>
+                                                <span className="shrink-0 mt-0.5 inline-flex items-center justify-center h-4 w-4 rounded-full text-[9px] font-bold" style={{ background: "rgba(16,185,129,0.12)", color: "#059669", border: "1px solid rgba(16,185,129,0.25)" }}>
+                                                    {i + 1}
+                                                </span>
+                                                {p}
+                                            </li>
+                                        ))}
+                                    </ol>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function MapComponent() {
     const mapElement = useRef<HTMLDivElement>(null);
     const mapRef = useRef<tt.Map | null>(null);
@@ -84,6 +274,18 @@ export default function MapComponent() {
 
     const { locationData, isLoading: contextLoading, error: contextError } = useLocation();
     const [mapReady, setMapReady] = useState(false);
+    const [diseaseDetails, setDiseaseDetails] = useState<DiseaseDetail[]>([]);
+    const [expandedDiseaseId, setExpandedDiseaseId] = useState<number | null>(null);
+
+    // Fetch disease details from MongoDB via public Next.js route
+    useEffect(() => {
+        fetch("/api/public/disease-details", { cache: "no-store" })
+            .then((r) => r.json())
+            .then((data: unknown) => {
+                if (Array.isArray(data)) setDiseaseDetails(data as DiseaseDetail[]);
+            })
+            .catch(() => { /* non-critical */ });
+    }, []);
 
     const isLoading = contextLoading || !mapReady;
 
@@ -425,46 +627,16 @@ export default function MapComponent() {
                                     {riskList.length > 0 ? (
                                         <div className="space-y-2">
                                             {riskList.map(risk => {
-                                                const c = getSeverityConfig(risk.level);
+                                                const detail = diseaseDetails.find(d => d.disease_id === risk.disease_id);
+                                                const isExpanded = expandedDiseaseId === risk.disease_id;
                                                 return (
-                                                    <div
+                                                    <ActivePathogenRow
                                                         key={risk.disease_id}
-                                                        className="relative flex items-center justify-between p-2.5 rounded-lg border overflow-hidden transition-all duration-200"
-                                                        style={{
-                                                            background: c.bg,
-                                                            borderColor: c.border,
-                                                        }}
-                                                    >
-                                                        {/* Severity left strip */}
-                                                        <div
-                                                            className="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg"
-                                                            style={{ background: c.stripColor }}
-                                                        />
-                                                        <div className="pl-2.5 flex flex-col min-w-0 pr-2">
-                                                            <span
-                                                                className="text-sm font-semibold truncate"
-                                                                style={{ color: c.textColor }}
-                                                            >
-                                                                {risk.disease_name}
-                                                            </span>
-                                                            <span
-                                                                className="text-[10px] mt-0.5"
-                                                                style={{ color: c.textColor, opacity: 0.8 }}
-                                                            >
-                                                                {risk.count} projected {risk.count === 1 ? 'case' : 'cases'}
-                                                            </span>
-                                                        </div>
-                                                        <span
-                                                            className="text-[10px] font-bold uppercase rounded-full px-2.5 py-0.5 border shrink-0"
-                                                            style={{
-                                                                color: c.textColor,
-                                                                background: "rgba(255,255,255,0.35)",
-                                                                borderColor: c.border,
-                                                            }}
-                                                        >
-                                                            {risk.level}
-                                                        </span>
-                                                    </div>
+                                                        risk={risk}
+                                                        detail={detail}
+                                                        isExpanded={isExpanded}
+                                                        onToggle={() => setExpandedDiseaseId(isExpanded ? null : risk.disease_id)}
+                                                    />
                                                 );
                                             })}
                                         </div>

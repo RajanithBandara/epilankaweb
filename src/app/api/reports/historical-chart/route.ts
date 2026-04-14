@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
+import redis from '@/lib/redis';
+
+const CACHE_TTL_SECONDS = 3600; // 1 hour
 
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
@@ -10,6 +13,17 @@ export async function GET(request: NextRequest) {
             { error: 'District name is required' },
             { status: 400 }
         );
+    }
+
+    // 1. Try to fetch from Redis Cache
+    const cacheKey = `dashboard:analytics:historical-chart:${district_name}`;
+    try {
+        const cachedData = await redis.get(cacheKey);
+        if (cachedData) {
+            return NextResponse.json(JSON.parse(cachedData));
+        }
+    } catch (e) {
+        console.warn("Redis historical chart cache get failed", e);
     }
 
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -31,6 +45,13 @@ export async function GET(request: NextRequest) {
                 },
             }
         );
+
+        // 2. Cache the valid API response to Redis
+        try {
+            await redis.setex(cacheKey, CACHE_TTL_SECONDS, JSON.stringify(response.data));
+        } catch (e) {
+            console.warn("Redis historical chart cache set failed", e);
+        }
 
         return NextResponse.json(response.data);
     } catch (error) {

@@ -1,13 +1,11 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
 import { format } from 'date-fns';
 import {
     CheckCircle2,
     Activity,
-    MapPin,
-    CalendarDays,
     X,
     Loader2,
     Info,
@@ -76,7 +74,6 @@ type DistrictFeatureProperties = Record<string, unknown> & {
     fill_color?: string;
 };
 
-type RawDistrictFeature = Feature<Geometry, Record<string, unknown>>;
 type RawDistrictFeatureCollection = FeatureCollection<Geometry, Record<string, unknown>>;
 type DistrictFeature = Feature<Geometry, DistrictFeatureProperties>;
 type DistrictFeatureCollection = FeatureCollection<Geometry, DistrictFeatureProperties>;
@@ -87,7 +84,6 @@ const isDistrictFeatureCollection = (value: unknown): value is RawDistrictFeatur
     return candidate.type === 'FeatureCollection' && Array.isArray(candidate.features);
 };
 
-type TomTomSdk = typeof import('@tomtom-international/web-sdk-maps');
 type TomTomMap = import('@tomtom-international/web-sdk-maps').Map;
 type MapVariant = 'default' | 'mono';
 
@@ -203,7 +199,7 @@ export default function MapComponent({ variant = 'default' }: MapComponentProps)
         name.toLowerCase().replace(/\bdistrict\b/g, '').replace(/[^a-z]/g, '');
 
     const isMono = variant === 'mono';
-    const getRiskHexColor = (risk: RiskLevel) => getRiskColor(risk, variant).marker;
+    const getRiskHexColor = useCallback((risk: RiskLevel) => getRiskColor(risk, variant).marker, [variant]);
 
     // Initialize map — runs once AFTER the map container div is in the DOM.
     // We always render the map div (just hidden while data loads), so the ref
@@ -484,7 +480,7 @@ export default function MapComponent({ variant = 'default' }: MapComponentProps)
         };
 
         upsertDistrictPolygons();
-    }, [mapReady, mapData, isMono]);
+    }, [mapReady, mapData, isMono, getRiskHexColor]);
 
     return (
         <div className={`w-full h-full flex flex-col md:flex-row backdrop-blur-md ${isMono ? 'bg-black/80 text-white' : 'bg-white/5'}`}>

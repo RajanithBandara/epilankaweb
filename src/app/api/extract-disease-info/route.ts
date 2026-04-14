@@ -1,5 +1,4 @@
 import { NextResponse, NextRequest } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import axios from "axios";
 
 interface ExtractedData {
@@ -42,16 +41,13 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const geminiApiKey = process.env.GEMINI_API_KEY;
-        if (!geminiApiKey) {
+        const groqApiKey = process.env.GROQ_API_KEY;
+        if (!groqApiKey) {
             return NextResponse.json(
-                { error: "Gemini API key not configured" },
+                { error: "Groq API key not configured" },
                 { status: 500 }
             );
         }
-
-        const genAI = new GoogleGenerativeAI(geminiApiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
         const prompt = `You are a medical data extraction assistant. Analyze the following disease report and extract structured information.
                         
@@ -80,12 +76,37 @@ export async function POST(req: NextRequest) {
                         - confidence must be: high, medium, or low
                         - Return ONLY the JSON object, no explanation`;
 
-        // Call Gemini API
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        let text = response.text();
+        // Call Groq API replacing Gemini
+        const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${groqApiKey}`,
+            },
+            body: JSON.stringify({
+                model: "llama-3.3-70b-versatile",
+                messages: [
+                    {
+                        role: "user",
+                        content: prompt,
+                    },
+                ],
+                temperature: 0.1,
+                max_tokens: 1024,
+                response_format: { type: "json_object" },
+            }),
+        });
 
-        // Clean up the response
+        if (!groqResponse.ok) {
+            const errText = await groqResponse.text();
+            console.error("Groq API error:", errText);
+            throw new Error(`Failed to extract data: ${groqResponse.status}`);
+        }
+
+        const groqData = await groqResponse.json() as { choices: Array<{ message: { content: string } }> };
+        let text = groqData.choices?.[0]?.message?.content ?? "{}";
+
+        // Clean up the response just in case the LLM outputs markdown
         text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
         // Parse the JSON response
