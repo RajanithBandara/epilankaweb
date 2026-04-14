@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
     Area,
     AreaChart,
@@ -212,7 +213,7 @@ export default function UpdateRecordsPage() {
         void fetchRecords();
     }, [fetchRecords]);
 
-    const onInputChange = (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const onInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = event.target;
         setForm((prev) => ({ ...prev, [name]: value }));
     };
@@ -352,20 +353,22 @@ export default function UpdateRecordsPage() {
 
                             <label className="text-sm">
                                 Disease *
-                                <select
-                                    name="disease_id"
-                                    value={form.disease_id}
-                                    onChange={onInputChange}
-                                    className="mt-1 w-full rounded-md border px-3 py-2 bg-transparent"
+                                <Select
+                                    value={form.disease_id || undefined}
+                                    onValueChange={(value) => setForm((prev) => ({ ...prev, disease_id: value }))}
                                     disabled={loadingMeta}
                                 >
-                                    <option value="">Select disease</option>
-                                    {diseases.map((disease) => (
-                                        <option key={disease.disease_id} value={disease.disease_id}>
-                                            {disease.disease_name}
-                                        </option>
-                                    ))}
-                                </select>
+                                    <SelectTrigger className="mt-1 w-full">
+                                        <SelectValue placeholder="Select disease" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {diseases.map((disease) => (
+                                            <SelectItem key={disease.disease_id} value={String(disease.disease_id)}>
+                                                {disease.disease_name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </label>
                         </div>
 

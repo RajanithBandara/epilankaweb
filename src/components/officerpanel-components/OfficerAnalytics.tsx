@@ -19,6 +19,7 @@ import autoTable from "jspdf-autotable";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getCachedData, setCachedData, getCacheAge } from "@/lib/analyticsCache";
 
 type District = {
@@ -616,34 +617,42 @@ export default function AnalyticsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <label className="text-sm">
                             District Filter
-                            <select
-                                className="mt-1 w-full rounded-md border px-3 py-2 bg-transparent"
-                                value={selectedDistrictId}
-                                onChange={(event) => setSelectedDistrictId(event.target.value)}
+                            <Select
+                                value={selectedDistrictId || "all"}
+                                onValueChange={(value) => setSelectedDistrictId(value === "all" ? "" : value)}
                             >
-                                <option value="">All districts</option>
-                                {districts.map((district) => (
-                                    <option key={district.district_id} value={district.district_id}>
-                                        {district.district_name} ({district.province_name})
-                                    </option>
-                                ))}
-                            </select>
+                                <SelectTrigger className="mt-1 w-full">
+                                    <SelectValue placeholder="All districts" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All districts</SelectItem>
+                                    {districts.map((district) => (
+                                        <SelectItem key={district.district_id} value={String(district.district_id)}>
+                                            {district.district_name} ({district.province_name})
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </label>
 
                         <label className="text-sm">
                             Disease Filter
-                            <select
-                                className="mt-1 w-full rounded-md border px-3 py-2 bg-transparent"
-                                value={selectedDiseaseId}
-                                onChange={(event) => setSelectedDiseaseId(event.target.value)}
+                            <Select
+                                value={selectedDiseaseId || "all"}
+                                onValueChange={(value) => setSelectedDiseaseId(value === "all" ? "" : value)}
                             >
-                                <option value="">All diseases</option>
-                                {diseases.map((disease) => (
-                                    <option key={disease.disease_id} value={disease.disease_id}>
-                                        {disease.disease_name}
-                                    </option>
-                                ))}
-                            </select>
+                                <SelectTrigger className="mt-1 w-full">
+                                    <SelectValue placeholder="All diseases" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All diseases</SelectItem>
+                                    {diseases.map((disease) => (
+                                        <SelectItem key={disease.disease_id} value={String(disease.disease_id)}>
+                                            {disease.disease_name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </label>
                     </div>
 
@@ -672,21 +681,22 @@ export default function AnalyticsPage() {
                     <div className="mt-3 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-end">
                         <label className="text-sm">
                             Download Week
-                            <select
-                                className="mt-1 w-full rounded-md border px-3 py-2 bg-transparent"
-                                value={selectedDownloadWeek}
-                                onChange={(event) => setSelectedDownloadWeek(event.target.value)}
+                            <Select
+                                value={selectedDownloadWeek || undefined}
+                                onValueChange={setSelectedDownloadWeek}
+                                disabled={weekOptions.length === 0}
                             >
-                                {weekOptions.length === 0 ? (
-                                    <option value="">No week data available</option>
-                                ) : (
-                                    weekOptions.map((option) => (
-                                        <option key={option.label} value={option.label}>
+                                <SelectTrigger className="mt-1 w-full">
+                                    <SelectValue placeholder="No week data available" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {weekOptions.map((option) => (
+                                        <SelectItem key={option.label} value={option.label}>
                                             {option.label}
-                                        </option>
-                                    ))
-                                )}
-                            </select>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </label>
 
                         <Button
