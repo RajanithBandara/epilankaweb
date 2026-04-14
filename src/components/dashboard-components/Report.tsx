@@ -605,8 +605,24 @@ export default function DiseaseReportPage() {
                         </div>
                     ) : (
                         <div className="space-y-3 xl:max-h-[calc(100vh-13rem)] xl:overflow-y-auto xl:pr-1">
-                            {history.map((report, index) => {
-                                const severityStripColor = report.extracted_data
+                            {(() => {
+                                const twoWeeksAgo = new Date();
+                                twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+
+                                const displayedHistory = [...history]
+                                    .filter(r => new Date(r.created_at) >= twoWeeksAgo)
+                                    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+
+                                if (displayedHistory.length === 0) {
+                                    return (
+                                        <div className="text-center py-6 text-sm" style={{ color: "var(--dash-text-muted)" }}>
+                                            No recent reports scored or found within the last 14 days.
+                                        </div>
+                                    );
+                                }
+
+                                return displayedHistory.map((report, index) => {
+                                    const severityStripColor = report.extracted_data
                                     ? getSeverityStripColor(report.extracted_data.severity)
                                     : null;
                                 return (
@@ -645,7 +661,20 @@ export default function DiseaseReportPage() {
                                                         })}
                                                     </p>
                                                 </div>
-                                                <StatusBadge status={report.status} />
+                                                <div className="flex flex-col items-end gap-1.5">
+                                                    <StatusBadge status={report.status} />
+                                                    <div
+                                                        className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border"
+                                                        style={{
+                                                            background: "rgba(30,58,138,0.08)",
+                                                            borderColor: "rgba(30,58,138,0.22)",
+                                                            color: "var(--color-primary)"
+                                                        }}
+                                                    >
+                                                        <ThumbsUp className="h-3 w-3" />
+                                                        {report.score ?? 0} Votes
+                                                    </div>
+                                                </div>
                                             </div>
 
                                             {/* Description */}
@@ -711,7 +740,6 @@ export default function DiseaseReportPage() {
                                                 <span>
                                                     {report.has_voted ? "Voted • Remove vote" : "I have the same problem"}
                                                 </span>
-                                                <span className="text-[11px] font-bold">({report.score ?? 0})</span>
                                             </Toggle>
 
                                             {/* Location footer */}
@@ -732,7 +760,8 @@ export default function DiseaseReportPage() {
                                         </div>
                                     </div>
                                 );
-                            })}
+                            });
+                        })()}
                         </div>
                     )}
                 </aside>

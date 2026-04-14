@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
+import redis from '@/lib/redis';
+
+const CACHE_TTL_SECONDS = 3600; // 1 hour
 
 function parseIntParam(value: string | null, name: string) {
     if (value === null) return undefined;
@@ -26,25 +29,6 @@ export async function GET(request: NextRequest) {
         );
     }
 
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
-    const apiKey =
-        process.env.API_SECRET_KEY ||
-        process.env.NEXT_PUBLIC_SECRET_KEY ||
-        process.env.NEXT_PUBLIC_API_KEY;
-    if (!apiBaseUrl) {
-        return NextResponse.json(
-            { error: 'API base URL is not configured' },
-            { status: 500 }
-        );
-    }
-
-    if (!apiKey) {
-        return NextResponse.json(
-            { error: 'Backend API key is not configured' },
-            { status: 500 }
-        );
-    }
-
     let parsedLimit: number | undefined;
     let parsedSkip: number | undefined;
     let parsedDays: number | undefined;
@@ -68,6 +52,37 @@ export async function GET(request: NextRequest) {
     if (parsedSkip !== undefined) params.skip = parsedSkip;
     if (parsedDays !== undefined) params.days = parsedDays;
 
+    // 1. Try to fetch from Redis Cache
+    const cacheKey = `dashboard:analytics:location:${district_name || 'all'}:${province_name || 'all'}:${user_id || 'all'}:${parsedLimit || 'null'}:${parsedSkip || 'null'}:${parsedDays || 'null'}`;
+    try {
+        const cachedData = await redis.get(cacheKey);
+        if (cachedData) {
+            return NextResponse.json(JSON.parse(cachedData));
+        }
+    } catch (e) {
+        console.warn("Redis location reports cache get failed", e);
+    }
+
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL;
+    const apiKey =
+        process.env.API_SECRET_KEY ||
+        process.env.NEXT_PUBLIC_SECRET_KEY ||
+        process.env.NEXT_PUBLIC_API_KEY;
+        
+    if (!apiBaseUrl) {
+        return NextResponse.json(
+            { error: 'API base URL is not configured' },
+            { status: 500 }
+        );
+    }
+
+    if (!apiKey) {
+        return NextResponse.json(
+            { error: 'Backend API key is not configured' },
+            { status: 500 }
+        );
+    }
+
     try {
         const response = await axios.get(
             `${apiBaseUrl}/reports/location`,
@@ -79,6 +94,13 @@ export async function GET(request: NextRequest) {
                 },
             }
         );
+
+        // 2. Cache the valid API response to Redis
+        try {
+            await redis.setex(cacheKey, CACHE_TTL_SECONDS, JSON.stringify(response.data));
+        } catch (e) {
+            console.warn("Redis location reports cache set failed", e);
+        }
 
         return NextResponse.json(response.data);
     } catch (error) {

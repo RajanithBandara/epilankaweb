@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { account } from "@/lib/appwrite";
@@ -9,7 +9,6 @@ import { useAuth } from "@/contexts/AuthContext";
 export default function OAuthCallback() {
   const router = useRouter();
   const { refreshUser } = useAuth();
-  const [error, setError] = useState("");
 
   useEffect(() => {
     async function handleCallback() {
