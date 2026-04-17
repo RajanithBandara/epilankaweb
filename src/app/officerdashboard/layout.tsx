@@ -7,6 +7,7 @@ import {
     BarChart3,
     Map,
     Microscope,
+    BellRing,
     Activity,
     LogOut,
     Settings,
@@ -32,6 +33,7 @@ const navItems = [
     { label: "Reports", href: "/officerdashboard/reports", icon: FilePenLine },
     { label: "Analytics", href: "/officerdashboard/analytics", icon: BarChart3 },
     { label: "Map", href: "/officerdashboard/map", icon: Map },
+    { label: "Notifications", href: "/officerdashboard/notifications", icon: BellRing },
     { label: "Settings", href: "/officerdashboard/settings", icon: Settings },
 ] as const;
 
@@ -41,6 +43,7 @@ const PAGE_TITLES: Record<string, string> = {
     "/officerdashboard/diseases": "Diseases",
     "/officerdashboard/analytics": "Analytics",
     "/officerdashboard/map": "Map",
+    "/officerdashboard/notifications": "Notifications",
     "/officerdashboard/settings": "Settings",
 };
 
@@ -227,7 +230,10 @@ export default function OfficerLayout({ children }: { children: React.ReactNode 
                 </div>
             </div>
 
-            <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-white/10 bg-black/95 p-2 backdrop-blur lg:hidden dark:border-white/15 dark:bg-black/95">
+            <nav
+                className="fixed inset-x-0 bottom-0 z-30 grid border-t border-white/10 bg-black/95 p-2 backdrop-blur lg:hidden dark:border-white/15 dark:bg-black/95"
+                style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }}
+            >
                 {navItems.map((item) => {
                     const Icon = item.icon;
                     const active = isActivePath(pathname, item.href);

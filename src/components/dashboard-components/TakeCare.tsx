@@ -311,27 +311,34 @@ function DiseaseCard({ disease, defaultOpen }: { disease: MergedDisease; default
     const hasDetails = disease.details !== null &&
         (disease.details.symptoms.length > 0 || disease.details.precautions.length > 0);
 
+    // Load severity data on component mount
+    useEffect(() => {
+        if (hasDetails && !enhanced && !enhancing && !enhanceFailed) {
+            const loadSeverity = async () => {
+                setEnhancing(true);
+                try {
+                    const result = await enhanceDisease(disease);
+                    if (result) {
+                        setEnhanced(result);
+                    } else {
+                        setEnhanceFailed(true);
+                    }
+                } catch {
+                    setEnhanceFailed(true);
+                } finally {
+                    setEnhancing(false);
+                }
+            };
+            void loadSeverity();
+        }
+    }, [disease, hasDetails, enhanced, enhancing, enhanceFailed]);
+
     const handleToggle = useCallback(async () => {
         const nextOpen = !open;
         setOpen(nextOpen);
 
-        // Load enhanced info when first opened and details exist
-        if (nextOpen && hasDetails && !enhanced && !enhancing && !enhanceFailed) {
-            setEnhancing(true);
-            try {
-                const result = await enhanceDisease(disease);
-                if (result) {
-                    setEnhanced(result);
-                } else {
-                    setEnhanceFailed(true);
-                }
-            } catch {
-                setEnhanceFailed(true);
-            } finally {
-                setEnhancing(false);
-            }
-        }
-    }, [open, hasDetails, enhanced, enhancing, enhanceFailed, disease]);
+        // Enhanced info should already be loaded from useEffect above
+    }, [open]);
 
     const sev = enhanced?.severity_level
         ? (severityConfig[enhanced.severity_level] ?? severityConfig.low)

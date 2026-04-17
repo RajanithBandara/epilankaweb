@@ -17,6 +17,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { LocationProvider } from "@/contexts/LocationContext";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import { useAuth } from "@/contexts/AuthContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
+import NotificationBell from "@/components/dashboard-components/NotificationBell";
 import api from "@/lib/api";
 
 
@@ -103,11 +105,12 @@ export default function DashboardLayout({
   );
 
   return (
-    <LocationProvider>
-      <div
-        className="relative h-dvh w-full overflow-hidden"
-        style={{ background: "var(--dash-bg)" }}
-      >
+    <NotificationProvider>
+      <LocationProvider>
+        <div
+          className="relative h-dvh w-full overflow-hidden"
+          style={{ background: "var(--dash-bg)" }}
+        >
         <div className="relative z-10 h-full min-h-0 lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
           <aside
             className="hidden lg:flex flex-col h-dvh border-r"
@@ -179,25 +182,28 @@ export default function DashboardLayout({
             </nav>
 
             <div className="px-3 pb-5 space-y-2 shrink-0">
-              <div
-                className="rounded-xl border px-3 py-2.5 flex items-center gap-2"
-                style={{
-                  background: "var(--dash-card-bg)",
-                  borderColor: "var(--dash-card-border)",
-                }}
-              >
-                <CalendarDays
-                  className="h-4 w-4"
-                  style={{ color: "var(--dash-text-muted)" }}
-                />
-                <span
-                  className="flex-1 text-xs font-medium"
-                  style={{ color: "var(--dash-text-secondary)" }}
+              <div className="flex items-center gap-2">
+                <div
+                  className="flex-1 rounded-xl border px-3 py-2.5 flex items-center gap-2"
+                  style={{
+                    background: "var(--dash-card-bg)",
+                    borderColor: "var(--dash-card-border)",
+                  }}
                 >
-                  {todayLabel}
-                </span>
+                  <CalendarDays
+                    className="h-4 w-4"
+                    style={{ color: "var(--dash-text-muted)" }}
+                  />
+                  <span
+                    className="flex-1 text-xs font-medium"
+                    style={{ color: "var(--dash-text-secondary)" }}
+                  >
+                    {todayLabel}
+                  </span>
+                </div>
+                <NotificationBell />
                 <AnimatedThemeToggler
-                  className="h-8 w-8 rounded-lg border flex items-center justify-center"
+                  className="h-10 w-10 rounded-lg border flex items-center justify-center"
                   style={{
                     borderColor: "var(--dash-card-border)",
                     color: "var(--dash-text-secondary)",
@@ -318,6 +324,7 @@ export default function DashboardLayout({
           </nav>
         </div>
       </div>
-    </LocationProvider>
+      </LocationProvider>
+    </NotificationProvider>
   );
 }
