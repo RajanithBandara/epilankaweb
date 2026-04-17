@@ -39,13 +39,12 @@ interface ApiError {
     message?: string;
 }
 
-type SettingsTab = 'profile' | 'security' | 'appearance' | 'notifications' | 'help';
+type SettingsTab = 'profile' | 'security' | 'appearance' | 'help';
 
 const tabs = [
     { id: 'profile' as SettingsTab,        label: 'Profile',         icon: User,        note: 'Identity and account details' },
     { id: 'security' as SettingsTab,       label: 'Security',        icon: Lock,        note: 'Password and access controls' },
     { id: 'appearance' as SettingsTab,     label: 'Appearance',      icon: Camera,      note: 'Profile image and presentation' },
-    { id: 'notifications' as SettingsTab,  label: 'Notifications',   icon: Bell,        note: 'Alerts and updates' },
     { id: 'help' as SettingsTab,           label: 'Help & Support',  icon: HelpCircle,  note: 'Resources and troubleshooting' },
 ];
 
@@ -797,111 +796,6 @@ export default function UserSettings() {
                         </div>
                     )}
 
-                    {/* ── Notifications Tab ─────────────────────────────────── */}
-                    {activeTab === 'notifications' && (
-                        <div className="space-y-5">
-                            {/* Notification History */}
-                            <section className="rounded-2xl border p-5" style={shellStyle}>
-                                <SectionHeader icon={<Bell className="h-4 w-4" />} title="Notification Center" subtitle="View and manage your notifications" />
-                                <div className="bg-linear-to-br from-blue-500/10 to-purple-500/10 rounded-xl border p-6 text-center" style={{borderColor: 'var(--dash-card-border)'}}>
-                                    <Bell className="h-8 w-8 mx-auto mb-3" style={{color: 'var(--color-primary)'}}/>
-                                    <p className="text-sm font-medium" style={{ color: 'var(--dash-text-primary)' }}>
-                                        Real-time Notifications Enabled
-                                    </p>
-                                    <p className="mt-2 text-xs" style={{ color: 'var(--dash-text-secondary)' }}>
-                                        Click the bell icon in the dashboard to view your notifications. You&apos;ll receive updates about new reports, alerts, and system events in real-time.
-                                    </p>
-                                </div>
-                            </section>
-                            
-                            {/* Notification Preferences */}
-                            <section className="rounded-2xl border p-5" style={shellStyle}>
-                                <SectionHeader icon={<Shield className="h-4 w-4" />} title="Notification Preferences" subtitle="Customize how you receive notifications" />
-                                <div className="space-y-4">
-                                    {[
-                                        { label: 'Disease Alerts', description: 'Receive notifications about new disease reports', key: 'disease_alerts' },
-                                        { label: 'System Updates', description: 'Get notified about system maintenance and updates', key: 'system_updates' },
-                                        { label: 'Critical Events', description: 'Only receive notifications for critical incidents', key: 'critical_only' },
-                                        { label: 'Report Submissions', description: 'Be notified when reports are submitted or updated', key: 'report_submissions' },
-                                    ].map(({ label, description, key }) => (
-                                        <div
-                                            key={key}
-                                            className="flex items-center justify-between rounded-xl border p-4 transition"
-                                            style={{ background: 'var(--dash-card-header-bg)', borderColor: 'var(--dash-card-border)' }}
-                                        >
-                                            <div>
-                                                <p className="text-sm font-medium" style={{ color: 'var(--dash-text-primary)' }}>
-                                                    {label}
-                                                </p>
-                                                <p className="mt-1 text-xs" style={{ color: 'var(--dash-text-secondary)' }}>
-                                                    {description}
-                                                </p>
-                                            </div>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    className="sr-only peer"
-                                                    defaultChecked={true}
-                                                />
-                                                <div
-                                                    className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"
-                                                    style={{
-                                                        backgroundColor: '#d1d5db',
-                                                    }}
-                                                >
-                                                </div>
-                                            </label>
-                                        </div>
-                                    ))}
-                                </div>
-                            </section>
-
-                            {/* Notification Types */}
-                            <section className="rounded-2xl border p-5" style={shellStyle}>
-                                <SectionHeader icon={<Mail className="h-4 w-4" />} title="Notification Types" subtitle="Understand what each notification means" />
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                    {[
-                                        { severity: 'success', label: 'Success', description: 'Positive actions and confirmations' },
-                                        { severity: 'info', label: 'Information', description: 'General information and updates' },
-                                        { severity: 'warning', label: 'Warning', description: 'Cautionary alerts that need attention' },
-                                        { severity: 'critical', label: 'Critical', description: 'Urgent alerts requiring immediate action' },
-                                    ].map(({ severity, label, description }) => {
-                                        const severityColors: Record<string, string> = {
-                                            success: 'rgb(34, 197, 94)',
-                                            info: 'rgb(59, 130, 246)',
-                                            warning: 'rgb(245, 158, 11)',
-                                            critical: 'rgb(239, 68, 68)',
-                                        };
-
-                                        return (
-                                            <div
-                                                key={severity}
-                                                className="flex items-start gap-3 rounded-xl border p-4"
-                                                style={{
-                                                    background: `${severityColors[severity]}15`,
-                                                    borderColor: `${severityColors[severity]}40`,
-                                                }}
-                                            >
-                                                <div
-                                                        className="h-2.5 w-2.5 rounded-full mt-1 shrink-0"
-                                                    style={{ background: severityColors[severity] }}
-                                                />
-                                                <div className="min-w-0">
-                                                    <p className="text-sm font-medium" style={{ color: 'var(--dash-text-primary)' }}>
-                                                        {label}
-                                                    </p>
-                                                    <p className="mt-0.5 text-xs" style={{ color: 'var(--dash-text-secondary)' }}>
-                                                        {description}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </section>
-                        </div>
-                    )}
-
                     {/* ── Help Tab ──────────────────────────────────────────── */}
                     {activeTab === 'help' && (
                         <section className="rounded-2xl border p-5" style={shellStyle}>
@@ -910,7 +804,7 @@ export default function UserSettings() {
                                 className="rounded-xl border p-6 text-center text-sm"
                                 style={{ background: 'var(--dash-card-header-bg)', borderColor: 'var(--dash-card-border)', color: 'var(--dash-text-secondary)' }}
                             >
-                                Support resources and documentation will be added here in a future update.
+                                Contact us via email rajanith@epilanka.com for support or questions.
                             </div>
                         </section>
                     )}
