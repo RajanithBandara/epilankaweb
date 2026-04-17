@@ -574,13 +574,13 @@ export default function DiseaseReportPage() {
 
                     {historyLoading ? (
                         <div
-                            className="flex items-center justify-center gap-3 rounded-2xl border px-6 py-10"
+                            className="rounded-2xl border space-y-3 p-6"
                             style={{ background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)" }}
                         >
-                            <Loader2 className="h-5 w-5 animate-spin" style={{ color: "var(--color-primary)" }} />
-                            <span className="text-sm" style={{ color: "var(--dash-text-secondary)" }}>
-                                Loading reports…
-                            </span>
+                            <div className="h-12 w-3/4 bg-foreground/10 rounded-md animate-pulse" />
+                            <div className="h-12 w-full bg-foreground/10 rounded-md animate-pulse" />
+                            <div className="h-12 w-full bg-foreground/10 rounded-md animate-pulse" />
+                            <div className="h-12 w-5/6 bg-foreground/10 rounded-md animate-pulse" />
                         </div>
                     ) : history.length === 0 ? (
                         <div

@@ -222,9 +222,12 @@ export default function HistoricalTrendChart({ districtName }: { districtName: s
 
             <div className="p-4 sm:p-5 h-80 w-full relative group">
                 {loading ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-transparent z-10">
-                        <div className="w-8 h-8 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin mb-3"></div>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium animate-pulse">Analyzing historical data...</p>
+                    <div className="w-full h-full flex flex-col gap-3">
+                        <div className="h-6 w-3/4 bg-foreground/10 rounded-md animate-pulse" />
+                        <div className="flex-1 space-y-2">
+                            <div className="h-20 w-full bg-foreground/10 rounded-md animate-pulse" />
+                            <div className="h-40 w-full bg-foreground/10 rounded-md animate-pulse" />
+                        </div>
                     </div>
                 ) : error ? (
                     <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-center text-rose-500">
