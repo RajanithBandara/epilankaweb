@@ -7,22 +7,28 @@ import {
     History,
     LogOut,
     Activity,
+    ShieldCheck,
+    Stethoscope,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 const sidebarItems = [
-    { label: "Overview",  href: "/admindashboard",            icon: LayoutDashboard },
-    { label: "Users",     href: "/admindashboard/users",       icon: Users },
-    { label: "Tables",    href: "/admindashboard/tables",      icon: Database },
-    { label: "History",   href: "/admindashboard/historydata", icon: History },
+    { label: "Overview",  href: "/admindashboard",             icon: LayoutDashboard },
+    { label: "Users",     href: "/admindashboard/users",        icon: Users },
+    { label: "Admins",    href: "/admindashboard/admins",       icon: ShieldCheck },
+    { label: "Officers",  href: "/admindashboard/officers",     icon: Stethoscope },
+    { label: "Tables",    href: "/admindashboard/tables",       icon: Database },
+    { label: "History",   href: "/admindashboard/historydata",  icon: History },
 ];
 
 const PAGE_TITLES: Record<string, string> = {
-    "/admindashboard":             "Overview",
-    "/admindashboard/users":       "User Management",
-    "/admindashboard/tables":      "Database Browser",
-    "/admindashboard/historydata": "Historical Data",
+    "/admindashboard":              "Overview",
+    "/admindashboard/users":        "User Management",
+    "/admindashboard/admins":       "Admin Accounts",
+    "/admindashboard/officers":     "Health Officers",
+    "/admindashboard/tables":       "Database Browser",
+    "/admindashboard/historydata":  "Historical Data",
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
