@@ -19,6 +19,7 @@ import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import { useAuth } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import NotificationBell from "@/components/dashboard-components/NotificationBell";
+import NotificationToast from "@/components/dashboard-components/NotificationToast";
 import api from "@/lib/api";
 
 
@@ -106,6 +107,7 @@ export default function DashboardLayout({
 
   return (
     <NotificationProvider>
+      <NotificationToast />
       <LocationProvider>
         <div
           className="relative h-dvh w-full overflow-hidden"
