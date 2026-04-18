@@ -7,11 +7,14 @@ export function proxy(request: NextRequest) {
     // ── Appwrite JWT cookies (set by /api/auth/session routes) ──────────────
     const userJwt    = request.cookies.get("appwrite-jwt")?.value;
     const adminJwt   = request.cookies.get("appwrite-admin-jwt")?.value;
+    const officerJwt = request.cookies.get("appwrite-officer-jwt")?.value;
 
-    const isAdminRoute      = path.startsWith("/admindashboard");
-    const isAdminLoginRoute = path === "/admin/login";
-    const isUserDashRoute   = path.startsWith("/dashboard");
-    const isUserLoginRoute  = path === "/login";
+    const isAdminRoute          = path.startsWith("/admindashboard");
+    const isAdminLoginRoute     = path === "/admin/login";
+    const isUserDashRoute       = path.startsWith("/dashboard");
+    const isUserLoginRoute      = path === "/login";
+    const isOfficerDashRoute    = path.startsWith("/officerdashboard");
+    const isOfficerLoginRoute   = path === "/officer/login";
 
     // ── Admin dashboard guard ────────────────────────────────────────────────
     if (isAdminRoute && !adminJwt) {
@@ -23,6 +26,19 @@ export function proxy(request: NextRequest) {
     if (adminJwt && isAdminLoginRoute) {
         const url = request.nextUrl.clone();
         url.pathname = "/admindashboard";
+        return NextResponse.redirect(url);
+    }
+
+    // ── Officer dashboard guard ──────────────────────────────────────────────
+    if (isOfficerDashRoute && !officerJwt) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/officer/login";
+        return NextResponse.redirect(url);
+    }
+
+    if (officerJwt && isOfficerLoginRoute) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/officerdashboard";
         return NextResponse.redirect(url);
     }
 
@@ -45,5 +61,8 @@ export const config = {
         "/login",
         "/admindashboard/:path*",
         "/admin/login",
+        "/officerdashboard/:path*",
+        "/officer/login",
     ],
 };
+
