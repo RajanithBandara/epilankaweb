@@ -5,7 +5,6 @@ import Image from 'next/image';
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop';
 import {
     AlertCircle,
-    Bell,
     Camera,
     Check,
     ChevronRight,
