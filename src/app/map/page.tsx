@@ -14,6 +14,16 @@ const MapComponent = dynamic(() => import('@/components/MapComponent'), {
     )
 });
 
+// Dynamically import AreaReportsList to prevent SSR issues
+const AreaReportsList = dynamic(() => import('@/components/AreaReportsList'), {
+    ssr: false,
+    loading: () => (
+        <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+        </div>
+    )
+});
+
 export default function MapPage() {
     return (
         <main className="min-h-screen flex flex-col relative text-white">
@@ -40,6 +50,14 @@ export default function MapPage() {
                 </div>
             </div>
 
+            {/* Area Reports Section */}
+            <div className="w-full max-w-7xl mx-auto px-4 pb-8 relative z-10">
+                <div className="rounded-2xl border border-white/20 p-6 sm:p-8" style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)' }}>
+                    <AreaReportsList />
+                </div>
+            </div>
+
+            {/* How to Stay Safe section */}
             <div className="w-full max-w-7xl mx-auto px-4 pb-16 relative z-10">
                 <div className="rounded-2xl border border-white/20 p-6 sm:p-8" style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)' }}>
                     <div className="flex flex-wrap items-start justify-between gap-4">
