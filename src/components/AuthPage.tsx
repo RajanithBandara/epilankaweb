@@ -133,7 +133,7 @@ function InputField({
             onClick={() => setShow((s) => !s)}
             className="absolute right-3.5 text-slate-400 hover:text-slate-600 transition-colors duration-150"
           >
-            {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {!show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         )}
       </div>
