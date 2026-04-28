@@ -104,7 +104,7 @@ function HeroSection() {
                     >
                         <button
                             disabled={loading}
-                            className="relative inline-flex items-center gap-2 px-8 py-3 text-base font-semibold text-white/90 border border-white/30 rounded-lg backdrop-blur-sm hover:bg-white/10 hover:border-white/50 transition-all duration-300">
+                            className="cursor-pointer relative inline-flex items-center gap-2 px-8 py-3 text-base font-semibold text-white/90 border border-white/30 rounded-lg backdrop-blur-sm hover:bg-white/10 hover:border-white/50 transition-all duration-300">
                             {loading ? 'Loading...' : buttonText}
                             <svg
                                 className="w-6 h-6 opacity-60 group-hover:opacity-100 transition-opacity"
