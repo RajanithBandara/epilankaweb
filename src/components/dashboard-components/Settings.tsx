@@ -8,17 +8,34 @@ import {
     Camera,
     Check,
     ChevronRight,
+    Copy,
+    Eye,
+    EyeOff,
     HelpCircle,
     KeyRound,
     Lock,
     Mail,
+    RefreshCw,
     Settings as SettingsIcon,
     Shield,
+    ShieldCheck,
+    ShieldOff,
+    Smartphone,
     Upload,
     User,
     UserCircle2,
     X,
 } from 'lucide-react';
+import {
+    createTotpAuthenticator,
+    verifyTotpAuthenticator,
+    enableMfa,
+    disableMfa,
+    deleteTotpAuthenticator,
+    createRecoveryCodes,
+    listMfaFactors,
+    type TotpSetupData,
+} from '@/lib/twoFactorAuth';
 import { AppwriteException } from 'appwrite';
 import { account } from '@/lib/appwrite';
 import api from '@/lib/api';
@@ -95,6 +112,17 @@ export default function UserSettings() {
     const [newPassword,      setNewPassword]      = useState('');
     const [confirmPassword,  setConfirmPassword]  = useState('');
 
+    // Two-factor authentication state
+    type TwoFAStep = 'idle' | 'setup-qr' | 'setup-verify' | 'setup-codes' | 'disable-confirm';
+    const [mfaEnabled,    setMfaEnabled]    = useState(false);
+    const [mfaLoading,    setMfaLoading]    = useState(false);
+    const [twoFAStep,     setTwoFAStep]     = useState<TwoFAStep>('idle');
+    const [totpData,      setTotpData]      = useState<TotpSetupData | null>(null);
+    const [totpOtp,       setTotpOtp]       = useState('');
+    const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+    const [showSecret,    setShowSecret]    = useState(false);
+    const [copiedCode,    setCopiedCode]    = useState<string | null>(null);
+
     // Appearance tab state
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl,   setPreviewUrl]   = useState<string | null>(null);
@@ -148,8 +176,74 @@ export default function UserSettings() {
     useEffect(() => {
         if (!authLoading && appwriteUser) {
             loadProfile();
+            void loadMfaStatus();
         }
     }, [authLoading, appwriteUser, loadProfile]);
+
+    const loadMfaStatus = async () => {
+        try {
+            const factors = await listMfaFactors();
+            setMfaEnabled(!!(factors.totp));
+        } catch {
+            setMfaEnabled(false);
+        }
+    };
+
+    const startTotpSetup = async () => {
+        setMfaLoading(true);
+        try {
+            const data = await createTotpAuthenticator();
+            setTotpData(data);
+            setTotpOtp('');
+            setTwoFAStep('setup-qr');
+        } catch (err) {
+            const e = err as ApiError;
+            showAlert(e.message || 'Failed to start 2FA setup', 'error');
+        } finally {
+            setMfaLoading(false);
+        }
+    };
+
+    const verifyAndEnable2FA = async () => {
+        if (!totpOtp.trim()) return showAlert('Enter the 6-digit code from your app', 'error');
+        setMfaLoading(true);
+        try {
+            await verifyTotpAuthenticator(totpOtp.trim());
+            await enableMfa();
+            const codes = await createRecoveryCodes();
+            setRecoveryCodes(codes);
+            setTwoFAStep('setup-codes');
+            setMfaEnabled(true);
+            showAlert('Two-factor authentication enabled!');
+        } catch (err) {
+            const e = err as ApiError;
+            showAlert(e.message || 'Verification failed — check your code and try again', 'error');
+        } finally {
+            setMfaLoading(false);
+        }
+    };
+
+    const disable2FA = async () => {
+        setMfaLoading(true);
+        try {
+            await disableMfa();
+            await deleteTotpAuthenticator();
+            setMfaEnabled(false);
+            setTwoFAStep('idle');
+            showAlert('Two-factor authentication disabled.');
+        } catch (err) {
+            const e = err as ApiError;
+            showAlert(e.message || 'Failed to disable 2FA', 'error');
+        } finally {
+            setMfaLoading(false);
+        }
+    };
+
+    const copyCode = (code: string) => {
+        void navigator.clipboard.writeText(code);
+        setCopiedCode(code);
+        setTimeout(() => setCopiedCode(null), 1800);
+    };
 
     // ── Update MongoDB profile fields (username / email) ──────────────────────
 
@@ -609,6 +703,189 @@ export default function UserSettings() {
                                         </li>
                                     ))}
                                 </ul>
+                            </section>
+
+                            {/* ── Two-Factor Authentication Card ────────────── */}
+                            <section className="rounded-2xl border p-5 xl:col-span-2" style={shellStyle}>
+                                <SectionHeader
+                                    icon={<Smartphone className="h-4 w-4" />}
+                                    title="Two-Factor Authentication"
+                                    subtitle="Add an extra layer of security using an authenticator app"
+                                />
+
+                                {/* Status badge */}
+                                <div className="mb-5 flex items-center gap-3">
+                                    <div
+                                        className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold"
+                                        style={mfaEnabled
+                                            ? { background: 'rgba(22,163,74,0.1)', borderColor: 'rgba(22,163,74,0.35)', color: 'var(--color-success)' }
+                                            : { background: 'rgba(220,38,38,0.08)', borderColor: 'rgba(220,38,38,0.3)', color: 'var(--color-danger)' }}
+                                    >
+                                        {mfaEnabled
+                                            ? <><ShieldCheck className="h-3.5 w-3.5" /> 2FA Enabled</>                                            : <><ShieldOff  className="h-3.5 w-3.5" /> 2FA Disabled</>}
+                                    </div>
+                                </div>
+
+                                {/* ── idle state ── */}
+                                {twoFAStep === 'idle' && !mfaEnabled && (
+                                    <div className="space-y-4">
+                                        <p className="text-sm" style={{ color: 'var(--dash-text-secondary)' }}>
+                                            Protect your account with a time-based one-time password (TOTP) from apps like Google Authenticator or Authy.
+                                        </p>
+                                        <button
+                                            onClick={() => void startTotpSetup()}
+                                            disabled={mfaLoading}
+                                            className="cursor-pointer inline-flex min-h-11 items-center gap-2 rounded-xl px-5 text-sm font-semibold text-white transition disabled:opacity-50"
+                                            style={{ background: 'var(--color-primary)' }}
+                                        >
+                                            <ShieldCheck className="h-4 w-4" />
+                                            {mfaLoading ? 'Starting…' : 'Enable Two-Factor Auth'}
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* ── idle + already enabled ── */}
+                                {twoFAStep === 'idle' && mfaEnabled && (
+                                    <div className="flex flex-wrap gap-3">
+                                        <button
+                                            onClick={async () => { const codes = await createRecoveryCodes(); setRecoveryCodes(codes); setTwoFAStep('setup-codes'); }}
+                                            disabled={mfaLoading}
+                                            className="cursor-pointer inline-flex min-h-11 items-center gap-2 rounded-xl border px-5 text-sm font-semibold transition disabled:opacity-50"
+                                            style={{ background: 'var(--dash-card-header-bg)', borderColor: 'var(--dash-card-border)', color: 'var(--dash-text-primary)' }}
+                                        >
+                                            <RefreshCw className="h-4 w-4" /> Regenerate Recovery Codes
+                                        </button>
+                                        <button
+                                            onClick={() => setTwoFAStep('disable-confirm')}
+                                            disabled={mfaLoading}
+                                            className="cursor-pointer inline-flex min-h-11 items-center gap-2 rounded-xl border px-5 text-sm font-semibold transition disabled:opacity-50"
+                                            style={{ background: 'rgba(220,38,38,0.08)', borderColor: 'rgba(220,38,38,0.35)', color: 'var(--color-danger)' }}
+                                        >
+                                            <ShieldOff className="h-4 w-4" /> Disable 2FA
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* ── step 1: QR code ── */}
+                                {twoFAStep === 'setup-qr' && totpData && (
+                                    <div className="space-y-5">
+                                        <p className="text-sm" style={{ color: 'var(--dash-text-secondary)' }}>
+                                            Scan the QR code below with your authenticator app, then click <strong>Next</strong>.
+                                        </p>
+                                        <div className="flex flex-col sm:flex-row gap-5 items-start">
+                                            {/* QR Code */}
+                                            <div className="rounded-xl border p-3 shrink-0" style={{ background: '#fff', borderColor: 'var(--dash-card-border)' }}>
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img src={totpData.qrCodeUrl} alt="2FA QR Code" width={160} height={160} className="block" />
+                                            </div>
+                                            {/* Manual entry */}
+                                            <div className="flex-1 space-y-3">
+                                                <p className="text-sm font-medium" style={{ color: 'var(--dash-text-primary)' }}>Can&#39;t scan? Enter this key manually:</p>
+                                                <div
+                                                    className="flex items-center gap-2 rounded-xl border px-4 py-3"
+                                                    style={{ background: 'var(--dash-card-header-bg)', borderColor: 'var(--dash-card-border)' }}
+                                                >
+                                                    <code className="flex-1 break-all text-sm font-mono" style={{ color: 'var(--dash-text-primary)' }}>
+                                                        {showSecret ? totpData.secret : '•'.repeat(totpData.secret.length)}
+                                                    </code>
+                                                    <button onClick={() => setShowSecret(s => !s)} className="shrink-0" style={{ color: 'var(--dash-text-muted)' }}>
+                                                        {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                                    </button>
+                                                    <button onClick={() => copyCode(totpData.secret)} className="shrink-0" style={{ color: 'var(--dash-text-muted)' }}>
+                                                        {copiedCode === totpData.secret ? <Check className="h-4 w-4" style={{ color: 'var(--color-success)' }} /> : <Copy className="h-4 w-4" />}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <button onClick={() => setTwoFAStep('idle')} className="cursor-pointer inline-flex min-h-11 items-center justify-center rounded-xl border px-5 text-sm font-semibold" style={{ background: 'var(--dash-card-header-bg)', borderColor: 'var(--dash-card-border)', color: 'var(--dash-text-secondary)' }}>Cancel</button>
+                                            <button onClick={() => setTwoFAStep('setup-verify')} className="cursor-pointer inline-flex min-h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold text-white" style={{ background: 'var(--color-primary)' }}>Next — Enter Code</button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ── step 2: verify OTP ── */}
+                                {twoFAStep === 'setup-verify' && (
+                                    <div className="space-y-4">
+                                        <p className="text-sm" style={{ color: 'var(--dash-text-secondary)' }}>
+                                            Enter the 6-digit code shown in your authenticator app to confirm setup.
+                                        </p>
+                                        <input
+                                            type="text"
+                                            inputMode="numeric"
+                                            maxLength={6}
+                                            value={totpOtp}
+                                            onChange={(e) => setTotpOtp(e.target.value.replace(/\D/g, ''))}
+                                            placeholder="000000"
+                                            className="h-14 w-48 rounded-xl border px-4 text-center text-2xl font-mono tracking-[0.3em] outline-none"
+                                            style={{ background: 'var(--dash-input-bg)', borderColor: 'var(--dash-input-border)', color: 'var(--dash-input-text)' }}
+                                        />
+                                        <div className="flex gap-3">
+                                            <button onClick={() => setTwoFAStep('setup-qr')} className="cursor-pointer inline-flex min-h-11 items-center justify-center rounded-xl border px-5 text-sm font-semibold" style={{ background: 'var(--dash-card-header-bg)', borderColor: 'var(--dash-card-border)', color: 'var(--dash-text-secondary)' }}>Back</button>
+                                            <button
+                                                onClick={() => void verifyAndEnable2FA()}
+                                                disabled={mfaLoading || totpOtp.length !== 6}
+                                                className="cursor-pointer inline-flex min-h-11 items-center gap-2 justify-center rounded-xl px-5 text-sm font-semibold text-white disabled:opacity-50"
+                                                style={{ background: 'var(--color-primary)' }}
+                                            >
+                                                <ShieldCheck className="h-4 w-4" />
+                                                {mfaLoading ? 'Verifying…' : 'Verify & Enable'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ── step 3: recovery codes ── */}
+                                {twoFAStep === 'setup-codes' && recoveryCodes.length > 0 && (
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-2 rounded-xl border px-4 py-3 text-sm" style={{ background: 'rgba(234,179,8,0.08)', borderColor: 'rgba(234,179,8,0.35)', color: '#a16207' }}>
+                                            <AlertCircle className="h-4 w-4 shrink-0" />
+                                            Save these recovery codes somewhere safe. Each code can only be used once if you lose access to your authenticator app.
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {recoveryCodes.map((code) => (
+                                                <button
+                                                    key={code}
+                                                    onClick={() => copyCode(code)}
+                                                    className="flex items-center justify-between rounded-xl border px-4 py-2.5 text-left font-mono text-sm transition"
+                                                    style={{ background: 'var(--dash-card-header-bg)', borderColor: 'var(--dash-card-border)', color: 'var(--dash-text-primary)' }}
+                                                >
+                                                    <span>{code}</span>
+                                                    {copiedCode === code ? <Check className="h-3.5 w-3.5" style={{ color: 'var(--color-success)' }} /> : <Copy className="h-3.5 w-3.5" style={{ color: 'var(--dash-text-muted)' }} />}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <button
+                                            onClick={() => { setTwoFAStep('idle'); setRecoveryCodes([]); }}
+                                            className="cursor-pointer inline-flex min-h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold text-white"
+                                            style={{ background: 'var(--color-primary)' }}
+                                        >
+                                            Done — I&#39;ve saved my codes
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* ── disable confirm ── */}
+                                {twoFAStep === 'disable-confirm' && (
+                                    <div className="space-y-4">
+                                        <div className="rounded-xl border px-4 py-4 text-sm" style={{ background: 'rgba(220,38,38,0.06)', borderColor: 'rgba(220,38,38,0.3)', color: 'var(--color-danger)' }}>
+                                            <p className="font-semibold">Are you sure you want to disable 2FA?</p>
+                                            <p className="mt-1 opacity-80">This will remove your TOTP authenticator and make your account less secure.</p>
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <button onClick={() => setTwoFAStep('idle')} className="cursor-pointer inline-flex min-h-11 items-center justify-center rounded-xl border px-5 text-sm font-semibold" style={{ background: 'var(--dash-card-header-bg)', borderColor: 'var(--dash-card-border)', color: 'var(--dash-text-secondary)' }}>Cancel</button>
+                                            <button
+                                                onClick={() => void disable2FA()}
+                                                disabled={mfaLoading}
+                                                className="cursor-pointer inline-flex min-h-11 items-center gap-2 justify-center rounded-xl px-5 text-sm font-semibold text-white disabled:opacity-50"
+                                                style={{ background: '#dc2626' }}
+                                            >
+                                                <ShieldOff className="h-4 w-4" />
+                                                {mfaLoading ? 'Disabling…' : 'Yes, Disable 2FA'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </section>
                         </div>
                     )}

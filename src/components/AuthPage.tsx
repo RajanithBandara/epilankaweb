@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { account, ID } from '@/lib/appwrite';
-import { AppwriteException, OAuthProvider } from 'appwrite';
+import { AppwriteException, AuthenticationFactor, OAuthProvider } from 'appwrite';
 import { useAuth } from '@/contexts/AuthContext';
 import ForgotPasswordModal from './ForgotPasswordModal';
 
@@ -154,6 +154,10 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
   const [otpCode, setOtpCode] = useState('');
   const [otpUserId, setOtpUserId] = useState('');
   const [otpStep, setOtpStep] = useState(false);
+  // MFA challenge (2FA at login)
+  const [mfaStep, setMfaStep] = useState(false);
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaChallengeId, setMfaChallengeId] = useState('');
   const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -164,6 +168,9 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
     setOtpCode('');
     setOtpUserId('');
     setOtpStep(false);
+    setMfaStep(false);
+    setMfaCode('');
+    setMfaChallengeId('');
     setNotice('');
     setError('');
     setLoading(false);
@@ -258,6 +265,37 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
 
     try {
       if (isLogin) {
+        if (mfaStep) {
+          // ── Complete MFA challenge ──────────────────────────────────
+          if (!mfaCode.trim() || mfaCode.length !== 6) {
+            setError('Enter the 6-digit code from your authenticator app.');
+            return;
+          }
+          let challengeId = mfaChallengeId;
+          if (!challengeId) {
+            const ch = await account.createMFAChallenge(AuthenticationFactor.Totp);
+            challengeId = ch.$id;
+            setMfaChallengeId(challengeId);
+          }
+          await account.updateMFAChallenge(challengeId, mfaCode.trim());
+
+          const jwtObj = await account.createJWT();
+          const res = await fetch('/api/auth/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jwt: jwtObj.jwt }),
+          });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            setError(data.message || 'Session creation failed');
+            return;
+          }
+          await refreshUser();
+          router.push('/dashboard');
+          return;
+        }
+
+        // ── Normal login ────────────────────────────────────────────
         // Always delete any stale session first — prevents
         // "Creation of a session is prohibited when a session is active"
         try { await account.deleteSession('current'); } catch { /* no session */ }
@@ -327,7 +365,19 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
       }
     } catch (err) {
       if (err instanceof AppwriteException) {
-        setError(err.message);
+        // Appwrite signals that MFA is required
+        if (err.type === 'user_more_factors_required') {
+          // Initiate TOTP challenge immediately so challengeId is ready
+          try {
+            const ch = await account.createMFAChallenge(AuthenticationFactor.Totp);
+            setMfaChallengeId(ch.$id);
+          } catch { /* will retry on submit */ }
+          setMfaStep(true);
+          setMfaCode('');
+          setError('');
+        } else {
+          setError(err.message);
+        }
       } else if (err instanceof Error) {
         setError(err.message);
       } else {
@@ -530,7 +580,40 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
                   )}
                 </AnimatePresence>
 
-                {(!otpStep || isLogin) ? (
+                {/* ── MFA challenge screen (login only) ── */}
+                {isLogin && mfaStep ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+                      <Shield className="h-4 w-4 flex-shrink-0 text-blue-500" />
+                      <p className="text-[13px] font-medium text-blue-700">
+                        Two-factor authentication required. Enter the 6-digit code from your authenticator app.
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <label className="w-full text-[11px] font-semibold uppercase tracking-widest text-slate-500">
+                        Authenticator Code
+                      </label>
+                      <input
+                        id="mfa-code"
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={mfaCode}
+                        onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                        placeholder="000000"
+                        autoFocus
+                        className="h-14 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-center text-2xl font-mono tracking-[0.35em] text-slate-800 outline-none transition-all focus:border-blue-400 focus:bg-white focus:shadow-[0_0_0_3px_rgba(59,130,246,0.12)]"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setMfaStep(false); setMfaCode(''); setMfaChallengeId(''); setError(''); }}
+                      className="cursor-pointer text-xs font-semibold text-slate-400 hover:text-slate-600 transition-colors"
+                    >
+                      ← Back to login
+                    </button>
+                  </div>
+                ) : (!otpStep || isLogin) ? (
                   <>
                     <InputField
                       id="email"
@@ -587,7 +670,7 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
                   </>
                 )}
 
-                {isLogin && (
+                {isLogin && !mfaStep && (
                   <div className="flex justify-end">
                     <button
                       type="button"
@@ -614,11 +697,15 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
                     {loading ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        {isLogin ? 'Signing in…' : otpStep ? 'Verifying code…' : 'Sending verification code…'}
+                        {isLogin
+                          ? mfaStep ? 'Verifying code…' : 'Signing in…'
+                          : otpStep ? 'Verifying code…' : 'Sending verification code…'}
                       </>
                     ) : (
                       <>
-                        {isLogin ? 'Sign in' : otpStep ? 'Verify email' : 'Send verification code'}
+                        {isLogin
+                          ? mfaStep ? 'Verify authenticator code' : 'Sign in'
+                          : otpStep ? 'Verify email' : 'Send verification code'}
                         <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
                       </>
                     )}
