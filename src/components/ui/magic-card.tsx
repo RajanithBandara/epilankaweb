@@ -7,7 +7,6 @@ import {
   useMotionValue,
   useSpring,
 } from "motion/react"
-import { useTheme } from "next-themes"
 
 import { cn } from "@/lib/utils"
 
@@ -72,16 +71,25 @@ export function MagicCard(props: MagicCardProps) {
   const glowSize = isOrbMode(props) ? (props.glowSize ?? 420) : 420
   const glowBlur = isOrbMode(props) ? (props.glowBlur ?? 60) : 60
   const glowOpacity = isOrbMode(props) ? (props.glowOpacity ?? 0.9) : 0.9
-  const { theme, systemTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const [isDarkTheme, setIsDarkTheme] = useState(true)
 
-  useEffect(() => setMounted(true), [])
+  useEffect(() => {
+    setMounted(true)
 
-  const isDarkTheme = useMemo(() => {
-    if (!mounted) return true
-    const currentTheme = theme === "system" ? systemTheme : theme
-    return currentTheme === "dark"
-  }, [theme, systemTheme, mounted])
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
+    const updateTheme = () => setIsDarkTheme(mediaQuery.matches)
+
+    updateTheme()
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", updateTheme)
+      return () => mediaQuery.removeEventListener("change", updateTheme)
+    }
+
+    mediaQuery.addEventListener(updateTheme)
+    return () => mediaQuery.removeEventListener(updateTheme)
+  }, [])
 
   const mouseX = useMotionValue(-gradientSize)
   const mouseY = useMotionValue(-gradientSize)
@@ -211,7 +219,7 @@ export function MagicCard(props: MagicCardProps) {
             opacity: orbVisible,
             background: `linear-gradient(${glowAngle}deg, ${glowFrom}, ${glowTo})`,
 
-            mixBlendMode: isDarkTheme ? "screen" : "multiply",
+            mixBlendMode: mounted && isDarkTheme ? "screen" : "multiply",
             willChange: "transform, opacity",
           }}
         />

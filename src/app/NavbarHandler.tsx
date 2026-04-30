@@ -20,6 +20,7 @@ export default function NavbarHandler({ children }: NavbarHandlerProps) {
     "/officerdashboard",
     "/admin/login",
     "/officer/login",
+    "/auth/oauth",
   ];
 
   const shouldHideNavbar = hideNavbarRoutes.some((route) =>
