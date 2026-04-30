@@ -9,30 +9,34 @@ import {
     Trash2,
     TriangleAlert,
     ShieldCheck,
-    Sparkles,
+    Menu,
+    X,
+    Plus,
+    MessageSquare,
 } from "lucide-react";
 import { account } from "@/lib/appwrite";
 
 /* ── Types ─────────────────────────────────────────────────────────── */
 
 type ChatMessage = {
-    id: string;
     role: "user" | "assistant";
     content: string;
-    createdAt?: string;
+    createdAt: string;
 };
 
-function uid() {
-    return typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
+type Chat = {
+    id: string;
+    title: string;
+    messages: ChatMessage[];
+    createdAt: string;
+    updatedAt: string;
+};
 
 const WELCOME: ChatMessage = {
-    id: "welcome",
     role: "assistant",
     content:
         "Hello! I'm EpiGuard, your personal health assistant for EpiLanka.\n\nYou can ask me about:\n- Disease symptoms and prevention\n- Mosquito-borne or waterborne disease risks\n- When to seek medical help\n- Public health precautions\n\nI'm only able to help with health and disease-related questions.",
+    createdAt: new Date().toISOString(),
 };
 
 const SUGGESTIONS = [
@@ -111,8 +115,6 @@ function FormattedMessage({ content }: { content: string }) {
     );
 }
 
-/* ── Stream reader ──────────────────────────────────────────────────── */
-
 async function readStream(response: Response, onDelta: (chunk: string) => void) {
     if (!response.body) throw new Error("Empty stream");
 
@@ -145,8 +147,6 @@ async function readStream(response: Response, onDelta: (chunk: string) => void) 
     }
 }
 
-/* ── Message bubble ─────────────────────────────────────────────────── */
-
 function Bubble({ message }: { message: ChatMessage }) {
     const isAssistant = message.role === "assistant";
     return (
@@ -178,17 +178,15 @@ function Bubble({ message }: { message: ChatMessage }) {
                 }
             >
                 <FormattedMessage content={message.content} />
-                {message.createdAt && (
-                    <p
-                        className="mt-1.5 text-[10px] opacity-50 text-right"
-                        style={{ color: isAssistant ? "var(--dash-text-muted)" : "#fff" }}
-                    >
-                        {new Date(message.createdAt).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                        })}
-                    </p>
-                )}
+                <p
+                    className="mt-1.5 text-[10px] opacity-50 text-right"
+                    style={{ color: isAssistant ? "var(--dash-text-muted)" : "#fff" }}
+                >
+                    {new Date(message.createdAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                    })}
+                </p>
             </div>
 
             {!isAssistant && (
@@ -203,18 +201,60 @@ function Bubble({ message }: { message: ChatMessage }) {
     );
 }
 
-/* ── Main component ─────────────────────────────────────────────────── */
+function ChatListItem({ chat, isActive, onClick, onDelete }: { chat: Chat; isActive: boolean; onClick: () => void; onDelete: (id: string) => void }) {
+    return (
+        <div
+            className={`group flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 cursor-pointer transition ${
+                isActive
+                    ? "bg-opacity-100"
+                    : "hover:bg-opacity-50"
+            }`}
+            style={{
+                background: isActive ? "rgba(164, 17, 17, 0.15)" : "transparent",
+            }}
+            onClick={onClick}
+        >
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+                <MessageSquare className="h-4 w-4 shrink-0" style={{ color: "var(--color-primary)" }} />
+                <span
+                    className="text-sm truncate"
+                    style={{
+                        color: isActive ? "var(--color-primary)" : "var(--dash-text-secondary)",
+                        fontWeight: isActive ? 600 : 400,
+                    }}
+                >
+                    {chat.title}
+                </span>
+            </div>
+            <button
+                type="button"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(chat.id);
+                }}
+                className="opacity-0 group-hover:opacity-100 transition p-1 hover:bg-opacity-80 rounded"
+                style={{ color: "var(--dash-text-muted)" }}
+                title="Delete chat"
+            >
+                <Trash2 className="h-3.5 w-3.5" />
+            </button>
+        </div>
+    );
+}
 
 export default function TakeCare() {
-    const [messages, setMessages] = useState<ChatMessage[]>([WELCOME]);
+    const [chats, setChats] = useState<Chat[]>([]);
+    const [currentChatId, setCurrentChatId] = useState<string | null>(null);
     const [input, setInput] = useState("");
     const [sending, setSending] = useState(false);
     const [streamingReply, setStreamingReply] = useState("");
     const [error, setError] = useState<string | null>(null);
-    const [historyLoading, setHistoryLoading] = useState(true);
-    const [clearingHistory, setClearingHistory] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
     const bottomRef = useRef<HTMLDivElement | null>(null);
     const inputRef = useRef<HTMLInputElement | null>(null);
+
+    const currentChat = chats.find((c) => c.id === currentChatId);
 
     const refreshServerJwtCookie = useCallback(async () => {
         try {
@@ -231,85 +271,158 @@ export default function TakeCare() {
         }
     }, []);
 
-    const fetchChatHistoryApi = useCallback(
-        async (init?: RequestInit) => {
+    const fetchWithAuth = useCallback(
+        async (url: string, init?: RequestInit) => {
             const baseInit: RequestInit = { ...init, credentials: "include" };
-            let res = await fetch("/api/chat-history", baseInit);
+            const res = await fetch(url, baseInit);
             if (res.status !== 401) return res;
 
             const refreshed = await refreshServerJwtCookie();
             if (!refreshed) return res;
 
-            res = await fetch("/api/chat-history", baseInit);
-            return res;
+            return await fetch(url, baseInit);
         },
         [refreshServerJwtCookie]
     );
 
-    const persistTurn = useCallback(async (userMessage: string, assistantMessage: string) => {
-        const res = await fetchChatHistoryApi({
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userMessage, assistantMessage }),
-        });
-
-        if (!res.ok) {
-            const data = (await res.json().catch(() => ({}))) as { error?: string };
-            throw new Error(data.error ?? "Failed to save chat history");
-        }
-    }, [fetchChatHistoryApi]);
-
-    /* ── Load history on mount ───────────────────────────────────────── */
+    // Load chats on mount
     useEffect(() => {
-        const load = async () => {
+        const loadChats = async () => {
             try {
-                const res = await fetchChatHistoryApi({ cache: "no-store" });
+                const res = await fetchWithAuth("/api/chat-history");
                 if (res.status === 401) return;
                 if (!res.ok) return;
-                const data = (await res.json()) as { messages: Array<{ role: string; content: string; createdAt?: string }> };
-                if (data.messages.length > 0) {
-                    setMessages([
-                        WELCOME,
-                        ...data.messages
-                            .filter((m) => m.role === "user" || m.role === "assistant")
-                            .map((m) => ({
-                                id: uid(),
-                                role: m.role as "user" | "assistant",
-                                content: m.content,
-                                createdAt: m.createdAt,
-                            })),
-                    ]);
+
+                const data = (await res.json()) as { chats: Chat[] };
+                setChats(data.chats || []);
+
+                if (data.chats && data.chats.length > 0) {
+                    setCurrentChatId(data.chats[0].id);
+                } else {
+                    // Create initial chat
+                    const newRes = await fetchWithAuth("/api/chat-history/new", { method: "POST" });
+                    if (newRes.ok) {
+                        const newData = (await newRes.json()) as { chatId: string; chat: Chat };
+                        setChats([newData.chat]);
+                        setCurrentChatId(newData.chatId);
+                    }
                 }
-            } catch {
-                // History load failing is non-fatal — just use the welcome message
+            } catch (err) {
+                console.error("Failed to load chats:", err);
             } finally {
-                setHistoryLoading(false);
+                setLoading(false);
             }
         };
-        void load();
-    }, [fetchChatHistoryApi]);
+        void loadChats();
+    }, [fetchWithAuth]);
 
-    /* ── Auto-scroll ─────────────────────────────────────────────────── */
+    // Auto-scroll
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-    }, [messages, streamingReply, sending]);
+    }, [currentChat?.messages, streamingReply, sending]);
 
-    /* ── Send message ────────────────────────────────────────────────── */
+    const createNewChat = useCallback(async () => {
+        try {
+            const res = await fetchWithAuth("/api/chat-history/new", { method: "POST" });
+            if (!res.ok) {
+                setError("Failed to create chat");
+                return;
+            }
+
+            const data = (await res.json()) as { chatId: string; chat: Chat };
+            setChats((prev) => [data.chat, ...prev]);
+            setCurrentChatId(data.chatId);
+            setInput("");
+            setStreamingReply("");
+            setError(null);
+            setSidebarOpen(false);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to create new chat");
+        }
+    }, [fetchWithAuth]);
+
+    const deleteChat = useCallback(
+        async (chatId: string) => {
+            try {
+                const res = await fetchWithAuth(`/api/chat-history?chatId=${chatId}`, { method: "DELETE" });
+                if (!res.ok) {
+                    setError("Failed to delete chat");
+                    return;
+                }
+
+                setChats((prev) => prev.filter((c) => c.id !== chatId));
+                if (currentChatId === chatId) {
+                    const remainingChats = chats.filter((c) => c.id !== chatId);
+                    if (remainingChats.length > 0) {
+                        setCurrentChatId(remainingChats[0].id);
+                    } else {
+                        void createNewChat();
+                    }
+                }
+            } catch (err) {
+                setError(err instanceof Error ? err.message : "Failed to delete chat");
+            }
+        },
+        [currentChatId, chats, fetchWithAuth, createNewChat]
+    );
+
+    const saveMessage = useCallback(
+        async (role: "user" | "assistant", content: string) => {
+            if (!currentChatId) return;
+            try {
+                const res = await fetchWithAuth("/api/chat-history", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ chatId: currentChatId, role, content }),
+                });
+                if (!res.ok) {
+                    console.error("Failed to save message");
+                }
+            } catch (err) {
+                console.error("Error saving message:", err);
+            }
+        },
+        [currentChatId, fetchWithAuth]
+    );
+
     const handleSend = useCallback(
         async (promptText?: string) => {
             const text = (promptText ?? input).trim();
-            if (!text || sending) return;
+            if (!text || sending || !currentChatId) return;
 
-            const userMsg: ChatMessage = { id: uid(), role: "user", content: text, createdAt: new Date().toISOString() };
-            const history = [...messages, userMsg].filter((m) => m.id !== "welcome").map(({ role, content }) => ({ role, content }));
-
-            setMessages((prev) => [...prev, userMsg]);
-            setInput("");
-            setStreamingReply("");
             setSending(true);
             setError(null);
 
             try {
+                // Step 1: Save user message
+                await saveMessage("user", text);
+
+                // Step 2: Update UI with user message
+                setChats((prev) =>
+                    prev.map((chat) =>
+                        chat.id === currentChatId
+                            ? {
+                                  ...chat,
+                                  messages: [
+                                      ...chat.messages,
+                                      { role: "user", content: text, createdAt: new Date().toISOString() },
+                                  ],
+                              }
+                            : chat
+                    )
+                );
+
+                setInput("");
+                setStreamingReply("");
+
+                // Step 3: Send to API
+                const history = [
+                    ...(currentChat?.messages || [])
+                        .filter((m) => m.role === "user" || m.role === "assistant")
+                        .map(({ role, content }) => ({ role, content })),
+                    { role: "user", content: text }
+                ];
+
                 const res = await fetch("/api/groq/chat", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -320,18 +433,10 @@ export default function TakeCare() {
                 if (!res.ok) {
                     const data = (await res.json().catch(() => ({}))) as { error?: string };
                     setError(data.error ?? "Failed to get response");
-                    setMessages((prev) => [
-                        ...prev,
-                        {
-                            id: uid(),
-                            role: "assistant",
-                            content: "I couldn't answer that right now. Please try again in a moment.",
-                            createdAt: new Date().toISOString(),
-                        },
-                    ]);
                     return;
                 }
 
+                // Step 4: Stream response
                 let replyText = "";
                 await readStream(res, (chunk) => {
                     replyText += chunk;
@@ -339,297 +444,305 @@ export default function TakeCare() {
                 });
 
                 const finalReply = replyText.trim() || "I could not generate a response. Please try again.";
-                setMessages((prev) => [
-                    ...prev,
-                    { id: uid(), role: "assistant", content: finalReply, createdAt: new Date().toISOString() },
-                ]);
-                try {
-                    await persistTurn(text, finalReply);
-                } catch {
-                    setError("Reply sent, but chat history could not be saved. Please refresh and try again.");
-                }
+
+                // Step 5: Save assistant response
+                await saveMessage("assistant", finalReply);
+
+                // Step 6: Update UI with assistant message
+                setChats((prev) =>
+                    prev.map((chat) =>
+                        chat.id === currentChatId
+                            ? {
+                                  ...chat,
+                                  messages: [
+                                      ...chat.messages,
+                                      { role: "assistant", content: finalReply, createdAt: new Date().toISOString() },
+                                  ],
+                              }
+                            : chat
+                    )
+                );
+
                 setStreamingReply("");
             } catch (err) {
                 const msg = err instanceof Error ? err.message : "Chat request failed";
                 setError(msg);
-                setMessages((prev) => [
-                    ...prev,
-                    {
-                        id: uid(),
-                        role: "assistant",
-                        content: "I couldn't answer that right now. Please try again in a moment.",
-                        createdAt: new Date().toISOString(),
-                    },
-                ]);
-                setStreamingReply("");
             } finally {
                 setSending(false);
                 setTimeout(() => inputRef.current?.focus(), 100);
             }
         },
-        [input, messages, persistTurn, sending]
+        [input, currentChatId, sending, currentChat, saveMessage]
     );
 
-    /* ── Clear history ───────────────────────────────────────────────── */
-    const handleClearHistory = useCallback(async () => {
-        if (clearingHistory) return;
-        setClearingHistory(true);
-        try {
-            const res = await fetchChatHistoryApi({ method: "DELETE" });
-            if (!res.ok) {
-                setError("Could not clear chat history right now. Please try again.");
-                return;
-            }
-            setMessages([WELCOME]);
-            setInput("");
-            setStreamingReply("");
-            setError(null);
-        } catch {
-            setError("Could not clear chat history right now. Please try again.");
-        } finally {
-            setClearingHistory(false);
-        }
-    }, [clearingHistory, fetchChatHistoryApi]);
-
-    const showSuggestions = messages.length === 1 && !sending;
-
-    /* ── Render ──────────────────────────────────────────────────────── */
-    return (
-        <section className="flex flex-col h-full" style={{ minHeight: "calc(100vh - 8rem)" }}>
-            {/* ── Page heading ───────────────────────────────────────── */}
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-                <div className="flex items-center gap-3">
-                    <div
-                        className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm"
-                        style={{ background: "var(--color-primary)", color: "#fff" }}
-                    >
-                        <HeartPulse className="h-5 w-5" />
-                    </div>
-                    <div>
-                        <h1 className="text-xl font-bold tracking-tight" style={{ color: "var(--dash-text-primary)" }}>
-                            Take Care
-                        </h1>
-                        <p className="text-sm" style={{ color: "var(--dash-text-secondary)" }}>
-                            AI-powered health assistant · EpiGuard
-                        </p>
-                    </div>
-                </div>
-
-                {/* Health-only badge */}
-                <div
-                    className="hidden sm:flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium"
-                    style={{
-                        background: "rgba(14,165,164,0.07)",
-                        borderColor: "rgba(14,165,164,0.22)",
-                        color: "var(--color-secondary-dark)",
-                    }}
-                >
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                    Health &amp; disease topics only
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
+                <div className="text-center space-y-4">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto" style={{ color: "var(--color-primary)" }} />
+                    <p style={{ color: "var(--dash-text-secondary)" }}>Loading chat history...</p>
                 </div>
             </div>
+        );
+    }
 
-            {/* ── Chat card ──────────────────────────────────────────── */}
+    return (
+        <div className="flex h-[calc(100vh-8rem)] w-full">
             <div
-                className="flex flex-col flex-1 overflow-hidden rounded-2xl border shadow-sm"
-                style={{ background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)" }}
+                className="relative mx-auto flex h-full w-full max-w-7xl overflow-hidden rounded-[1.5rem] border shadow-sm"
+                style={{
+                    background: "var(--dash-panel-bg)",
+                    borderColor: "var(--dash-panel-border)",
+                }}
             >
-                {/* Card header */}
                 <div
-                    className="flex items-center justify-between gap-3 px-5 py-3.5 border-b"
+                    className={`absolute inset-y-0 left-0 z-40 w-64 flex flex-col border-r transition-transform lg:relative lg:translate-x-0 ${
+                        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+                    }`}
                     style={{
-                        background: "linear-gradient(135deg, rgba(30,58,138,0.06) 0%, rgba(14,165,164,0.04) 100%)",
+                        background: "var(--dash-card-bg)",
                         borderColor: "var(--dash-card-border)",
                     }}
                 >
-                    <div className="flex items-center gap-2.5">
-                        <div
-                            className="flex h-8 w-8 items-center justify-center rounded-full shadow-sm"
-                            style={{ background: "var(--color-primary)", color: "#fff" }}
+                    <div className="flex items-center justify-between gap-2 p-4 border-b" style={{ borderColor: "var(--dash-card-border)" }}>
+                        <h2 className="font-semibold text-sm" style={{ color: "var(--dash-text-primary)" }}>
+                            Chats
+                        </h2>
+                        <button
+                            type="button"
+                            onClick={() => setSidebarOpen(false)}
+                            className="lg:hidden p-1 hover:opacity-80"
+                            style={{ color: "var(--dash-text-secondary)" }}
                         >
-                            <Bot className="h-4 w-4" />
-                        </div>
-                        <div>
-                            <p className="text-sm font-semibold" style={{ color: "var(--dash-text-primary)" }}>
-                                EpiGuard
-                            </p>
-                            <p className="text-[10px] flex items-center gap-1" style={{ color: "var(--dash-text-muted)" }}>
-                                <Sparkles className="h-3 w-3" style={{ color: "var(--color-secondary)" }} />
-                                Powered by Groq · LLaMA 4
-                            </p>
-                        </div>
+                            <X className="h-5 w-5" />
+                        </button>
                     </div>
 
                     <button
                         type="button"
-                        onClick={() => void handleClearHistory()}
-                        disabled={clearingHistory || sending}
-                        title="Clear chat history"
-                        className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition hover:opacity-80 disabled:opacity-40"
+                        onClick={() => void createNewChat()}
+                        className="m-4 flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition hover:opacity-80"
+                        style={{
+                            background: "var(--color-primary)",
+                            color: "#fff",
+                            borderColor: "var(--color-primary)",
+                        }}
+                    >
+                        <Plus className="h-4 w-4" />
+                        New chat
+                    </button>
+
+                    <div className="flex-1 overflow-y-auto space-y-2 px-3 py-2">
+                        {chats.map((chat) => (
+                            <ChatListItem
+                                key={chat.id}
+                                chat={chat}
+                                isActive={chat.id === currentChatId}
+                                onClick={() => {
+                                    setCurrentChatId(chat.id);
+                                    setSidebarOpen(false);
+                                }}
+                                onDelete={deleteChat}
+                            />
+                        ))}
+                    </div>
+                </div>
+
+                {sidebarOpen && (
+                    <div
+                        className="absolute inset-0 z-30 bg-black/50 lg:hidden"
+                        onClick={() => setSidebarOpen(false)}
+                    />
+                )}
+
+                <div className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden">
+                    <div
+                        className="flex items-center justify-between gap-3 px-4 py-3 border-b lg:px-6"
                         style={{
                             background: "var(--dash-card-bg)",
                             borderColor: "var(--dash-card-border)",
-                            color: "var(--dash-text-secondary)",
                         }}
                     >
-                        {clearingHistory ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                            <Trash2 className="h-3.5 w-3.5" />
-                        )}
-                        Clear history
-                    </button>
-                </div>
-
-                {/* Messages area */}
-                <div
-                    className="flex-1 overflow-y-auto px-5 py-5 space-y-4"
-                    style={{ background: "var(--dash-bg)", minHeight: 0 }}
-                >
-                    {/* History loading skeleton */}
-                    {historyLoading && (
-                        <div className="flex justify-start items-end gap-2.5">
-                            <div
-                                className="h-8 w-8 rounded-full animate-pulse shrink-0"
-                                style={{ background: "var(--dash-skeleton-bg)" }}
-                            />
-                            <div
-                                className="h-14 w-56 rounded-2xl rounded-bl-sm animate-pulse"
-                                style={{ background: "var(--dash-skeleton-bg)" }}
-                            />
-                        </div>
-                    )}
-
-                    {/* Messages */}
-                    {!historyLoading &&
-                        messages.map((m) => <Bubble key={m.id} message={m} />)}
-
-                    {/* Streaming reply */}
-                    {streamingReply && (
-                        <div className="flex items-end gap-2.5 justify-start">
-                            <div
-                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm"
-                                style={{ background: "var(--color-primary)", color: "#fff" }}
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setSidebarOpen(!sidebarOpen)}
+                                className="lg:hidden p-2 hover:opacity-80"
+                                style={{ color: "var(--dash-text-secondary)" }}
                             >
-                                <Bot className="h-4 w-4" />
-                            </div>
-                            <div
-                                className="max-w-[78%] rounded-2xl rounded-bl-sm px-4 py-3 text-sm leading-relaxed shadow-sm"
-                                style={{
-                                    background: "var(--dash-card-bg)",
-                                    border: "1px solid var(--dash-card-border)",
-                                    color: "var(--dash-text-primary)",
-                                }}
-                            >
-                                <FormattedMessage content={streamingReply} />
-                                <Loader2 className="h-3 w-3 animate-spin mt-1.5 opacity-40" />
-                            </div>
-                        </div>
-                    )}
+                                <Menu className="h-5 w-5" />
+                            </button>
 
-                    {/* Typing indicator */}
-                    {sending && !streamingReply && (
-                        <div className="flex items-end gap-2.5 justify-start">
-                            <div
-                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm"
-                                style={{ background: "var(--color-primary)", color: "#fff" }}
-                            >
-                                <Bot className="h-4 w-4" />
-                            </div>
-                            <div
-                                className="inline-flex items-center gap-2 rounded-2xl rounded-bl-sm px-4 py-3 text-xs"
-                                style={{
-                                    background: "var(--dash-card-bg)",
-                                    border: "1px solid var(--dash-card-border)",
-                                    color: "var(--dash-text-muted)",
-                                }}
-                            >
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                Thinking…
-                            </div>
-                        </div>
-                    )}
-
-                    <div ref={bottomRef} />
-                </div>
-
-                {/* Input area */}
-                <div
-                    className="px-5 py-4 border-t space-y-3"
-                    style={{ borderColor: "var(--dash-card-border)", background: "var(--dash-card-bg)" }}
-                >
-                    {/* Error */}
-                    {error && (
-                        <div
-                            className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs"
-                            style={{
-                                background: "rgba(220,38,38,0.07)",
-                                borderColor: "rgba(220,38,38,0.22)",
-                                color: "#dc2626",
-                            }}
-                        >
-                            <TriangleAlert className="h-3.5 w-3.5 shrink-0" />
-                            <span>{error}</span>
-                        </div>
-                    )}
-
-                    {/* Suggestion chips — shown only when chat is fresh */}
-                    {showSuggestions && !historyLoading && (
-                        <div className="flex flex-wrap gap-2">
-                            {SUGGESTIONS.map((s) => (
-                                <button
-                                    key={s}
-                                    type="button"
-                                    onClick={() => void handleSend(s)}
-                                    disabled={sending}
-                                    className="rounded-full border px-3 py-1.5 text-xs font-medium transition hover:opacity-80 disabled:opacity-50"
-                                    style={{
-                                        background: "var(--dash-card-header-bg)",
-                                        borderColor: "var(--dash-card-border)",
-                                        color: "var(--color-primary)",
-                                    }}
+                            <div className="flex items-center gap-3 flex-1">
+                                <div
+                                    className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm"
+                                    style={{ background: "var(--color-primary)", color: "#fff" }}
                                 >
-                                    {s}
-                                </button>
-                            ))}
+                                    <HeartPulse className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <h1 className="font-bold text-sm lg:text-base" style={{ color: "var(--dash-text-primary)" }}>
+                                        {currentChat?.title || "EpiGuard"}
+                                    </h1>
+                                    <p className="text-[10px] lg:text-xs" style={{ color: "var(--dash-text-secondary)" }}>
+                                        AI health assistant
+                                    </p>
+                                </div>
+                            </div>
                         </div>
-                    )}
 
-                    {/* Input row */}
-                    <div className="flex items-center gap-2">
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter" && !e.shiftKey) {
-                                    e.preventDefault();
-                                    void handleSend();
-                                }
-                            }}
-                            placeholder="Ask about symptoms, prevention, or health guidance…"
-                            className="input-primary flex-1"
-                            disabled={sending || historyLoading}
-                            aria-label="Chat input"
-                        />
-                        <button
-                            type="button"
-                            onClick={() => void handleSend()}
-                            disabled={sending || !input.trim() || historyLoading}
-                            aria-label="Send"
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm transition hover:opacity-90 disabled:opacity-40"
-                            style={{ background: "var(--color-primary)", color: "#fff" }}
-                        >
-                            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <div
+                                className="hidden sm:flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] lg:text-xs font-medium"
+                                style={{
+                                    background: "rgba(14,165,164,0.07)",
+                                    borderColor: "rgba(14,165,164,0.22)",
+                                    color: "var(--color-secondary-dark)",
+                                }}
+                            >
+                                <ShieldCheck className="h-3.5 w-3.5" />
+                                Health topics
+                            </div>
+                        </div>
                     </div>
 
-                    <p className="text-center text-[10px]" style={{ color: "var(--dash-text-muted)" }}>
-                        EpiGuard provides public-health guidance only — always consult a doctor for personal medical concerns.
-                    </p>
+                    <div
+                        className="flex-1 overflow-y-auto px-4 py-5 space-y-4 lg:px-6"
+                        style={{ background: "var(--dash-bg)" }}
+                    >
+                        {currentChat && currentChat.messages.length === 0 && (
+                            <>
+                                <Bubble message={WELCOME} />
+                                <div className="flex flex-wrap gap-2 pt-4">
+                                    {SUGGESTIONS.map((s) => (
+                                        <button
+                                            key={s}
+                                            type="button"
+                                            onClick={() => void handleSend(s)}
+                                            disabled={sending}
+                                            className="rounded-full border px-3 py-1.5 text-xs font-medium transition hover:opacity-80 disabled:opacity-50"
+                                            style={{
+                                                background: "var(--dash-card-header-bg)",
+                                                borderColor: "var(--dash-card-border)",
+                                                color: "var(--color-primary)",
+                                            }}
+                                        >
+                                            {s}
+                                        </button>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+
+                        {currentChat?.messages.map((msg, idx) => (
+                            <Bubble key={`${currentChatId}-${idx}`} message={msg} />
+                        ))}
+
+                        {streamingReply && (
+                            <div className="flex items-end gap-2.5 justify-start animate-pulse">
+                                <div
+                                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm"
+                                    style={{ background: "var(--color-primary)", color: "#fff" }}
+                                >
+                                    <Bot className="h-4 w-4" />
+                                </div>
+                                <div
+                                    className="max-w-[78%] rounded-2xl rounded-bl-sm px-4 py-3 text-sm leading-relaxed shadow-sm"
+                                    style={{
+                                        background: "var(--dash-card-bg)",
+                                        border: "1px solid var(--dash-card-border)",
+                                        color: "var(--dash-text-primary)",
+                                    }}
+                                >
+                                    <FormattedMessage content={streamingReply} />
+                                    <Loader2 className="mt-1.5 h-3 w-3 animate-spin opacity-40" />
+                                </div>
+                            </div>
+                        )}
+
+                        {sending && !streamingReply && (
+                            <div className="flex items-end gap-2.5 justify-start">
+                                <div
+                                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm"
+                                    style={{ background: "var(--color-primary)", color: "#fff" }}
+                                >
+                                    <Bot className="h-4 w-4" />
+                                </div>
+                                <div
+                                    className="inline-flex items-center gap-2 rounded-2xl rounded-bl-sm px-4 py-3 text-xs"
+                                    style={{
+                                        background: "var(--dash-card-bg)",
+                                        border: "1px solid var(--dash-card-border)",
+                                        color: "var(--dash-text-muted)",
+                                    }}
+                                >
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    EpiGuard is thinking...
+                                </div>
+                            </div>
+                        )}
+
+                        <div ref={bottomRef} />
+                    </div>
+
+                    <div
+                        className="px-4 py-4 border-t space-y-3 lg:px-6"
+                        style={{ borderColor: "var(--dash-card-border)", background: "var(--dash-card-bg)" }}
+                    >
+                        {error && (
+                            <div
+                                className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs"
+                                style={{
+                                    background: "rgba(220,38,38,0.07)",
+                                    borderColor: "rgba(220,38,38,0.22)",
+                                    color: "#dc2626",
+                                }}
+                            >
+                                <TriangleAlert className="h-3.5 w-3.5 shrink-0" />
+                                <span>{error}</span>
+                            </div>
+                        )}
+
+                        <div className="flex items-center gap-2">
+                            <input
+                                ref={inputRef}
+                                type="text"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && !e.shiftKey) {
+                                        e.preventDefault();
+                                        void handleSend();
+                                    }
+                                }}
+                                placeholder="Ask about symptoms, prevention, or health guidance..."
+                                className="input-primary flex-1"
+                                disabled={sending}
+                                aria-label="Chat input"
+                                autoFocus
+                            />
+                            <button
+                                type="button"
+                                onClick={() => void handleSend()}
+                                disabled={sending || !input.trim()}
+                                aria-label="Send"
+                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm transition hover:opacity-90 disabled:opacity-40"
+                                style={{ background: "var(--color-primary)", color: "#fff" }}
+                            >
+                                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                            </button>
+                        </div>
+
+                        <p className="text-center text-[10px]" style={{ color: "var(--dash-text-muted)" }}>
+                            EpiGuard provides guidance only - always consult a doctor for medical concerns.
+                        </p>
+                    </div>
                 </div>
             </div>
-        </section>
+        </div>
     );
 }
+
+
+
+

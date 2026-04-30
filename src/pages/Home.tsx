@@ -6,6 +6,7 @@ import StatSection from "@/components/homepage-components/StatSection";
 import AboutSection from "@/components/homepage-components/AboutSection";
 import FeaturesSection from "@/components/homepage-components/FeaturesSection";
 import CtaSection from "@/components/homepage-components/CtaSection";
+import EpiGuardAssistantPopup from "@/components/homepage-components/EpiGuardAssistantPopup";
 import dynamic from "next/dynamic";
 import { getGsap } from "@/lib/gsap";
 
@@ -81,7 +82,9 @@ export default function HomePage() {
   }, []);
 
   return (
-    <main ref={pageRef} className="min-h-screen bg-white">
+    <main ref={pageRef}>
+      <EpiGuardAssistantPopup />
+
       {/* Fixed background with hero gradient */}
       <div className="fixed inset-0 bg-gradient-to-br from-[#1E3A8A] via-[#1e40af] to-[#0EA5A4] overflow-hidden">
         {/* Three.js animated background */}
@@ -97,7 +100,6 @@ export default function HomePage() {
       {/* Scrollable content */}
       <div className="relative z-10">
         <HeroSection />
-
         {/* Floating sections container */}
         <div className="relative">
           <div data-home-scroll-section>

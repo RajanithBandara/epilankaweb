@@ -9,7 +9,7 @@ import {
   User,
   CalendarDays,
   ChevronRight,
-  HeartPulse,
+  Brain
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -33,7 +33,7 @@ const navItems: NavItem[] = [
   { label: "Home", href: "/dashboard", icon: Home },
   { label: "Map", href: "/dashboard/map", icon: Map },
   { label: "Reports", href: "/dashboard/report", icon: FileText },
-  { label: "Take Care", href: "/dashboard/takecare", icon: HeartPulse },
+  { label: "EpiGuard AI", href: "/dashboard/takecare", icon: Brain },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 

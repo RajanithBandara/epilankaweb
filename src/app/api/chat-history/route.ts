@@ -3,8 +3,8 @@ import { getMongoDb } from "@/lib/mongodb";
 
 const APPWRITE_ENDPOINT = (process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT ?? "").replace(/\/$/, "");
 const APPWRITE_PROJECT = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID ?? "";
-const COLLECTION = "chat_history";
-const MAX_HISTORY = 100;
+const COLLECTION = "chat_sessions";
+const MAX_MESSAGES_PER_CHAT = 100;
 
 async function getUserId(req: NextRequest): Promise<string | null> {
     const jwt =
@@ -29,27 +29,39 @@ async function getUserId(req: NextRequest): Promise<string | null> {
     }
 }
 
-/** GET /api/chat-history — load conversation history for the logged-in user */
+/** GET /api/chat-history — load all chats or specific chat for logged-in user */
 export async function GET(req: NextRequest) {
     const userId = await getUserId(req);
     if (!userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const chatId = req.nextUrl.searchParams.get("chatId");
+
     try {
         const db = await getMongoDb();
         const doc = await db
             .collection(COLLECTION)
-            .findOne({ userId }, { projection: { _id: 0, messages: 1 } });
+            .findOne({ userId }, { projection: { _id: 0, chats: 1 } });
 
-        return NextResponse.json({ messages: doc?.messages ?? [] });
+        const chats = doc?.chats ?? [];
+
+        if (chatId) {
+            const chat = chats.find((c: Record<string, unknown>) => (c as unknown as { id: string }).id === chatId);
+            if (!chat) {
+                return NextResponse.json({ error: "Chat not found" }, { status: 404 });
+            }
+            return NextResponse.json({ chat });
+        }
+
+        return NextResponse.json({ chats });
     } catch (err) {
         console.error("[chat-history GET]", err);
         return NextResponse.json({ error: "Failed to load history" }, { status: 500 });
     }
 }
 
-/** POST /api/chat-history — append a user+assistant turn, then trim to MAX_HISTORY */
+/** POST /api/chat-history — save a message to a specific chat */
 export async function POST(req: NextRequest) {
     const userId = await getUserId(req);
     if (!userId) {
@@ -57,8 +69,9 @@ export async function POST(req: NextRequest) {
     }
 
     let body: {
-        userMessage: string;
-        assistantMessage: string;
+        chatId: string;
+        role: "user" | "assistant";
+        content: string;
     };
 
     try {
@@ -67,60 +80,67 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    const { userMessage, assistantMessage } = body;
-    if (!userMessage?.trim() || !assistantMessage?.trim()) {
-        return NextResponse.json({ error: "Both messages are required" }, { status: 400 });
+    const { chatId, role, content } = body;
+    if (!chatId?.trim() || !role || !content?.trim()) {
+        return NextResponse.json({ error: "chatId, role, and content are required" }, { status: 400 });
     }
 
     const now = new Date().toISOString();
-    const newMessages = [
-        { role: "user", content: userMessage.trim(), createdAt: now },
-        { role: "assistant", content: assistantMessage.trim(), createdAt: now },
-    ];
+    const newMessage = { role, content: content.trim(), createdAt: now };
 
     try {
         const db = await getMongoDb();
 
-        // MongoDB driver typings can be strict about the update shape. Cast the
-        // update object to `any` to avoid TypeScript errors while keeping the
-        // runtime behaviour intact.
-        // Use a safe cast to avoid `any` while satisfying driver typings
         const update = {
             $push: {
-                messages: {
-                    $each: newMessages,
-                    $slice: -MAX_HISTORY,
+                "chats.$[chat].messages": {
+                    $each: [newMessage],
+                    $slice: -MAX_MESSAGES_PER_CHAT,
                 },
             },
-            $set: { updatedAt: now },
-            $setOnInsert: { createdAt: now },
+            $set: { "chats.$[chat].updatedAt": now, updatedAt: now },
         } as unknown as Record<string, unknown>;
 
-        await db.collection(COLLECTION).updateOne({ userId }, update, { upsert: true });
+        const result = await db.collection(COLLECTION).updateOne(
+            { userId, "chats.id": chatId },
+            update,
+            { arrayFilters: [{ "chat.id": chatId }] }
+        );
 
-        return NextResponse.json({ ok: true });
+        if (result.matchedCount === 0) {
+            return NextResponse.json({ error: "Chat not found" }, { status: 404 });
+        }
+
+        return NextResponse.json({ ok: true, message: newMessage });
     } catch (err) {
         console.error("[chat-history POST]", err);
-        return NextResponse.json({ error: "Failed to save history" }, { status: 500 });
+        return NextResponse.json({ error: "Failed to save message" }, { status: 500 });
     }
 }
 
-/** DELETE /api/chat-history — clear history for the logged-in user */
+/** DELETE /api/chat-history — delete a specific chat */
 export async function DELETE(req: NextRequest) {
     const userId = await getUserId(req);
     if (!userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const chatId = req.nextUrl.searchParams.get("chatId");
+    if (!chatId) {
+        return NextResponse.json({ error: "chatId query parameter required" }, { status: 400 });
+    }
+
     try {
         const db = await getMongoDb();
-        await db.collection(COLLECTION).updateOne(
-            { userId },
-            { $set: { messages: [], updatedAt: new Date().toISOString() } }
-        );
+        const update = {
+            $pull: { chats: { id: chatId } },
+            $set: { updatedAt: new Date().toISOString() },
+        } as unknown as Record<string, unknown>;
+
+        await db.collection(COLLECTION).updateOne({ userId }, update);
         return NextResponse.json({ ok: true });
     } catch (err) {
         console.error("[chat-history DELETE]", err);
-        return NextResponse.json({ error: "Failed to clear history" }, { status: 500 });
+        return NextResponse.json({ error: "Failed to delete chat" }, { status: 500 });
     }
 }
