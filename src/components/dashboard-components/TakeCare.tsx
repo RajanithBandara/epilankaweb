@@ -1,621 +1,635 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
+    Bot,
     HeartPulse,
-    ShieldCheck,
-    AlertCircle,
-    Search,
-    ChevronDown,
-    ChevronUp,
-    RefreshCw,
-    Stethoscope,
-    CheckCircle2,
-    Sparkles,
+    Send,
     Loader2,
+    Trash2,
     TriangleAlert,
-    Hospital,
-    Info,
+    ShieldCheck,
+    Sparkles,
 } from "lucide-react";
+import { account } from "@/lib/appwrite";
 
-/* ── Types ─────────────────────────────────────────────────────────────────── */
+/* ── Types ─────────────────────────────────────────────────────────── */
 
-type Disease = {
-    disease_id: number;
-    disease_name: string;
-    description: string | null;
+type ChatMessage = {
+    id: string;
+    role: "user" | "assistant";
+    content: string;
+    createdAt?: string;
 };
 
-type DiseaseDetail = {
-    disease_id: number;
-    symptoms: string[];
-    precautions: string[];
-    createdAt: string;
-    updatedAt: string;
+function uid() {
+    return typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+const WELCOME: ChatMessage = {
+    id: "welcome",
+    role: "assistant",
+    content:
+        "Hello! I'm EpiGuard, your personal health assistant for EpiLanka.\n\nYou can ask me about:\n- Disease symptoms and prevention\n- Mosquito-borne or waterborne disease risks\n- When to seek medical help\n- Public health precautions\n\nI'm only able to help with health and disease-related questions.",
 };
 
-type MergedDisease = Disease & { details: DiseaseDetail | null };
+const SUGGESTIONS = [
+    "How do I prevent dengue fever?",
+    "What are early symptoms of leptospirosis?",
+    "When should I go to hospital for a fever?",
+    "How to protect my family from mosquito-borne diseases?",
+];
 
-type SymptomCategory = { category: string; icon: string; items: string[] };
-type PrecautionCategory = { category: string; icon: string; items: string[] };
+type RenderBlock =
+    | { type: "paragraph"; text: string }
+    | { type: "list"; items: string[] };
 
-type EnhancedInfo = {
-    disease_name: string;
-    severity_level: "low" | "moderate" | "high" | "critical";
-    brief_summary: string;
-    symptom_categories: SymptomCategory[];
-    precaution_categories: PrecautionCategory[];
-    when_to_seek_help: string;
-};
+function parseMessageBlocks(content: string): RenderBlock[] {
+    const blocks: RenderBlock[] = [];
+    const lines = content.replace(/\r/g, "").split("\n");
+    const paragraphBuffer: string[] = [];
+    const listBuffer: string[] = [];
 
-/* ── Fetch helpers ─────────────────────────────────────────────────────────── */
-
-async function fetchDiseases(): Promise<Disease[]> {
-    try {
-        const res = await fetch("/api/public/diseases", { cache: "no-store" });
-        if (!res.ok) return [];
-        const data = await res.json();
-        return Array.isArray(data) ? data : (data?.diseases ?? []);
-    } catch {
-        return [];
-    }
-}
-
-async function fetchDiseaseDetails(): Promise<DiseaseDetail[]> {
-    const res = await fetch("/api/public/disease-details", { cache: "no-store" });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data?.error || "Failed to fetch disease details");
-    return Array.isArray(data) ? data : [];
-}
-
-async function enhanceDisease(disease: MergedDisease): Promise<EnhancedInfo | null> {
-    try {
-        const res = await fetch("/api/groq/enhance-disease", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                disease_name: disease.disease_name,
-                symptoms: disease.details?.symptoms ?? [],
-                precautions: disease.details?.precautions ?? [],
-            }),
-        });
-        if (!res.ok) return null;
-        return await res.json() as EnhancedInfo;
-    } catch {
-        return null;
-    }
-}
-
-/* ── Severity config ────────────────────────────────────────────────────────── */
-
-type SeverityLevel = "low" | "moderate" | "high" | "critical";
-
-const severityConfig: Record<SeverityLevel, {
-    label: string; bg: string; border: string; text: string; badgeBg: string;
-}> = {
-    low: {
-        label: "Low Risk", bg: "rgba(16,185,129,0.07)", border: "rgba(16,185,129,0.25)",
-        text: "#059669", badgeBg: "rgba(16,185,129,0.12)",
-    },
-    moderate: {
-        label: "Moderate Risk", bg: "rgba(245,158,11,0.07)", border: "rgba(245,158,11,0.28)",
-        text: "#d97706", badgeBg: "rgba(245,158,11,0.12)",
-    },
-    high: {
-        label: "High Risk", bg: "rgba(239,68,68,0.07)", border: "rgba(239,68,68,0.25)",
-        text: "#dc2626", badgeBg: "rgba(239,68,68,0.12)",
-    },
-    critical: {
-        label: "Critical", bg: "rgba(139,0,0,0.07)", border: "rgba(139,0,0,0.30)",
-        text: "#991b1b", badgeBg: "rgba(139,0,0,0.12)",
-    },
-};
-
-/* ── Sub-components ─────────────────────────────────────────────────────────── */
-
-function SeverityBadge({ level }: { level: SeverityLevel }) {
-    const cfg = severityConfig[level] ?? severityConfig.low;
-    return (
-        <span
-            className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-bold capitalize"
-            style={{ background: cfg.badgeBg, borderColor: cfg.border, color: cfg.text }}
-        >
-            <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: cfg.text }} />
-            {cfg.label}
-        </span>
-    );
-}
-
-function EnhancedDiseasePanel({ enhanced }: { enhanced: EnhancedInfo }) {
-    const sev = severityConfig[enhanced.severity_level] ?? severityConfig.low;
-
-    return (
-        <div className="space-y-5">
-            {/* Summary banner */}
-            {enhanced.brief_summary && (
-                <div
-                    className="flex items-start gap-3 rounded-xl border px-4 py-3"
-                    style={{ background: sev.bg, borderColor: sev.border }}
-                >
-                    <Info className="h-4 w-4 shrink-0 mt-0.5" style={{ color: sev.text }} />
-                    <p className="text-sm leading-relaxed" style={{ color: "var(--dash-text-secondary)" }}>
-                        {enhanced.brief_summary}
-                    </p>
-                </div>
-            )}
-
-            {/* Symptoms */}
-            {enhanced.symptom_categories.length > 0 && (
-                <div>
-                    <div className="flex items-center gap-2 mb-3">
-                        <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
-                        <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--dash-text-muted)" }}>
-                            Symptoms
-                        </p>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {enhanced.symptom_categories.map((cat) => (
-                            <div
-                                key={cat.category}
-                                className="rounded-xl border p-3.5"
-                                style={{
-                                    background: "rgba(239,68,68,0.04)",
-                                    borderColor: "rgba(239,68,68,0.18)",
-                                }}
-                            >
-                                <p className="text-xs font-bold mb-2.5 flex items-center gap-1.5" style={{ color: "#dc2626" }}>
-                                    <span className="text-base leading-none">{cat.icon}</span>
-                                    {cat.category}
-                                </p>
-                                <ul className="space-y-1.5">
-                                    {cat.items.map((item) => (
-                                        <li key={item} className="flex items-start gap-2 text-xs" style={{ color: "var(--dash-text-secondary)" }}>
-                                            <span className="mt-1 h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
-                                            {item}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* Divider */}
-            {enhanced.symptom_categories.length > 0 && enhanced.precaution_categories.length > 0 && (
-                <div className="border-t" style={{ borderColor: "var(--dash-card-border)" }} />
-            )}
-
-            {/* Precautions */}
-            {enhanced.precaution_categories.length > 0 && (
-                <div>
-                    <div className="flex items-center gap-2 mb-3">
-                        <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
-                        <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--dash-text-muted)" }}>
-                            Precautions
-                        </p>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {enhanced.precaution_categories.map((cat) => (
-                            <div
-                                key={cat.category}
-                                className="rounded-xl border p-3.5"
-                                style={{
-                                    background: "rgba(16,185,129,0.04)",
-                                    borderColor: "rgba(16,185,129,0.18)",
-                                }}
-                            >
-                                <p className="text-xs font-bold mb-2.5 flex items-center gap-1.5" style={{ color: "#059669" }}>
-                                    <span className="text-base leading-none">{cat.icon}</span>
-                                    {cat.category}
-                                </p>
-                                <ol className="space-y-1.5">
-                                    {cat.items.map((item, ii) => (
-                                        <li key={item} className="flex items-start gap-2 text-xs" style={{ color: "var(--dash-text-secondary)" }}>
-                                            <span
-                                                className="shrink-0 mt-0.5 inline-flex items-center justify-center h-4 w-4 rounded-full text-[9px] font-bold"
-                                                style={{
-                                                    background: "rgba(16,185,129,0.15)",
-                                                    color: "#059669",
-                                                    border: "1px solid rgba(16,185,129,0.30)",
-                                                }}
-                                            >
-                                                {ii + 1}
-                                            </span>
-                                            {item}
-                                        </li>
-                                    ))}
-                                </ol>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* When to seek help */}
-            {enhanced.when_to_seek_help && (
-                <div
-                    className="flex items-start gap-3 rounded-xl border px-4 py-3.5"
-                    style={{
-                        background: "rgba(239,68,68,0.05)",
-                        borderColor: "rgba(239,68,68,0.20)",
-                    }}
-                >
-                    <Hospital className="h-4 w-4 shrink-0 mt-0.5 text-red-500" />
-                    <div>
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-red-500 mb-1">
-                            When to seek medical help
-                        </p>
-                        <p className="text-sm leading-relaxed" style={{ color: "var(--dash-text-secondary)" }}>
-                            {enhanced.when_to_seek_help}
-                        </p>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
-
-/* ── Fallback plain display (if Groq fails) ─────────────────────────────────── */
-
-function PlainDiseasePanel({ details }: { details: DiseaseDetail }) {
-    return (
-        <div className="space-y-4">
-            {details.symptoms.length > 0 && (
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <AlertCircle className="h-4 w-4 text-red-500" />
-                        <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--dash-text-muted)" }}>Symptoms</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        {details.symptoms.map((s) => (
-                            <span key={s} className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium"
-                                style={{ background: "rgba(239,68,68,0.08)", borderColor: "rgba(239,68,68,0.22)", color: "#dc2626" }}>
-                                <span className="mr-1 h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />{s}
-                            </span>
-                        ))}
-                    </div>
-                </div>
-            )}
-            {details.precautions.length > 0 && (
-                <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                        <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--dash-text-muted)" }}>Precautions</p>
-                    </div>
-                    <ol className="space-y-2">
-                        {details.precautions.map((p, i) => (
-                            <li key={p} className="flex items-start gap-2.5 text-sm" style={{ color: "var(--dash-text-secondary)" }}>
-                                <span className="shrink-0 mt-0.5 inline-flex items-center justify-center h-5 w-5 rounded-full text-[10px] font-bold"
-                                    style={{ background: "rgba(16,185,129,0.12)", color: "#059669", border: "1px solid rgba(16,185,129,0.25)" }}>
-                                    {i + 1}
-                                </span>
-                                {p}
-                            </li>
-                        ))}
-                    </ol>
-                </div>
-            )}
-        </div>
-    );
-}
-
-/* ── Disease card with Groq enhancement ─────────────────────────────────────── */
-
-function DiseaseCard({ disease, defaultOpen }: { disease: MergedDisease; defaultOpen?: boolean }) {
-    const [open, setOpen] = useState(defaultOpen ?? false);
-    const [enhanced, setEnhanced] = useState<EnhancedInfo | null>(null);
-    const [enhancing, setEnhancing] = useState(false);
-    const [enhanceFailed, setEnhanceFailed] = useState(false);
-
-    const hasDetails = disease.details !== null &&
-        (disease.details.symptoms.length > 0 || disease.details.precautions.length > 0);
-
-    // Load severity data on component mount
-    useEffect(() => {
-        if (hasDetails && !enhanced && !enhancing && !enhanceFailed) {
-            const loadSeverity = async () => {
-                setEnhancing(true);
-                try {
-                    const result = await enhanceDisease(disease);
-                    if (result) {
-                        setEnhanced(result);
-                    } else {
-                        setEnhanceFailed(true);
-                    }
-                } catch {
-                    setEnhanceFailed(true);
-                } finally {
-                    setEnhancing(false);
-                }
-            };
-            void loadSeverity();
-        }
-    }, [disease, hasDetails, enhanced, enhancing, enhanceFailed]);
-
-    const handleToggle = useCallback(async () => {
-        const nextOpen = !open;
-        setOpen(nextOpen);
-
-        // Enhanced info should already be loaded from useEffect above
-    }, [open]);
-
-    const sev = enhanced?.severity_level
-        ? (severityConfig[enhanced.severity_level] ?? severityConfig.low)
-        : null;
-
-    return (
-        <div className="card-panel animate-fade-in-scale overflow-hidden" style={{ animationDelay: "0ms" }}>
-            {/* Header */}
-            <button
-                type="button"
-                onClick={() => void handleToggle()}
-                className="w-full card-panel-header flex items-center justify-between gap-3 cursor-pointer"
-                aria-expanded={open}
-            >
-                <div className="flex items-center gap-3 min-w-0">
-                    <div
-                        className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center shadow-sm"
-                        style={{ background: sev ? sev.bg === severityConfig.critical.bg ? "#991b1b" : sev.text : "var(--color-primary)" }}
-                    >
-                        <HeartPulse className="h-4 w-4 text-white" />
-                    </div>
-                    <div className="min-w-0 text-left">
-                        <p className="text-sm font-bold truncate" style={{ color: "var(--dash-text-primary)" }}>
-                            {disease.disease_name}
-                        </p>
-                        {disease.description && (
-                            <p className="text-xs truncate" style={{ color: "var(--dash-text-muted)" }}>
-                                {disease.description}
-                            </p>
-                        )}
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                    {enhanced?.severity_level && <SeverityBadge level={enhanced.severity_level} />}
-                    {!hasDetails && (
-                        <span className="hidden sm:inline text-[10px] font-semibold rounded-full border px-2.5 py-0.5"
-                            style={{ background: "var(--dash-card-header-bg)", borderColor: "var(--dash-card-border)", color: "var(--dash-text-muted)" }}>
-                            No details yet
-                        </span>
-                    )}
-                    {open
-                        ? <ChevronUp className="h-4 w-4" style={{ color: "var(--dash-text-muted)" }} />
-                        : <ChevronDown className="h-4 w-4" style={{ color: "var(--dash-text-muted)" }} />}
-                </div>
-            </button>
-
-            {/* Expanded content */}
-            {open && (
-                <div className="px-5 pb-5 pt-4">
-                    {!hasDetails ? (
-                        <div className="flex flex-col items-center py-8 rounded-xl border border-dashed text-center"
-                            style={{ background: "var(--dash-card-header-bg)", borderColor: "var(--dash-card-border)", color: "var(--dash-text-muted)" }}>
-                            <Stethoscope className="h-6 w-6 mb-2 opacity-50" />
-                            <p className="text-sm font-medium">No details added yet</p>
-                        </div>
-                    ) : enhancing ? (
-                        /* Groq loading state */
-                        <div className="flex flex-col items-center py-10 gap-3">
-                            <div className="flex items-center gap-2.5 rounded-xl border px-5 py-3"
-                                style={{ background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)" }}>
-                                <Loader2 className="h-4 w-4 animate-spin" style={{ color: "var(--color-primary)" }} />
-                                <span className="text-sm font-medium" style={{ color: "var(--dash-text-secondary)" }}>
-                                    Analyzing with AI…
-                                </span>
-                                <Sparkles className="h-4 w-4 text-violet-500" />
-                            </div>
-                        </div>
-                    ) : enhanced ? (
-                        /* Groq-enhanced display */
-                        <div>
-                            <div className="flex items-center gap-1.5 mb-4 text-[10px] font-semibold uppercase tracking-widest"
-                                style={{ color: "var(--dash-text-muted)" }}>
-                                <Sparkles className="h-3 w-3 text-violet-500" />
-                                AI-organized by Groq · LLaMA 3.3
-                            </div>
-                            <EnhancedDiseasePanel enhanced={enhanced} />
-                        </div>
-                    ) : (
-                        /* Fallback if Groq failed */
-                        <div>
-                            {enhanceFailed && (
-                                <div className="flex items-center gap-2 mb-3 text-xs rounded-lg border px-3 py-2"
-                                    style={{ background: "rgba(245,158,11,0.07)", borderColor: "rgba(245,158,11,0.22)", color: "#d97706" }}>
-                                    <TriangleAlert className="h-3.5 w-3.5 shrink-0" />
-                                    AI enhancement unavailable — showing raw data
-                                </div>
-                            )}
-                            <PlainDiseasePanel details={disease.details!} />
-                        </div>
-                    )}
-                </div>
-            )}
-        </div>
-    );
-}
-
-/* ── Main Component ─────────────────────────────────────────────────────────── */
-
-export default function TakeCare() {
-    const [diseases, setDiseases] = useState<Disease[]>([]);
-    const [details, setDetails] = useState<DiseaseDetail[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [search, setSearch] = useState("");
-    const [refreshing, setRefreshing] = useState(false);
-
-    const load = async (isRefresh = false) => {
-        if (isRefresh) setRefreshing(true);
-        else setLoading(true);
-        setError(null);
-        try {
-            const [diseaseList, detailList] = await Promise.all([
-                fetchDiseases(),
-                fetchDiseaseDetails(),
-            ]);
-            setDiseases(diseaseList);
-            setDetails(detailList);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to load data");
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
+    const flushParagraph = () => {
+        if (!paragraphBuffer.length) return;
+        blocks.push({ type: "paragraph", text: paragraphBuffer.join(" ").trim() });
+        paragraphBuffer.length = 0;
     };
 
-    useEffect(() => { void load(); }, []);
+    const flushList = () => {
+        if (!listBuffer.length) return;
+        blocks.push({ type: "list", items: [...listBuffer] });
+        listBuffer.length = 0;
+    };
 
-    // Build from union of all known IDs — details-driven
-    const merged = useMemo<MergedDisease[]>(() => {
-        const detailMap = new Map(details.map((d) => [d.disease_id, d]));
-        const diseaseMap = new Map(diseases.map((d) => [d.disease_id, d]));
-        const allIds = new Set([...details.map((d) => d.disease_id), ...diseases.map((d) => d.disease_id)]);
-        return Array.from(allIds).map((id) => {
-            const disease = diseaseMap.get(id);
-            const detail = detailMap.get(id) ?? null;
-            return {
-                disease_id: id,
-                disease_name: disease?.disease_name ?? `Disease #${id}`,
-                description: disease?.description ?? null,
-                details: detail,
-            };
-        }).sort((a, b) => {
-            if (a.details && !b.details) return -1;
-            if (!a.details && b.details) return 1;
-            return a.disease_name.localeCompare(b.disease_name);
-        });
-    }, [diseases, details]);
+    for (const rawLine of lines) {
+        const line = rawLine.trim();
+        const bulletMatch = line.match(/^(?:[-*\u2022]|\d+\.)\s+(.+)$/);
 
-    const filtered = useMemo(() => {
-        if (!search.trim()) return merged;
-        const q = search.toLowerCase();
-        return merged.filter((d) =>
-            d.disease_name.toLowerCase().includes(q) ||
-            (d.description ?? "").toLowerCase().includes(q)
-        );
-    }, [merged, search]);
+        if (!line) {
+            flushParagraph();
+            flushList();
+            continue;
+        }
 
-    const withDetails = filtered.filter((d) => d.details !== null);
-    const withoutDetails = filtered.filter((d) => d.details === null);
+        if (bulletMatch?.[1]) {
+            flushParagraph();
+            listBuffer.push(bulletMatch[1].replace(/[*`_]/g, "").trim());
+            continue;
+        }
 
+        flushList();
+        paragraphBuffer.push(line.replace(/[*`_]/g, "").trim());
+    }
+
+    flushParagraph();
+    flushList();
+
+    return blocks.filter((b) => (b.type === "paragraph" ? Boolean(b.text) : b.items.length > 0));
+}
+
+function FormattedMessage({ content }: { content: string }) {
+    const blocks = parseMessageBlocks(content);
     return (
-        <section className="space-y-6">
-            {/* ── Page heading ────────────────────────────────── */}
-            <div className="flex flex-wrap items-start justify-between gap-3 pt-1">
-                <div>
-                    <div className="flex items-center gap-2.5 mb-1">
-                        <div className="w-8 h-8 rounded-xl bg-linear-to-br from-rose-500 to-pink-600 flex items-center justify-center shadow-md shadow-rose-500/25">
-                            <HeartPulse className="h-4 w-4 text-white" />
-                        </div>
+        <div className="space-y-2">
+            {blocks.map((block, index) =>
+                block.type === "paragraph" ? (
+                    <p key={`p-${index}`} className="whitespace-pre-wrap">
+                        {block.text}
+                    </p>
+                ) : (
+                    <ul key={`l-${index}`} className="list-disc space-y-1 pl-5">
+                        {block.items.map((item, itemIndex) => (
+                            <li key={`i-${index}-${itemIndex}`}>{item}</li>
+                        ))}
+                    </ul>
+                )
+            )}
+        </div>
+    );
+}
+
+/* ── Stream reader ──────────────────────────────────────────────────── */
+
+async function readStream(response: Response, onDelta: (chunk: string) => void) {
+    if (!response.body) throw new Error("Empty stream");
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split(/\r?\n/);
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+            const t = line.trim();
+            if (!t || t === "data: [DONE]") continue;
+            if (!t.startsWith("data: ")) continue;
+            try {
+                const payload = JSON.parse(t.slice(6)) as {
+                    choices?: Array<{ delta?: { content?: string } }>;
+                };
+                const chunk = payload.choices?.[0]?.delta?.content ?? "";
+                if (chunk) onDelta(chunk);
+            } catch {
+                // skip bad chunks
+            }
+        }
+    }
+}
+
+/* ── Message bubble ─────────────────────────────────────────────────── */
+
+function Bubble({ message }: { message: ChatMessage }) {
+    const isAssistant = message.role === "assistant";
+    return (
+        <div className={`flex items-end gap-2.5 ${isAssistant ? "justify-start" : "justify-end"}`}>
+            {isAssistant && (
+                <div
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm"
+                    style={{ background: "var(--color-primary)", color: "#fff" }}
+                >
+                    <Bot className="h-4 w-4" />
+                </div>
+            )}
+
+            <div
+                className={`max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
+                    isAssistant ? "rounded-bl-sm" : "rounded-br-sm"
+                }`}
+                style={
+                    isAssistant
+                        ? {
+                              background: "var(--dash-card-bg)",
+                              border: "1px solid var(--dash-card-border)",
+                              color: "var(--dash-text-primary)",
+                          }
+                        : {
+                              background: "var(--color-primary)",
+                              color: "#ffffff",
+                          }
+                }
+            >
+                <FormattedMessage content={message.content} />
+                {message.createdAt && (
+                    <p
+                        className="mt-1.5 text-[10px] opacity-50 text-right"
+                        style={{ color: isAssistant ? "var(--dash-text-muted)" : "#fff" }}
+                    >
+                        {new Date(message.createdAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                        })}
+                    </p>
+                )}
+            </div>
+
+            {!isAssistant && (
+                <div
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm"
+                    style={{ background: "var(--color-secondary)", color: "#fff" }}
+                >
+                    <HeartPulse className="h-4 w-4" />
+                </div>
+            )}
+        </div>
+    );
+}
+
+/* ── Main component ─────────────────────────────────────────────────── */
+
+export default function TakeCare() {
+    const [messages, setMessages] = useState<ChatMessage[]>([WELCOME]);
+    const [input, setInput] = useState("");
+    const [sending, setSending] = useState(false);
+    const [streamingReply, setStreamingReply] = useState("");
+    const [error, setError] = useState<string | null>(null);
+    const [historyLoading, setHistoryLoading] = useState(true);
+    const [clearingHistory, setClearingHistory] = useState(false);
+    const bottomRef = useRef<HTMLDivElement | null>(null);
+    const inputRef = useRef<HTMLInputElement | null>(null);
+
+    const refreshServerJwtCookie = useCallback(async () => {
+        try {
+            const jwtObj = await account.createJWT();
+            const res = await fetch("/api/auth/session", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ jwt: jwtObj.jwt }),
+            });
+            return res.ok;
+        } catch {
+            return false;
+        }
+    }, []);
+
+    const fetchChatHistoryApi = useCallback(
+        async (init?: RequestInit) => {
+            const baseInit: RequestInit = { ...init, credentials: "include" };
+            let res = await fetch("/api/chat-history", baseInit);
+            if (res.status !== 401) return res;
+
+            const refreshed = await refreshServerJwtCookie();
+            if (!refreshed) return res;
+
+            res = await fetch("/api/chat-history", baseInit);
+            return res;
+        },
+        [refreshServerJwtCookie]
+    );
+
+    const persistTurn = useCallback(async (userMessage: string, assistantMessage: string) => {
+        const res = await fetchChatHistoryApi({
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userMessage, assistantMessage }),
+        });
+
+        if (!res.ok) {
+            const data = (await res.json().catch(() => ({}))) as { error?: string };
+            throw new Error(data.error ?? "Failed to save chat history");
+        }
+    }, [fetchChatHistoryApi]);
+
+    /* ── Load history on mount ───────────────────────────────────────── */
+    useEffect(() => {
+        const load = async () => {
+            try {
+                const res = await fetchChatHistoryApi({ cache: "no-store" });
+                if (res.status === 401) return;
+                if (!res.ok) return;
+                const data = (await res.json()) as { messages: Array<{ role: string; content: string; createdAt?: string }> };
+                if (data.messages.length > 0) {
+                    setMessages([
+                        WELCOME,
+                        ...data.messages
+                            .filter((m) => m.role === "user" || m.role === "assistant")
+                            .map((m) => ({
+                                id: uid(),
+                                role: m.role as "user" | "assistant",
+                                content: m.content,
+                                createdAt: m.createdAt,
+                            })),
+                    ]);
+                }
+            } catch {
+                // History load failing is non-fatal — just use the welcome message
+            } finally {
+                setHistoryLoading(false);
+            }
+        };
+        void load();
+    }, [fetchChatHistoryApi]);
+
+    /* ── Auto-scroll ─────────────────────────────────────────────────── */
+    useEffect(() => {
+        bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    }, [messages, streamingReply, sending]);
+
+    /* ── Send message ────────────────────────────────────────────────── */
+    const handleSend = useCallback(
+        async (promptText?: string) => {
+            const text = (promptText ?? input).trim();
+            if (!text || sending) return;
+
+            const userMsg: ChatMessage = { id: uid(), role: "user", content: text, createdAt: new Date().toISOString() };
+            const history = [...messages, userMsg].filter((m) => m.id !== "welcome").map(({ role, content }) => ({ role, content }));
+
+            setMessages((prev) => [...prev, userMsg]);
+            setInput("");
+            setStreamingReply("");
+            setSending(true);
+            setError(null);
+
+            try {
+                const res = await fetch("/api/groq/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ messages: history }),
+                });
+
+                if (!res.ok) {
+                    const data = (await res.json().catch(() => ({}))) as { error?: string };
+                    setError(data.error ?? "Failed to get response");
+                    setMessages((prev) => [
+                        ...prev,
+                        {
+                            id: uid(),
+                            role: "assistant",
+                            content: "I couldn't answer that right now. Please try again in a moment.",
+                            createdAt: new Date().toISOString(),
+                        },
+                    ]);
+                    return;
+                }
+
+                let replyText = "";
+                await readStream(res, (chunk) => {
+                    replyText += chunk;
+                    setStreamingReply(replyText);
+                });
+
+                const finalReply = replyText.trim() || "I could not generate a response. Please try again.";
+                setMessages((prev) => [
+                    ...prev,
+                    { id: uid(), role: "assistant", content: finalReply, createdAt: new Date().toISOString() },
+                ]);
+                try {
+                    await persistTurn(text, finalReply);
+                } catch {
+                    setError("Reply sent, but chat history could not be saved. Please refresh and try again.");
+                }
+                setStreamingReply("");
+            } catch (err) {
+                const msg = err instanceof Error ? err.message : "Chat request failed";
+                setError(msg);
+                setMessages((prev) => [
+                    ...prev,
+                    {
+                        id: uid(),
+                        role: "assistant",
+                        content: "I couldn't answer that right now. Please try again in a moment.",
+                        createdAt: new Date().toISOString(),
+                    },
+                ]);
+                setStreamingReply("");
+            } finally {
+                setSending(false);
+                setTimeout(() => inputRef.current?.focus(), 100);
+            }
+        },
+        [input, messages, persistTurn, sending]
+    );
+
+    /* ── Clear history ───────────────────────────────────────────────── */
+    const handleClearHistory = useCallback(async () => {
+        if (clearingHistory) return;
+        setClearingHistory(true);
+        try {
+            const res = await fetchChatHistoryApi({ method: "DELETE" });
+            if (!res.ok) {
+                setError("Could not clear chat history right now. Please try again.");
+                return;
+            }
+            setMessages([WELCOME]);
+            setInput("");
+            setStreamingReply("");
+            setError(null);
+        } catch {
+            setError("Could not clear chat history right now. Please try again.");
+        } finally {
+            setClearingHistory(false);
+        }
+    }, [clearingHistory, fetchChatHistoryApi]);
+
+    const showSuggestions = messages.length === 1 && !sending;
+
+    /* ── Render ──────────────────────────────────────────────────────── */
+    return (
+        <section className="flex flex-col h-full" style={{ minHeight: "calc(100vh - 8rem)" }}>
+            {/* ── Page heading ───────────────────────────────────────── */}
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+                <div className="flex items-center gap-3">
+                    <div
+                        className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm"
+                        style={{ background: "var(--color-primary)", color: "#fff" }}
+                    >
+                        <HeartPulse className="h-5 w-5" />
+                    </div>
+                    <div>
                         <h1 className="text-xl font-bold tracking-tight" style={{ color: "var(--dash-text-primary)" }}>
                             Take Care
                         </h1>
+                        <p className="text-sm" style={{ color: "var(--dash-text-secondary)" }}>
+                            AI-powered health assistant · EpiGuard
+                        </p>
                     </div>
-                    <p className="text-sm ml-[2.6rem]" style={{ color: "var(--dash-text-secondary)" }}>
-                        AI-organized disease symptoms &amp; precautions — powered by Groq &amp; LLaMA 3.3
-                    </p>
                 </div>
 
-                <button
-                    onClick={() => void load(true)}
-                    disabled={refreshing || loading}
-                    className="btn-secondary text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 disabled:opacity-60"
+                {/* Health-only badge */}
+                <div
+                    className="hidden sm:flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium"
+                    style={{
+                        background: "rgba(14,165,164,0.07)",
+                        borderColor: "rgba(14,165,164,0.22)",
+                        color: "var(--color-secondary-dark)",
+                    }}
                 >
-                    <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
-                    {refreshing ? "Refreshing…" : "Refresh"}
-                </button>
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    Health &amp; disease topics only
+                </div>
             </div>
 
-            {/* ── AI badge ───────────────────────────────────── */}
-            <div className="flex items-center gap-2 rounded-xl border px-4 py-3"
-                style={{ background: "rgba(139,92,246,0.06)", borderColor: "rgba(139,92,246,0.20)" }}>
-                <Sparkles className="h-4 w-4 text-violet-500 shrink-0" />
-                <p className="text-xs font-medium" style={{ color: "var(--dash-text-secondary)" }}>
-                    <span className="font-bold text-violet-600 dark:text-violet-400">AI-powered</span> — Click any disease to let Groq AI organize symptoms and precautions into clear, structured categories.
-                </p>
+            {/* ── Chat card ──────────────────────────────────────────── */}
+            <div
+                className="flex flex-col flex-1 overflow-hidden rounded-2xl border shadow-sm"
+                style={{ background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)" }}
+            >
+                {/* Card header */}
+                <div
+                    className="flex items-center justify-between gap-3 px-5 py-3.5 border-b"
+                    style={{
+                        background: "linear-gradient(135deg, rgba(30,58,138,0.06) 0%, rgba(14,165,164,0.04) 100%)",
+                        borderColor: "var(--dash-card-border)",
+                    }}
+                >
+                    <div className="flex items-center gap-2.5">
+                        <div
+                            className="flex h-8 w-8 items-center justify-center rounded-full shadow-sm"
+                            style={{ background: "var(--color-primary)", color: "#fff" }}
+                        >
+                            <Bot className="h-4 w-4" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-semibold" style={{ color: "var(--dash-text-primary)" }}>
+                                EpiGuard
+                            </p>
+                            <p className="text-[10px] flex items-center gap-1" style={{ color: "var(--dash-text-muted)" }}>
+                                <Sparkles className="h-3 w-3" style={{ color: "var(--color-secondary)" }} />
+                                Powered by Groq · LLaMA 4
+                            </p>
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => void handleClearHistory()}
+                        disabled={clearingHistory || sending}
+                        title="Clear chat history"
+                        className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition hover:opacity-80 disabled:opacity-40"
+                        style={{
+                            background: "var(--dash-card-bg)",
+                            borderColor: "var(--dash-card-border)",
+                            color: "var(--dash-text-secondary)",
+                        }}
+                    >
+                        {clearingHistory ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                        Clear history
+                    </button>
+                </div>
+
+                {/* Messages area */}
+                <div
+                    className="flex-1 overflow-y-auto px-5 py-5 space-y-4"
+                    style={{ background: "var(--dash-bg)", minHeight: 0 }}
+                >
+                    {/* History loading skeleton */}
+                    {historyLoading && (
+                        <div className="flex justify-start items-end gap-2.5">
+                            <div
+                                className="h-8 w-8 rounded-full animate-pulse shrink-0"
+                                style={{ background: "var(--dash-skeleton-bg)" }}
+                            />
+                            <div
+                                className="h-14 w-56 rounded-2xl rounded-bl-sm animate-pulse"
+                                style={{ background: "var(--dash-skeleton-bg)" }}
+                            />
+                        </div>
+                    )}
+
+                    {/* Messages */}
+                    {!historyLoading &&
+                        messages.map((m) => <Bubble key={m.id} message={m} />)}
+
+                    {/* Streaming reply */}
+                    {streamingReply && (
+                        <div className="flex items-end gap-2.5 justify-start">
+                            <div
+                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm"
+                                style={{ background: "var(--color-primary)", color: "#fff" }}
+                            >
+                                <Bot className="h-4 w-4" />
+                            </div>
+                            <div
+                                className="max-w-[78%] rounded-2xl rounded-bl-sm px-4 py-3 text-sm leading-relaxed shadow-sm"
+                                style={{
+                                    background: "var(--dash-card-bg)",
+                                    border: "1px solid var(--dash-card-border)",
+                                    color: "var(--dash-text-primary)",
+                                }}
+                            >
+                                <FormattedMessage content={streamingReply} />
+                                <Loader2 className="h-3 w-3 animate-spin mt-1.5 opacity-40" />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Typing indicator */}
+                    {sending && !streamingReply && (
+                        <div className="flex items-end gap-2.5 justify-start">
+                            <div
+                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm"
+                                style={{ background: "var(--color-primary)", color: "#fff" }}
+                            >
+                                <Bot className="h-4 w-4" />
+                            </div>
+                            <div
+                                className="inline-flex items-center gap-2 rounded-2xl rounded-bl-sm px-4 py-3 text-xs"
+                                style={{
+                                    background: "var(--dash-card-bg)",
+                                    border: "1px solid var(--dash-card-border)",
+                                    color: "var(--dash-text-muted)",
+                                }}
+                            >
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                Thinking…
+                            </div>
+                        </div>
+                    )}
+
+                    <div ref={bottomRef} />
+                </div>
+
+                {/* Input area */}
+                <div
+                    className="px-5 py-4 border-t space-y-3"
+                    style={{ borderColor: "var(--dash-card-border)", background: "var(--dash-card-bg)" }}
+                >
+                    {/* Error */}
+                    {error && (
+                        <div
+                            className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs"
+                            style={{
+                                background: "rgba(220,38,38,0.07)",
+                                borderColor: "rgba(220,38,38,0.22)",
+                                color: "#dc2626",
+                            }}
+                        >
+                            <TriangleAlert className="h-3.5 w-3.5 shrink-0" />
+                            <span>{error}</span>
+                        </div>
+                    )}
+
+                    {/* Suggestion chips — shown only when chat is fresh */}
+                    {showSuggestions && !historyLoading && (
+                        <div className="flex flex-wrap gap-2">
+                            {SUGGESTIONS.map((s) => (
+                                <button
+                                    key={s}
+                                    type="button"
+                                    onClick={() => void handleSend(s)}
+                                    disabled={sending}
+                                    className="rounded-full border px-3 py-1.5 text-xs font-medium transition hover:opacity-80 disabled:opacity-50"
+                                    style={{
+                                        background: "var(--dash-card-header-bg)",
+                                        borderColor: "var(--dash-card-border)",
+                                        color: "var(--color-primary)",
+                                    }}
+                                >
+                                    {s}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Input row */}
+                    <div className="flex items-center gap-2">
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault();
+                                    void handleSend();
+                                }
+                            }}
+                            placeholder="Ask about symptoms, prevention, or health guidance…"
+                            className="input-primary flex-1"
+                            disabled={sending || historyLoading}
+                            aria-label="Chat input"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => void handleSend()}
+                            disabled={sending || !input.trim() || historyLoading}
+                            aria-label="Send"
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm transition hover:opacity-90 disabled:opacity-40"
+                            style={{ background: "var(--color-primary)", color: "#fff" }}
+                        >
+                            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                        </button>
+                    </div>
+
+                    <p className="text-center text-[10px]" style={{ color: "var(--dash-text-muted)" }}>
+                        EpiGuard provides public-health guidance only — always consult a doctor for personal medical concerns.
+                    </p>
+                </div>
             </div>
-
-            {/* ── Error banner ──────────────────────────────── */}
-            {error && (
-                <div className="flex items-center gap-2.5 rounded-xl border px-4 py-3 text-sm animate-fade-in-scale"
-                    style={{ background: "rgba(220,38,38,0.08)", borderColor: "rgba(220,38,38,0.28)", color: "#dc2626" }}>
-                    <AlertCircle className="h-4 w-4 shrink-0" />
-                    <span>{error}</span>
-                </div>
-            )}
-
-            {/* ── Search bar ─────────────────────────────────── */}
-            {!loading && merged.length > 0 && (
-                <div className="relative">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none"
-                        style={{ color: "var(--dash-text-muted)" }} />
-                    <input
-                        type="text"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search diseases…"
-                        className="input-primary pl-10"
-                    />
-                </div>
-            )}
-
-            {/* ── Loading skeletons ──────────────────────────── */}
-            {loading && (
-                <div className="space-y-3">
-                    {Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className="rounded-[1.125rem] border h-16 animate-pulse"
-                            style={{ background: "var(--dash-skeleton-bg)", borderColor: "var(--dash-card-border)", animationDelay: `${i * 60}ms` }} />
-                    ))}
-                </div>
-            )}
-
-            {/* ── Empty state ────────────────────────────────── */}
-            {!loading && filtered.length === 0 && !error && (
-                <div className="card-panel py-14 px-6 flex flex-col items-center justify-center text-center">
-                    <div className="w-14 h-14 rounded-2xl border flex items-center justify-center mb-4"
-                        style={{ background: "var(--dash-card-header-bg)", borderColor: "var(--dash-card-border)" }}>
-                        <HeartPulse className="h-6 w-6" style={{ color: "var(--dash-text-muted)" }} />
-                    </div>
-                    <p className="text-sm font-semibold" style={{ color: "var(--dash-text-primary)" }}>
-                        {search ? "No diseases match your search" : "No diseases found"}
-                    </p>
-                    <p className="text-xs mt-1" style={{ color: "var(--dash-text-muted)" }}>
-                        {search ? "Try a different keyword." : "Health officers haven't added any diseases yet."}
-                    </p>
-                </div>
-            )}
-
-            {/* ── Diseases with details ─────────────────────── */}
-            {!loading && withDetails.length > 0 && (
-                <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                        <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--dash-text-muted)" }}>
-                            With Symptoms &amp; Precautions ({withDetails.length})
-                        </p>
-                    </div>
-                    {withDetails.map((d) => (
-                        <DiseaseCard key={d.disease_id} disease={d} defaultOpen={withDetails.length === 1} />
-                    ))}
-                </div>
-            )}
-
-            {/* ── Diseases without details ─────────────────── */}
-            {!loading && withoutDetails.length > 0 && (
-                <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                        <Stethoscope className="h-4 w-4" style={{ color: "var(--dash-text-muted)" }} />
-                        <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--dash-text-muted)" }}>
-                            Pending Details ({withoutDetails.length})
-                        </p>
-                    </div>
-                    {withoutDetails.map((d) => (
-                        <DiseaseCard key={d.disease_id} disease={d} />
-                    ))}
-                </div>
-            )}
         </section>
     );
 }
