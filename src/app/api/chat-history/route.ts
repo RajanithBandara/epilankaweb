@@ -81,20 +81,22 @@ export async function POST(req: NextRequest) {
     try {
         const db = await getMongoDb();
 
-        await db.collection(COLLECTION).updateOne(
-            { userId },
-            {
-                $push: {
-                    messages: {
-                        $each: newMessages,
-                        $slice: -MAX_HISTORY,
-                    },
+        // MongoDB driver typings can be strict about the update shape. Cast the
+        // update object to `any` to avoid TypeScript errors while keeping the
+        // runtime behaviour intact.
+        // Use a safe cast to avoid `any` while satisfying driver typings
+        const update = {
+            $push: {
+                messages: {
+                    $each: newMessages,
+                    $slice: -MAX_HISTORY,
                 },
-                $set: { updatedAt: now },
-                $setOnInsert: { createdAt: now },
             },
-            { upsert: true }
-        );
+            $set: { updatedAt: now },
+            $setOnInsert: { createdAt: now },
+        } as unknown as Record<string, unknown>;
+
+        await db.collection(COLLECTION).updateOne({ userId }, update, { upsert: true });
 
         return NextResponse.json({ ok: true });
     } catch (err) {
