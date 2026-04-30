@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import React, { useCallback, useEffect, useRef, useState } from "react"
 import {
   motion,
   useMotionTemplate,
@@ -87,8 +87,10 @@ export function MagicCard(props: MagicCardProps) {
       return () => mediaQuery.removeEventListener("change", updateTheme)
     }
 
-    mediaQuery.addEventListener(updateTheme)
-    return () => mediaQuery.removeEventListener(updateTheme)
+    // Fallback for older browsers / typings: use addListener/removeListener
+    // which accept a single listener argument.
+    mediaQuery.addListener(updateTheme)
+    return () => mediaQuery.removeListener(updateTheme)
   }, [])
 
   const mouseX = useMotionValue(-gradientSize)
