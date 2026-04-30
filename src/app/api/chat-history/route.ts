@@ -132,10 +132,12 @@ export async function DELETE(req: NextRequest) {
 
     try {
         const db = await getMongoDb();
-        await db.collection(COLLECTION).updateOne(
-            { userId },
-            { $pull: { chats: { id: chatId } }, $set: { updatedAt: new Date().toISOString() } }
-        );
+        const update = {
+            $pull: { chats: { id: chatId } },
+            $set: { updatedAt: new Date().toISOString() },
+        } as unknown as Record<string, unknown>;
+
+        await db.collection(COLLECTION).updateOne({ userId }, update);
         return NextResponse.json({ ok: true });
     } catch (err) {
         console.error("[chat-history DELETE]", err);

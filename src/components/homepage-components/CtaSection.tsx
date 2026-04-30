@@ -23,7 +23,7 @@ const itemVariants = {
 function CtaSection() {
     return (
         <motion.section
-            className="px-6 py-16 mx-4 md:mx-8 my-6 mb-6 relative z-10"
+            className="px-6 pt-16 pb-8 mx-4 md:mx-8 mt-6 mb-0 relative z-10"
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.25 }}

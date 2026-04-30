@@ -51,7 +51,12 @@ export async function POST(req: NextRequest) {
         await db.collection(COLLECTION).updateOne(
             { userId },
             {
-                $push: { chats: newChat },
+                $push: { 
+                    chats: {
+                        $each: [newChat],
+                        $position: 0
+                    }
+                },
                 $set: { updatedAt: now },
                 $setOnInsert: { createdAt: now },
             } as unknown as Record<string, unknown>,

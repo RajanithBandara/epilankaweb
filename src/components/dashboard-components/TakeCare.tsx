@@ -416,10 +416,12 @@ export default function TakeCare() {
                 setStreamingReply("");
 
                 // Step 3: Send to API
-                const history =
-                    currentChat?.messages
+                const history = [
+                    ...(currentChat?.messages || [])
                         .filter((m) => m.role === "user" || m.role === "assistant")
-                        .map(({ role, content }) => ({ role, content })) || [];
+                        .map(({ role, content }) => ({ role, content })),
+                    { role: "user", content: text }
+                ];
 
                 const res = await fetch("/api/groq/chat", {
                     method: "POST",
@@ -475,7 +477,7 @@ export default function TakeCare() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-screen">
+            <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
                 <div className="text-center space-y-4">
                     <Loader2 className="h-8 w-8 animate-spin mx-auto" style={{ color: "var(--color-primary)" }} />
                     <p style={{ color: "var(--dash-text-secondary)" }}>Loading chat history...</p>
@@ -485,260 +487,262 @@ export default function TakeCare() {
     }
 
     return (
-        <div className="flex h-full" style={{ minHeight: "calc(100vh - 8rem)" }}>
-            {/* ── Sidebar ─────────────────────────────────────────────── */}
+        <div className="flex h-[calc(100vh-8rem)] w-full">
             <div
-                className={`fixed lg:static inset-y-0 left-0 z-40 w-64 flex flex-col border-r transition-transform lg:translate-x-0 ${
-                    sidebarOpen ? "translate-x-0" : "-translate-x-full"
-                }`}
+                className="relative mx-auto flex h-full w-full max-w-7xl overflow-hidden rounded-[1.5rem] border shadow-sm"
                 style={{
-                    background: "var(--dash-card-bg)",
-                    borderColor: "var(--dash-card-border)",
+                    background: "var(--dash-panel-bg)",
+                    borderColor: "var(--dash-panel-border)",
                 }}
             >
-                {/* Sidebar header */}
-                <div className="flex items-center justify-between gap-2 p-4 border-b" style={{ borderColor: "var(--dash-card-border)" }}>
-                    <h2 className="font-semibold text-sm" style={{ color: "var(--dash-text-primary)" }}>
-                        Chats
-                    </h2>
-                    <button
-                        type="button"
-                        onClick={() => setSidebarOpen(false)}
-                        className="lg:hidden p-1 hover:opacity-80"
-                        style={{ color: "var(--dash-text-secondary)" }}
-                    >
-                        <X className="h-5 w-5" />
-                    </button>
-                </div>
-
-                {/* New chat button */}
-                <button
-                    type="button"
-                    onClick={() => void createNewChat()}
-                    className="m-4 flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition hover:opacity-80"
-                    style={{
-                        background: "var(--color-primary)",
-                        color: "#fff",
-                        borderColor: "var(--color-primary)",
-                    }}
-                >
-                    <Plus className="h-4 w-4" />
-                    New chat
-                </button>
-
-                {/* Chat list */}
-                <div className="flex-1 overflow-y-auto space-y-2 px-3 py-2">
-                    {chats.map((chat) => (
-                        <ChatListItem
-                            key={chat.id}
-                            chat={chat}
-                            isActive={chat.id === currentChatId}
-                            onClick={() => {
-                                setCurrentChatId(chat.id);
-                                setSidebarOpen(false);
-                            }}
-                            onDelete={deleteChat}
-                        />
-                    ))}
-                </div>
-            </div>
-
-            {/* ── Overlay (mobile) ─────────────────────────────────── */}
-            {sidebarOpen && (
                 <div
-                    className="fixed inset-0 z-30 bg-black/50 lg:hidden"
-                    onClick={() => setSidebarOpen(false)}
-                />
-            )}
-
-            {/* ── Main chat area ──────────────────────────────────── */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Header */}
-                <div
-                    className="flex items-center justify-between gap-3 px-4 py-3 border-b lg:px-6"
+                    className={`absolute inset-y-0 left-0 z-40 w-64 flex flex-col border-r transition-transform lg:relative lg:translate-x-0 ${
+                        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+                    }`}
                     style={{
                         background: "var(--dash-card-bg)",
                         borderColor: "var(--dash-card-border)",
                     }}
                 >
+                    <div className="flex items-center justify-between gap-2 p-4 border-b" style={{ borderColor: "var(--dash-card-border)" }}>
+                        <h2 className="font-semibold text-sm" style={{ color: "var(--dash-text-primary)" }}>
+                            Chats
+                        </h2>
+                        <button
+                            type="button"
+                            onClick={() => setSidebarOpen(false)}
+                            className="lg:hidden p-1 hover:opacity-80"
+                            style={{ color: "var(--dash-text-secondary)" }}
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+                    </div>
+
                     <button
                         type="button"
-                        onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="lg:hidden p-2 hover:opacity-80"
-                        style={{ color: "var(--dash-text-secondary)" }}
+                        onClick={() => void createNewChat()}
+                        className="m-4 flex items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition hover:opacity-80"
+                        style={{
+                            background: "var(--color-primary)",
+                            color: "#fff",
+                            borderColor: "var(--color-primary)",
+                        }}
                     >
-                        <Menu className="h-5 w-5" />
+                        <Plus className="h-4 w-4" />
+                        New chat
                     </button>
 
-                    <div className="flex items-center gap-3 flex-1">
-                        <div
-                            className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm"
-                            style={{ background: "var(--color-primary)", color: "#fff" }}
-                        >
-                            <HeartPulse className="h-5 w-5" />
+                    <div className="flex-1 overflow-y-auto space-y-2 px-3 py-2">
+                        {chats.map((chat) => (
+                            <ChatListItem
+                                key={chat.id}
+                                chat={chat}
+                                isActive={chat.id === currentChatId}
+                                onClick={() => {
+                                    setCurrentChatId(chat.id);
+                                    setSidebarOpen(false);
+                                }}
+                                onDelete={deleteChat}
+                            />
+                        ))}
+                    </div>
+                </div>
+
+                {sidebarOpen && (
+                    <div
+                        className="absolute inset-0 z-30 bg-black/50 lg:hidden"
+                        onClick={() => setSidebarOpen(false)}
+                    />
+                )}
+
+                <div className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden">
+                    <div
+                        className="flex items-center justify-between gap-3 px-4 py-3 border-b lg:px-6"
+                        style={{
+                            background: "var(--dash-card-bg)",
+                            borderColor: "var(--dash-card-border)",
+                        }}
+                    >
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setSidebarOpen(!sidebarOpen)}
+                                className="lg:hidden p-2 hover:opacity-80"
+                                style={{ color: "var(--dash-text-secondary)" }}
+                            >
+                                <Menu className="h-5 w-5" />
+                            </button>
+
+                            <div className="flex items-center gap-3 flex-1">
+                                <div
+                                    className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm"
+                                    style={{ background: "var(--color-primary)", color: "#fff" }}
+                                >
+                                    <HeartPulse className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <h1 className="font-bold text-sm lg:text-base" style={{ color: "var(--dash-text-primary)" }}>
+                                        {currentChat?.title || "EpiGuard"}
+                                    </h1>
+                                    <p className="text-[10px] lg:text-xs" style={{ color: "var(--dash-text-secondary)" }}>
+                                        AI health assistant
+                                    </p>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <h1 className="font-bold text-sm lg:text-base" style={{ color: "var(--dash-text-primary)" }}>
-                                {currentChat?.title || "EpiGuard"}
-                            </h1>
-                            <p className="text-[10px] lg:text-xs" style={{ color: "var(--dash-text-secondary)" }}>
-                                AI health assistant
-                            </p>
+
+                        <div className="flex items-center gap-2">
+                            <div
+                                className="hidden sm:flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] lg:text-xs font-medium"
+                                style={{
+                                    background: "rgba(14,165,164,0.07)",
+                                    borderColor: "rgba(14,165,164,0.22)",
+                                    color: "var(--color-secondary-dark)",
+                                }}
+                            >
+                                <ShieldCheck className="h-3.5 w-3.5" />
+                                Health topics
+                            </div>
                         </div>
                     </div>
 
                     <div
-                        className="hidden sm:flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] lg:text-xs font-medium"
-                        style={{
-                            background: "rgba(14,165,164,0.07)",
-                            borderColor: "rgba(14,165,164,0.22)",
-                            color: "var(--color-secondary-dark)",
-                        }}
+                        className="flex-1 overflow-y-auto px-4 py-5 space-y-4 lg:px-6"
+                        style={{ background: "var(--dash-bg)" }}
                     >
-                        <ShieldCheck className="h-3.5 w-3.5" />
-                        Health topics
-                    </div>
-                </div>
+                        {currentChat && currentChat.messages.length === 0 && (
+                            <>
+                                <Bubble message={WELCOME} />
+                                <div className="flex flex-wrap gap-2 pt-4">
+                                    {SUGGESTIONS.map((s) => (
+                                        <button
+                                            key={s}
+                                            type="button"
+                                            onClick={() => void handleSend(s)}
+                                            disabled={sending}
+                                            className="rounded-full border px-3 py-1.5 text-xs font-medium transition hover:opacity-80 disabled:opacity-50"
+                                            style={{
+                                                background: "var(--dash-card-header-bg)",
+                                                borderColor: "var(--dash-card-border)",
+                                                color: "var(--color-primary)",
+                                            }}
+                                        >
+                                            {s}
+                                        </button>
+                                    ))}
+                                </div>
+                            </>
+                        )}
 
-                {/* Messages area */}
-                <div
-                    className="flex-1 overflow-y-auto px-4 py-5 space-y-4 lg:px-6"
-                    style={{ background: "var(--dash-bg)" }}
-                >
-                    {currentChat && currentChat.messages.length === 0 && (
-                        <>
-                            <Bubble message={WELCOME} />
-                            <div className="flex flex-wrap gap-2 pt-4">
-                                {SUGGESTIONS.map((s) => (
-                                    <button
-                                        key={s}
-                                        type="button"
-                                        onClick={() => void handleSend(s)}
-                                        disabled={sending}
-                                        className="rounded-full border px-3 py-1.5 text-xs font-medium transition hover:opacity-80 disabled:opacity-50"
-                                        style={{
-                                            background: "var(--dash-card-header-bg)",
-                                            borderColor: "var(--dash-card-border)",
-                                            color: "var(--color-primary)",
-                                        }}
-                                    >
-                                        {s}
-                                    </button>
-                                ))}
+                        {currentChat?.messages.map((msg, idx) => (
+                            <Bubble key={`${currentChatId}-${idx}`} message={msg} />
+                        ))}
+
+                        {streamingReply && (
+                            <div className="flex items-end gap-2.5 justify-start animate-pulse">
+                                <div
+                                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm"
+                                    style={{ background: "var(--color-primary)", color: "#fff" }}
+                                >
+                                    <Bot className="h-4 w-4" />
+                                </div>
+                                <div
+                                    className="max-w-[78%] rounded-2xl rounded-bl-sm px-4 py-3 text-sm leading-relaxed shadow-sm"
+                                    style={{
+                                        background: "var(--dash-card-bg)",
+                                        border: "1px solid var(--dash-card-border)",
+                                        color: "var(--dash-text-primary)",
+                                    }}
+                                >
+                                    <FormattedMessage content={streamingReply} />
+                                    <Loader2 className="mt-1.5 h-3 w-3 animate-spin opacity-40" />
+                                </div>
                             </div>
-                        </>
-                    )}
+                        )}
 
-                    {currentChat?.messages.map((msg, idx) => (
-                        <Bubble key={`${currentChatId}-${idx}`} message={msg} />
-                    ))}
-
-                    {/* Streaming reply */}
-                    {streamingReply && (
-                        <div className="flex items-end gap-2.5 justify-start animate-pulse">
-                            <div
-                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm"
-                                style={{ background: "var(--color-primary)", color: "#fff" }}
-                            >
-                                <Bot className="h-4 w-4" />
+                        {sending && !streamingReply && (
+                            <div className="flex items-end gap-2.5 justify-start">
+                                <div
+                                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm"
+                                    style={{ background: "var(--color-primary)", color: "#fff" }}
+                                >
+                                    <Bot className="h-4 w-4" />
+                                </div>
+                                <div
+                                    className="inline-flex items-center gap-2 rounded-2xl rounded-bl-sm px-4 py-3 text-xs"
+                                    style={{
+                                        background: "var(--dash-card-bg)",
+                                        border: "1px solid var(--dash-card-border)",
+                                        color: "var(--dash-text-muted)",
+                                    }}
+                                >
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    EpiGuard is thinking...
+                                </div>
                             </div>
-                            <div
-                                className="max-w-[78%] rounded-2xl rounded-bl-sm px-4 py-3 text-sm leading-relaxed shadow-sm"
-                                style={{
-                                    background: "var(--dash-card-bg)",
-                                    border: "1px solid var(--dash-card-border)",
-                                    color: "var(--dash-text-primary)",
-                                }}
-                            >
-                                <FormattedMessage content={streamingReply} />
-                                <Loader2 className="h-3 w-3 animate-spin mt-1.5 opacity-40" />
-                            </div>
-                        </div>
-                    )}
+                        )}
 
-                    {/* Typing indicator */}
-                    {sending && !streamingReply && (
-                        <div className="flex items-end gap-2.5 justify-start">
-                            <div
-                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm"
-                                style={{ background: "var(--color-primary)", color: "#fff" }}
-                            >
-                                <Bot className="h-4 w-4" />
-                            </div>
-                            <div
-                                className="inline-flex items-center gap-2 rounded-2xl rounded-bl-sm px-4 py-3 text-xs"
-                                style={{
-                                    background: "var(--dash-card-bg)",
-                                    border: "1px solid var(--dash-card-border)",
-                                    color: "var(--dash-text-muted)",
-                                }}
-                            >
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                EpiGuard is thinking…
-                            </div>
-                        </div>
-                    )}
-
-                    <div ref={bottomRef} />
-                </div>
-
-                {/* Input area */}
-                <div
-                    className="px-4 py-4 border-t space-y-3 lg:px-6"
-                    style={{ borderColor: "var(--dash-card-border)", background: "var(--dash-card-bg)" }}
-                >
-                    {error && (
-                        <div
-                            className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs"
-                            style={{
-                                background: "rgba(220,38,38,0.07)",
-                                borderColor: "rgba(220,38,38,0.22)",
-                                color: "#dc2626",
-                            }}
-                        >
-                            <TriangleAlert className="h-3.5 w-3.5 shrink-0" />
-                            <span>{error}</span>
-                        </div>
-                    )}
-
-                    <div className="flex items-center gap-2">
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter" && !e.shiftKey) {
-                                    e.preventDefault();
-                                    void handleSend();
-                                }
-                            }}
-                            placeholder="Ask about symptoms, prevention, or health guidance…"
-                            className="input-primary flex-1"
-                            disabled={sending}
-                            aria-label="Chat input"
-                            autoFocus
-                        />
-                        <button
-                            type="button"
-                            onClick={() => void handleSend()}
-                            disabled={sending || !input.trim()}
-                            aria-label="Send"
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm transition hover:opacity-90 disabled:opacity-40"
-                            style={{ background: "var(--color-primary)", color: "#fff" }}
-                        >
-                            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                        </button>
+                        <div ref={bottomRef} />
                     </div>
 
-                    <p className="text-center text-[10px]" style={{ color: "var(--dash-text-muted)" }}>
-                        EpiGuard provides guidance only — always consult a doctor for medical concerns.
-                    </p>
+                    <div
+                        className="px-4 py-4 border-t space-y-3 lg:px-6"
+                        style={{ borderColor: "var(--dash-card-border)", background: "var(--dash-card-bg)" }}
+                    >
+                        {error && (
+                            <div
+                                className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs"
+                                style={{
+                                    background: "rgba(220,38,38,0.07)",
+                                    borderColor: "rgba(220,38,38,0.22)",
+                                    color: "#dc2626",
+                                }}
+                            >
+                                <TriangleAlert className="h-3.5 w-3.5 shrink-0" />
+                                <span>{error}</span>
+                            </div>
+                        )}
+
+                        <div className="flex items-center gap-2">
+                            <input
+                                ref={inputRef}
+                                type="text"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && !e.shiftKey) {
+                                        e.preventDefault();
+                                        void handleSend();
+                                    }
+                                }}
+                                placeholder="Ask about symptoms, prevention, or health guidance..."
+                                className="input-primary flex-1"
+                                disabled={sending}
+                                aria-label="Chat input"
+                                autoFocus
+                            />
+                            <button
+                                type="button"
+                                onClick={() => void handleSend()}
+                                disabled={sending || !input.trim()}
+                                aria-label="Send"
+                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl shadow-sm transition hover:opacity-90 disabled:opacity-40"
+                                style={{ background: "var(--color-primary)", color: "#fff" }}
+                            >
+                                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                            </button>
+                        </div>
+
+                        <p className="text-center text-[10px]" style={{ color: "var(--dash-text-muted)" }}>
+                            EpiGuard provides guidance only - always consult a doctor for medical concerns.
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
     );
 }
+
 
 
 
