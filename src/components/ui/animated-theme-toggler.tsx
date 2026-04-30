@@ -52,7 +52,9 @@ export const AnimatedThemeToggler = ({
       const newTheme = !isDark
       setIsDark(newTheme)
       document.documentElement.classList.toggle("dark")
-      localStorage.setItem("theme", newTheme ? "dark" : "light")
+      const resolvedTheme = newTheme ? "dark" : "light"
+      document.documentElement.style.colorScheme = resolvedTheme
+      localStorage.setItem("theme", resolvedTheme)
     }
 
     if (typeof document.startViewTransition !== "function") {

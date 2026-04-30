@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Manrope } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import NavbarHandler from "@/app/NavbarHandler";
 import NavBar from "@/components/NavBar";
@@ -32,6 +33,24 @@ export const metadata: Metadata = {
   description: "Sri Lankan Disease analysis platform",
 };
 
+const themeBootstrapScript = `
+  (() => {
+    try {
+      const storedTheme = window.localStorage.getItem("theme");
+      const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const resolvedTheme = storedTheme === "dark" || storedTheme === "light"
+        ? storedTheme
+        : (systemPrefersDark ? "dark" : "light");
+
+      document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
+      document.documentElement.style.colorScheme = resolvedTheme;
+    } catch {
+      document.documentElement.classList.remove("dark");
+      document.documentElement.style.colorScheme = "light";
+    }
+  })();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -39,6 +58,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <Script
+          id="theme-bootstrap"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: themeBootstrapScript }}
+        />
+      </head>
       <body
         className={`${inter.variable} ${manrope.variable} ${jetBrainsMono.variable} antialiased`}
       >
