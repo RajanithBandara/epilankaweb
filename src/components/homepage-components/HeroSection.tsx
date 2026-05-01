@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { account } from '@/lib/appwrite';
-import { ShinyButton } from "@/components/ui/shiny-button";
 
 const EASE = [0.25, 0.46, 0.45, 0.94] as const;
 
@@ -94,27 +93,26 @@ function HeroSection() {
                 >
                     <motion.a
                         href="/dashboard"
-                        whileHover={{ y: -3 }}
-                        whileTap={{ scale: 0.97 }}
-                        className="group relative"
+                        className="group relative inline-flex items-center gap-3 bg-white text-[#1E3A8A] font-bold px-8 py-4 rounded-xl text-base overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={(e) => {
-                            e.preventDefault();
-                            handleCTA();
+                            if (loading) e.preventDefault();
+                            else {
+                                e.preventDefault();
+                                handleCTA();
+                            }
                         }}
+                        whileHover={!loading ? { scale: 1.04 } : {}}
+                        whileTap={!loading ? { scale: 0.96 } : {}}
+                        transition={{ type: 'spring', stiffness: 320, damping: 24 }}
+                        style={{ pointerEvents: loading ? 'none' : 'auto', opacity: loading ? 0.6 : 1 }}
                     >
-                        <button
-                            disabled={loading}
-                            className="cursor-pointer relative inline-flex items-center gap-2 px-8 py-3 text-base font-semibold text-white/90 border border-white/30 rounded-lg backdrop-blur-sm hover:bg-white/10 hover:border-white/50 transition-all duration-300">
-                            {loading ? 'Loading...' : buttonText}
-                            <svg
-                                className="w-6 h-6 opacity-60 group-hover:opacity-100 transition-opacity"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
+                        <span className="relative z-10">{loading ? 'Loading...' : buttonText}</span>
+                        {!loading && (
+                            <svg className="w-5 h-5 relative z-10 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                             </svg>
-                        </button>
+                        )}
                     </motion.a>
                 </motion.div>
 

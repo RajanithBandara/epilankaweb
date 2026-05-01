@@ -1,17 +1,20 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { LogIn, User } from 'lucide-react';
+import { ChevronDown, LogIn, ShieldCheck, User } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import api from '@/lib/api';
 
 function NavBar() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isDesktopLoginOpen, setIsDesktopLoginOpen] = useState(false);
+    const [isMobileLoginOpen, setIsMobileLoginOpen] = useState(false);
     const [profileImage, setProfileImage] = useState<string | null>(null);
     const [hideAvatarImage, setHideAvatarImage] = useState(false);
     const router = useRouter();
@@ -25,9 +28,19 @@ function NavBar() {
         { href: '/safety', label: 'Safety Guide' },
     ];
 
+    const loginOptions = [
+        { href: '/login', label: 'User Login', icon: LogIn },
+        { href: '/officer/login', label: 'Officer Login', icon: ShieldCheck },
+    ];
+
     const isActivePath = (href: string) => {
         if (href === '/') return currentPath === '/';
         return currentPath === href || currentPath.startsWith(`${href}/`);
+    };
+
+    const handleLoginOptionClick = (href: string, closeLoginMenu: () => void) => {
+        router.push(href);
+        closeLoginMenu();
     };
 
     const displayName = user?.name || user?.email?.split('@')[0] || 'User';
@@ -164,15 +177,40 @@ function NavBar() {
                                         )}
                                     </Button>
                                 ) : (
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        className="cursor-pointer px-4 md:px-5 py-2 h-10 bg-white/10 backdrop-blur-md text-white rounded-full border border-white/20 hover:bg-white/20 hover:border-white/40 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl text-sm inline-flex items-center gap-2"
-                                        onClick={() => router.push('/login')}
-                                    >
-                                        <LogIn className="h-4 w-4" />
-                                        Sign In
-                                    </Button>
+                                    <Popover open={isDesktopLoginOpen} onOpenChange={setIsDesktopLoginOpen}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                className="cursor-pointer px-4 md:px-5 py-2 h-10 bg-white/10 backdrop-blur-md text-white rounded-full border border-white/20 hover:bg-white/20 hover:border-white/40 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl text-sm inline-flex items-center gap-2"
+                                            >
+                                                <LogIn className="h-4 w-4" />
+                                                Login
+                                                <ChevronDown className="h-4 w-4" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent
+                                            align="end"
+                                            className="z-[60] w-52 rounded-xl border border-white/20 bg-[#1E3A8A]/95 p-2 text-white shadow-2xl backdrop-blur-xl"
+                                        >
+                                            <div className="space-y-1">
+                                                {loginOptions.map((option) => {
+                                                    const Icon = option.icon;
+                                                    return (
+                                                        <button
+                                                            key={option.href}
+                                                            type="button"
+                                                            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-white/90 transition-colors hover:bg-white/15 hover:text-white"
+                                                            onClick={() => handleLoginOptionClick(option.href, () => setIsDesktopLoginOpen(false))}
+                                                        >
+                                                            <Icon className="h-4 w-4" />
+                                                            {option.label}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </PopoverContent>
+                                    </Popover>
                                 )}
                             </motion.div>
 
@@ -260,18 +298,43 @@ function NavBar() {
                                                         Go to Dashboard
                                                     </Button>
                                                 ) : (
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        className="w-full h-auto px-4 py-3 bg-white/10 text-white rounded-xl border border-white/20 hover:bg-white/20 font-semibold transition-all duration-300 inline-flex items-center justify-center gap-2"
-                                                        onClick={() => {
-                                                            router.push('/login');
-                                                            setIsMobileMenuOpen(false);
-                                                        }}
-                                                    >
-                                                        <LogIn className="h-4 w-4" />
-                                                        Sign In
-                                                    </Button>
+                                                    <Popover open={isMobileLoginOpen} onOpenChange={setIsMobileLoginOpen}>
+                                                        <PopoverTrigger asChild>
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                className="w-full h-auto px-4 py-3 bg-white/10 text-white rounded-xl border border-white/20 hover:bg-white/20 font-semibold transition-all duration-300 inline-flex items-center justify-center gap-2"
+                                                            >
+                                                                <LogIn className="h-4 w-4" />
+                                                                Login
+                                                                <ChevronDown className="h-4 w-4" />
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent
+                                                            align="center"
+                                                            className="z-[60] w-[calc(100vw-4rem)] rounded-xl border border-white/20 bg-[#1E3A8A]/95 p-2 text-white shadow-2xl backdrop-blur-xl"
+                                                        >
+                                                            <div className="space-y-1">
+                                                                {loginOptions.map((option) => {
+                                                                    const Icon = option.icon;
+                                                                    return (
+                                                                        <button
+                                                                            key={option.href}
+                                                                            type="button"
+                                                                            className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold text-white/90 transition-colors hover:bg-white/15 hover:text-white"
+                                                                            onClick={() => {
+                                                                                handleLoginOptionClick(option.href, () => setIsMobileLoginOpen(false));
+                                                                                setIsMobileMenuOpen(false);
+                                                                            }}
+                                                                        >
+                                                                            <Icon className="h-4 w-4" />
+                                                                            {option.label}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </PopoverContent>
+                                                    </Popover>
                                                 )}
                                             </div>
                                         </div>

@@ -408,7 +408,9 @@ export default function AuthPage({ initialMode = 'login' }: AuthPageProps) {
             <div className="pointer-events-none absolute -bottom-20 -right-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
             <div className="pointer-events-none absolute top-10 -left-10 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
 
-            <div className="relative z-10">
+            <div className="relative z-10 cursor-pointer"
+              onClick={() => router.push('/')}
+            >
               <div className="mb-8 flex items-center gap-2.5">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 ring-1 ring-white/30 backdrop-blur-sm">
                   <Activity className="h-5 w-5 text-white" />
