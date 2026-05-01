@@ -486,8 +486,15 @@ time,
     font-variant-numeric: tabular-nums;
 }
 
-body.not-found-page .app-navbar {
+body.not-found-page .app-navbar,
+body.not-found-page .site-footer,
+body:has(main[data-not-found-page="true"]) .app-navbar,
+body:has(main[data-not-found-page="true"]) .site-footer {
     display: none;
+}
+
+body:has(main[data-not-found-page="true"]) {
+    background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 50%, #f0fdfa 100%);
 }
 
 /* Ensure Next.js root takes full height */

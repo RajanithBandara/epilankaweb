@@ -2,7 +2,7 @@
 
 function Footer() {
     return (
-        <footer className="relative">
+        <footer className="site-footer relative">
             {/* Background */}
             <div className="absolute inset-0 bg-[#0f1e45]/90 backdrop-blur-xl" />
 
