@@ -74,10 +74,10 @@ export default function RootLayout({
             </NavbarHandler>
             <PageTransition>
               {children}
+              <FooterHandler>
+                <Footer />
+              </FooterHandler>
             </PageTransition>
-            <FooterHandler>
-              <Footer />
-            </FooterHandler>
           </LoadingProvider>
         </AuthProvider>
       </body>
