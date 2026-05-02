@@ -25,7 +25,7 @@ function NavBar() {
     const navItems = [
         { href: '/', label: 'Home' },
         { href: '/map', label: 'Map' },
-        { href: '/safety', label: 'Safety Guide' },
+        { href: '/epiguard', label: 'EpiGuard' },
     ];
 
     const loginOptions = [
