@@ -296,13 +296,7 @@ export default function TakeCare() {
                 if (data.chats && data.chats.length > 0) {
                     setCurrentChatId(data.chats[0].id);
                 } else {
-                    // Create initial chat
-                    const newRes = await fetchWithAuth("/api/chat-history/new", { method: "POST" });
-                    if (newRes.ok) {
-                        const newData = (await newRes.json()) as { chatId: string; chat: Chat };
-                        setChats([newData.chat]);
-                        setCurrentChatId(newData.chatId);
-                    }
+                    setCurrentChatId(null);
                 }
             } catch (err) {
                 console.error("Failed to load chats:", err);
@@ -353,7 +347,7 @@ export default function TakeCare() {
                     if (remainingChats.length > 0) {
                         setCurrentChatId(remainingChats[0].id);
                     } else {
-                        void createNewChat();
+                        setCurrentChatId(null);
                     }
                 }
             } catch (err) {
@@ -653,13 +647,8 @@ export default function TakeCare() {
                     >
                         {isNewChat && (
                             <div className="flex flex-col items-center justify-center h-full py-10 px-6 text-center animate-fade-in">
-                                <div className="relative w-56 h-56 mb-2">
-                                    <Lottie animationData={flyingGlobe} loop={true} className="w-full h-full" />
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <div className="w-16 h-16 rounded-2xl bg-(--color-primary) flex items-center justify-center shadow-2xl relative z-10">
-                                            <Bot className="h-8 w-8 text-white" />
-                                        </div>
-                                    </div>
+                                <div className="relative w-28 h-28 mb-4">
+                                    <Lottie animationData={flyingGlobe} loop={true} className="w-full h-full drop-shadow-lg" />
                                 </div>
                                 
                                 <h3 className="text-2xl font-black mb-2" style={{ color: "var(--dash-text-primary)" }}>
