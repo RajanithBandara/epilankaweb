@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
-const API_KEY = process.env.INTERNAL_API_KEY ?? "";
+const API_KEY = process.env.SECRET_KEY ?? "";
 
 function getJwt(req: NextRequest): string | null {
     return (

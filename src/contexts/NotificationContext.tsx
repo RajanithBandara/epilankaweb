@@ -10,7 +10,6 @@ import React, {
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '@/contexts/AuthContext';
 import { account } from '@/lib/appwrite';
-import api from '@/lib/api';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -133,9 +132,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     const syncUnreadCount = useCallback(async () => {
         if (!user) return;
         try {
-            const res = await api.get('/notifications/unread/count');
-            if (res.data) {
-                setUnreadCount(res.data.unread_count ?? 0);
+            const res = await fetch('/api/notifications/unread-count', { credentials: 'include' });
+            if (res.ok) {
+                const data = await res.json();
+                setUnreadCount(data.unread_count ?? 0);
             }
         } catch {
             // non-fatal
@@ -151,11 +151,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
             if (skip === 0) setIsLoading(true);
             try {
-                const res = await api.get('/notifications/', {
-                    params: { skip, limit, unread_only: false }
+                const params = new URLSearchParams({
+                    skip: String(skip),
+                    limit: String(limit),
+                    unread_only: 'false',
                 });
+                const res = await fetch(`/api/notifications?${params}`, { credentials: 'include' });
 
-                const data = res.data;
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
                 const fetched: Notification[] = data.items ?? [];
 
                 setNotifications((prev) => {

@@ -9,7 +9,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import api from '@/lib/api';
 
 function NavBar() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -25,7 +24,7 @@ function NavBar() {
     const navItems = [
         { href: '/', label: 'Home' },
         { href: '/map', label: 'Map' },
-        { href: '/safety', label: 'Safety Guide' },
+        { href: '/epiguard', label: 'EpiGuard' },
     ];
 
     const loginOptions = [
@@ -66,10 +65,12 @@ function NavBar() {
             }
 
             try {
-                const response = await api.get('/users/me');
+                const response = await fetch('/api/users/me', { credentials: 'include' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
                 const image =
-                    typeof response?.data?.user?.profile_image === 'string' && response.data.user.profile_image.trim().length > 0
-                        ? response.data.user.profile_image
+                    typeof data?.user?.profile_image === 'string' && data.user.profile_image.trim().length > 0
+                        ? data.user.profile_image
                         : null;
 
                 if (!isCancelled) setProfileImage(image);

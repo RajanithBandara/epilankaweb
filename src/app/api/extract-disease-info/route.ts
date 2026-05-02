@@ -18,8 +18,7 @@ export async function POST(req: NextRequest) {
         const { description, user_id, latitude, longitude } = await req.json();
         const apiKey =
             process.env.API_SECRET_KEY ||
-            process.env.NEXT_PUBLIC_SECRET_KEY ||
-            process.env.NEXT_PUBLIC_API_KEY;
+            process.env.SECRET_KEY;
 
         if (!description || typeof description !== 'string') {
             return NextResponse.json(

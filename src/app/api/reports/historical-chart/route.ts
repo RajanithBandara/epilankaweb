@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
             {
                 params: { district_name },
                 headers: {
-                    'x-api-key': process.env.NEXT_PUBLIC_SECRET_KEY as string,
+                    'x-api-key': process.env.SECRET_KEY as string,
                     'Content-Type': 'application/json',
                 },
             }

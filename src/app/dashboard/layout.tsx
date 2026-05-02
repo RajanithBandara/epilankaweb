@@ -20,8 +20,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import NotificationBell from "@/components/dashboard-components/NotificationBell";
 import NotificationToast from "@/components/dashboard-components/NotificationToast";
-import api from "@/lib/api";
-
 
 type NavItem = {
   label: string;
@@ -77,10 +75,12 @@ export default function DashboardLayout({
       }
 
       try {
-        const res = await api.get("/users/me");
+        const res = await fetch('/api/users/me', { credentials: 'include' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
         const image =
-          typeof res?.data?.user?.profile_image === "string" && res.data.user.profile_image.trim().length > 0
-            ? res.data.user.profile_image
+          typeof data?.user?.profile_image === "string" && data.user.profile_image.trim().length > 0
+            ? data.user.profile_image
             : null;
 
         if (!isCancelled) setProfileImage(image);

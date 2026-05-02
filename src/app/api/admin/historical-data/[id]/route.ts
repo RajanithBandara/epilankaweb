@@ -6,7 +6,7 @@ type ApiError = { detail?: string; msg?: string };
 const BACKEND_BASE_URL =
     process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-const API_KEY = process.env.NEXT_PUBLIC_SECRET_KEY || "";
+const API_KEY = process.env.SECRET_KEY || "";
 
 // GET /api/admin/historical-data/[id] — fetch a single record
 export async function GET(

@@ -16,7 +16,7 @@ export async function GET(req: Request) {
             );
         }
 
-        if (!process.env.NEXT_PUBLIC_SECRET_KEY) {
+        if (!process.env.SECRET_KEY) {
             return NextResponse.json(
                 { error: "API key not configured" },
                 { status: 500 }
@@ -31,7 +31,7 @@ export async function GET(req: Request) {
                     longitude: parseFloat(longitude),
                 },
                 headers: {
-                    "x-api-key": process.env.NEXT_PUBLIC_SECRET_KEY,
+                    "x-api-key": process.env.SECRET_KEY,
                 },
             }
         );
