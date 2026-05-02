@@ -1,60 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getMongoDb } from "@/lib/mongodb";
 
-const APPWRITE_ENDPOINT = (process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT ?? "").replace(/\/$/, "");
-const APPWRITE_PROJECT = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID ?? "";
-const COLLECTION = "chat_sessions";
-const MAX_MESSAGES_PER_CHAT = 100;
+const BACKEND = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
+const API_KEY = process.env.INTERNAL_API_KEY ?? "";
 
-async function getUserId(req: NextRequest): Promise<string | null> {
-    const jwt =
+/** Extract the Appwrite JWT from cookies or Authorization header */
+function getJwt(req: NextRequest): string | null {
+    return (
         req.cookies.get("appwrite-jwt")?.value ??
-        req.headers.get("authorization")?.replace("Bearer ", "");
-
-    if (!jwt || !APPWRITE_ENDPOINT || !APPWRITE_PROJECT) return null;
-
-    try {
-        const res = await fetch(`${APPWRITE_ENDPOINT}/account`, {
-            headers: {
-                "x-appwrite-project": APPWRITE_PROJECT,
-                "x-appwrite-jwt": jwt,
-                "Content-Type": "application/json",
-            },
-        });
-        if (!res.ok) return null;
-        const user = await res.json() as { $id: string };
-        return user.$id ?? null;
-    } catch {
-        return null;
-    }
+        req.headers.get("authorization")?.replace("Bearer ", "") ??
+        null
+    );
 }
 
-/** GET /api/chat-history — load all chats or specific chat for logged-in user */
+/** Build backend request headers */
+function backendHeaders(jwt: string): HeadersInit {
+    return {
+        "Content-Type": "application/json",
+        "x-api-key": API_KEY,
+        Authorization: `Bearer ${jwt}`,
+    };
+}
+
+/** GET /api/chat-history[?chatId=xxx] — load all chats or a single chat */
 export async function GET(req: NextRequest) {
-    const userId = await getUserId(req);
-    if (!userId) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const jwt = getJwt(req);
+    if (!jwt) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const chatId = req.nextUrl.searchParams.get("chatId");
+    const url = chatId
+        ? `${BACKEND}/chat/history/${chatId}`
+        : `${BACKEND}/chat/history`;
 
     try {
-        const db = await getMongoDb();
-        const doc = await db
-            .collection(COLLECTION)
-            .findOne({ userId }, { projection: { _id: 0, chats: 1 } });
-
-        const chats = doc?.chats ?? [];
-
-        if (chatId) {
-            const chat = chats.find((c: Record<string, unknown>) => (c as unknown as { id: string }).id === chatId);
-            if (!chat) {
-                return NextResponse.json({ error: "Chat not found" }, { status: 404 });
-            }
-            return NextResponse.json({ chat });
-        }
-
-        return NextResponse.json({ chats });
+        const res = await fetch(url, { headers: backendHeaders(jwt) });
+        const data = await res.json();
+        return NextResponse.json(data, { status: res.status });
     } catch (err) {
         console.error("[chat-history GET]", err);
         return NextResponse.json({ error: "Failed to load history" }, { status: 500 });
@@ -63,17 +43,10 @@ export async function GET(req: NextRequest) {
 
 /** POST /api/chat-history — save a message to a specific chat */
 export async function POST(req: NextRequest) {
-    const userId = await getUserId(req);
-    if (!userId) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const jwt = getJwt(req);
+    if (!jwt) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    let body: {
-        chatId: string;
-        role: "user" | "assistant";
-        content: string;
-    };
-
+    let body: { chatId: string; role: string; content: string };
     try {
         body = await req.json();
     } catch {
@@ -85,45 +58,24 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "chatId, role, and content are required" }, { status: 400 });
     }
 
-    const now = new Date().toISOString();
-    const newMessage = { role, content: content.trim(), createdAt: now };
-
     try {
-        const db = await getMongoDb();
-
-        const update = {
-            $push: {
-                "chats.$[chat].messages": {
-                    $each: [newMessage],
-                    $slice: -MAX_MESSAGES_PER_CHAT,
-                },
-            },
-            $set: { "chats.$[chat].updatedAt": now, updatedAt: now },
-        } as unknown as Record<string, unknown>;
-
-        const result = await db.collection(COLLECTION).updateOne(
-            { userId, "chats.id": chatId },
-            update,
-            { arrayFilters: [{ "chat.id": chatId }] }
-        );
-
-        if (result.matchedCount === 0) {
-            return NextResponse.json({ error: "Chat not found" }, { status: 404 });
-        }
-
-        return NextResponse.json({ ok: true, message: newMessage });
+        const res = await fetch(`${BACKEND}/chat/history/message`, {
+            method: "POST",
+            headers: backendHeaders(jwt),
+            body: JSON.stringify({ chatId, role, content }),
+        });
+        const data = await res.json();
+        return NextResponse.json(data, { status: res.status });
     } catch (err) {
         console.error("[chat-history POST]", err);
         return NextResponse.json({ error: "Failed to save message" }, { status: 500 });
     }
 }
 
-/** DELETE /api/chat-history — delete a specific chat */
+/** DELETE /api/chat-history?chatId=xxx — delete a specific chat */
 export async function DELETE(req: NextRequest) {
-    const userId = await getUserId(req);
-    if (!userId) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const jwt = getJwt(req);
+    if (!jwt) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const chatId = req.nextUrl.searchParams.get("chatId");
     if (!chatId) {
@@ -131,14 +83,12 @@ export async function DELETE(req: NextRequest) {
     }
 
     try {
-        const db = await getMongoDb();
-        const update = {
-            $pull: { chats: { id: chatId } },
-            $set: { updatedAt: new Date().toISOString() },
-        } as unknown as Record<string, unknown>;
-
-        await db.collection(COLLECTION).updateOne({ userId }, update);
-        return NextResponse.json({ ok: true });
+        const res = await fetch(`${BACKEND}/chat/history/${chatId}`, {
+            method: "DELETE",
+            headers: backendHeaders(jwt),
+        });
+        const data = await res.json();
+        return NextResponse.json(data, { status: res.status });
     } catch (err) {
         console.error("[chat-history DELETE]", err);
         return NextResponse.json({ error: "Failed to delete chat" }, { status: 500 });
