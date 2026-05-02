@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { MapPin, FileText, TrendingUp, Calendar, AlertCircle, Loader2 } from 'lucide-react';
-import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import {
     Select,
@@ -65,9 +64,10 @@ export default function AreaReportsList() {
     const fetchLocations = useCallback(async () => {
         try {
             setLocationsLoading(true);
-            const response = await api.get('/map/locations');
-            if (response.data?.locations) {
-                setLocationOptions(response.data.locations);
+            const res = await fetch('/api/map/locations');
+            if (res.ok) {
+                const data = await res.json();
+                if (data?.locations) setLocationOptions(data.locations);
             }
         } catch (err) {
             console.error('Failed to fetch locations:', err);
@@ -131,12 +131,18 @@ export default function AreaReportsList() {
                 params.district_name = selectedLocation;
             }
 
-            // Fetch reports
-            const response = await api.get<ReportsResponse>('/reports/location', {
-                params
+            const qs = new URLSearchParams({
+                limit: String(params.limit),
+                skip: String(params.skip),
+                days: String(params.days),
+                ...(params.user_id ? { user_id: params.user_id } : {}),
+                ...(params.district_name ? { district_name: params.district_name } : {}),
             });
+            const res = await fetch(`/api/reports/location?${qs}`, { credentials: 'include' });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const responseData: ReportsResponse = await res.json();
 
-            if (!response.data.reports || response.data.reports.length === 0) {
+            if (!responseData.reports || responseData.reports.length === 0) {
                 setDistrictGroups(new Map());
                 setLoading(false);
                 return;
@@ -145,7 +151,7 @@ export default function AreaReportsList() {
             // Group reports by district
             const groupedByDistrict = new Map<string, DistrictReportGroup>();
 
-            response.data.reports.forEach((report) => {
+            responseData.reports.forEach((report) => {
                 const districtName = report.district_info?.district_name || 'Unknown District';
                 const provinceName = report.district_info?.province_name || 'Unknown Province';
                 const key = districtName;

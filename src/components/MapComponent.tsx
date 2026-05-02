@@ -13,7 +13,6 @@ import {
     AlertCircle
 } from 'lucide-react';
 import { FaSyncAlt } from "react-icons/fa";
-import api from '@/lib/api';
 import { DatePicker } from '@/components/ui/datepicker';
 import {
     Tooltip,
@@ -280,11 +279,14 @@ export default function MapComponent({ variant = 'default' }: MapComponentProps)
         const fetchMapData = async () => {
             try {
                 setDataLoading(true);
-                const response = await api.get('/map/alldistricts', {
-                    params: { target_date: format(selectedDate, 'yyyy-MM-dd') },
+                const params = new URLSearchParams({
+                    target_date: format(selectedDate, 'yyyy-MM-dd'),
                 });
-                setMapData(response.data);
-                districtDataRef.current = response.data?.districts ?? [];
+                const response = await fetch(`/api/map/alldistricts?${params}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                setMapData(data);
+                districtDataRef.current = data?.districts ?? [];
                 setTooltipDistrict(null);
                 setTooltipPoint(null);
                 setTooltipOpen(false);

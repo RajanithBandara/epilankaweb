@@ -17,7 +17,7 @@ export async function POST(req: Request) {
 
     // Fire-and-forget profile sync — do NOT await so login is never blocked
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    const apiKey = process.env.NEXT_PUBLIC_SECRET_KEY;
+    const apiKey = process.env.SECRET_KEY;
     if (apiUrl && apiKey) {
       fetch(`${apiUrl}/users/sync`, {
         method: 'POST',

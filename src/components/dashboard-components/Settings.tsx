@@ -38,7 +38,6 @@ import {
 } from '@/lib/twoFactorAuth';
 import { AppwriteException } from 'appwrite';
 import { account } from '@/lib/appwrite';
-import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface UserProfile {
@@ -160,8 +159,10 @@ export default function UserSettings() {
     const loadProfile = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await api.get('/users/me');
-            const data: UserProfile = res.data.user;
+            const res = await fetch('/api/users/me', { credentials: 'include' });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const json = await res.json();
+            const data: UserProfile = json.user;
             setProfile(data);
             setNewUsername(data.username ?? '');
             setNewEmail(data.email ?? '');
@@ -255,7 +256,16 @@ export default function UserSettings() {
 
         setLoading(true);
         try {
-            await api.put('/users/profile', body);
+            const res = await fetch('/api/users/profile', {
+                method: 'PUT',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || `HTTP ${res.status}`);
+            }
             showAlert('Profile updated successfully!');
             loadProfile();
         } catch (err) {
@@ -303,9 +313,16 @@ export default function UserSettings() {
         formData.append('file', selectedFile);
         setLoading(true);
         try {
-            await api.post('/users/profilepic', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
+            const res = await fetch('/api/users/profilepic', {
+                method: 'POST',
+                credentials: 'include',
+                body: formData,
+                // No Content-Type header — browser sets it with the correct boundary
             });
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || `HTTP ${res.status}`);
+            }
             showAlert('Profile picture updated!');
             setSelectedFile(null);
             setPreviewUrl(null);
@@ -321,7 +338,14 @@ export default function UserSettings() {
     const deletePicture = async () => {
         setLoading(true);
         try {
-            await api.delete('/users/profilepic');
+            const res = await fetch('/api/users/profilepic', {
+                method: 'DELETE',
+                credentials: 'include',
+            });
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || `HTTP ${res.status}`);
+            }
             showAlert('Profile picture deleted!');
             setSelectedFile(null);
             setPreviewUrl(null);
