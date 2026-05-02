@@ -77,7 +77,7 @@ export default function OfficerManagePanel() {
         finally { setLoading(false); }
     }
 
-    useEffect(() => { void loadOfficers(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { void loadOfficers(); }, []);
 
     async function handleRegister(ev: React.FormEvent) {
         ev.preventDefault();

@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { AlertCircle, HeartPulse, Hospital, Info, Loader2, ShieldCheck, Sparkles, Stethoscope, TriangleAlert } from 'lucide-react';
+import { AlertCircle, ChevronDown, HeartPulse, Hospital, Info, Loader2, ShieldCheck, Sparkles, Stethoscope, TriangleAlert } from 'lucide-react';
+import MicroorganismBackground from '@/components/safety-components/MicroorganismBackground';
 
 /* ── Types ──────────────────────────────────────────────────────── */
 type Disease = { disease_id: number; disease_name: string; description: string | null };
@@ -64,29 +65,29 @@ function EnhancedDiseasePanel({ enhanced }: { enhanced: EnhancedInfo }) {
   return (
     <div className="space-y-5 animate-fade-in">
       {enhanced.brief_summary && (
-        <div className="flex items-start gap-3 rounded-xl border border-white/10 px-4 py-3" style={{ background: 'rgba(255,255,255,0.05)' }}>
-          <Info className="h-4 w-4 shrink-0 mt-0.5 text-blue-300" />
-          <p className="text-sm leading-relaxed text-white/80">{enhanced.brief_summary}</p>
+        <div className="flex items-start gap-3 rounded-xl border border-white/10 px-5 py-4" style={{ background: 'rgba(255,255,255,0.05)' }}>
+          <Info className="h-5 w-5 shrink-0 mt-0.5 text-[#67e8f9]" />
+          <p className="text-base leading-relaxed text-white/90">{enhanced.brief_summary}</p>
         </div>
       )}
 
       {enhanced.symptom_categories.length > 0 && (
         <div>
-          <div className="flex items-center gap-2 mb-3">
-            <AlertCircle className="h-4 w-4 text-red-300 shrink-0" />
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/60">Symptoms</p>
+          <div className="flex items-center gap-2 mb-4">
+            <AlertCircle className="h-5 w-5 text-red-300 shrink-0" />
+            <p className="text-xs font-bold uppercase tracking-widest text-white/60">Symptoms</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {enhanced.symptom_categories.map((cat) => (
-              <div key={cat.category} className="rounded-xl border border-red-400/20 p-3.5" style={{ background: 'rgba(239,68,68,0.08)' }}>
-                <p className="text-xs font-bold mb-2.5 flex items-center gap-1.5 text-red-300">
-                  <span className="text-base leading-none">{cat.icon}</span>
+              <div key={cat.category} className="rounded-xl border border-red-400/20 p-4" style={{ background: 'rgba(239,68,68,0.08)' }}>
+                <p className="text-sm font-bold mb-3 flex items-center gap-2 text-red-300">
+                  <span className="text-xl leading-none">{cat.icon}</span>
                   {cat.category}
                 </p>
-                <ul className="space-y-1.5">
+                <ul className="space-y-2">
                   {cat.items.map((item) => (
-                    <li key={item} className="flex items-start gap-2 text-xs text-white/80">
-                      <span className="mt-1 h-1.5 w-1.5 rounded-full bg-red-400 shrink-0 shadow-sm" />
+                    <li key={item} className="flex items-start gap-2.5 text-sm text-white/80">
+                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-red-400 shrink-0 shadow-sm" />
                       {item}
                     </li>
                   ))}
@@ -97,25 +98,25 @@ function EnhancedDiseasePanel({ enhanced }: { enhanced: EnhancedInfo }) {
         </div>
       )}
 
-      {enhanced.symptom_categories.length > 0 && enhanced.precaution_categories.length > 0 && <div className="border-t border-white/10" />}
+      {enhanced.symptom_categories.length > 0 && enhanced.precaution_categories.length > 0 && <div className="border-t border-white/10 my-2" />}
 
       {enhanced.precaution_categories.length > 0 && (
         <div>
-          <div className="flex items-center gap-2 mb-3">
-            <ShieldCheck className="h-4 w-4 text-emerald-300 shrink-0" />
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/60">Precautions</p>
+          <div className="flex items-center gap-2 mb-4">
+            <ShieldCheck className="h-5 w-5 text-emerald-300 shrink-0" />
+            <p className="text-xs font-bold uppercase tracking-widest text-white/60">Precautions</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {enhanced.precaution_categories.map((cat) => (
-              <div key={cat.category} className="rounded-xl border border-emerald-400/20 p-3.5" style={{ background: 'rgba(16,185,129,0.08)' }}>
-                <p className="text-xs font-bold mb-2.5 flex items-center gap-1.5 text-emerald-300">
-                  <span className="text-base leading-none">{cat.icon}</span>
+              <div key={cat.category} className="rounded-xl border border-emerald-400/20 p-4" style={{ background: 'rgba(16,185,129,0.08)' }}>
+                <p className="text-sm font-bold mb-3 flex items-center gap-2 text-emerald-300">
+                  <span className="text-xl leading-none">{cat.icon}</span>
                   {cat.category}
                 </p>
-                <ol className="space-y-1.5">
+                <ol className="space-y-2">
                   {cat.items.map((item, ii) => (
-                    <li key={item} className="flex items-start gap-2 text-xs text-white/80">
-                      <span className="shrink-0 mt-0.5 inline-flex items-center justify-center h-4 w-4 rounded-full text-[9px] font-bold text-emerald-200 border border-emerald-400/40 shadow-sm" style={{ background: 'rgba(16,185,129,0.25)' }}>
+                    <li key={item} className="flex items-start gap-2.5 text-sm text-white/80">
+                      <span className="shrink-0 mt-0.5 inline-flex items-center justify-center h-5 w-5 rounded-full text-[10px] font-bold text-emerald-200 border border-emerald-400/40 shadow-sm" style={{ background: 'rgba(16,185,129,0.25)' }}>
                         {ii + 1}
                       </span>
                       {item}
@@ -129,11 +130,11 @@ function EnhancedDiseasePanel({ enhanced }: { enhanced: EnhancedInfo }) {
       )}
 
       {enhanced.when_to_seek_help && (
-        <div className="flex items-start gap-3 rounded-xl border border-red-500/30 px-4 py-3.5" style={{ background: 'rgba(239,68,68,0.1)' }}>
-          <Hospital className="h-4 w-4 shrink-0 mt-0.5 text-red-400" />
+        <div className="flex items-start gap-4 rounded-xl border border-red-500/30 px-5 py-4" style={{ background: 'rgba(239,68,68,0.1)' }}>
+          <Hospital className="h-5 w-5 shrink-0 mt-0.5 text-red-400" />
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-red-300 mb-1">When to seek medical help</p>
-            <p className="text-sm leading-relaxed text-white/80">{enhanced.when_to_seek_help}</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-red-300 mb-1.5">When to seek medical help</p>
+            <p className="text-base leading-relaxed text-white/90">{enhanced.when_to_seek_help}</p>
           </div>
         </div>
       )}
@@ -143,17 +144,17 @@ function EnhancedDiseasePanel({ enhanced }: { enhanced: EnhancedInfo }) {
 
 function PlainDiseasePanel({ details }: { details: DiseaseDetail }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {details.symptoms.length > 0 && (
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <AlertCircle className="h-3.5 w-3.5 text-red-300" />
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/60">Symptoms</p>
+          <div className="flex items-center gap-2 mb-3">
+            <AlertCircle className="h-4 w-4 text-red-300" />
+            <p className="text-xs font-bold uppercase tracking-widest text-white/60">Symptoms</p>
           </div>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-2">
             {details.symptoms.map((symptom) => (
-              <span key={symptom} className="inline-flex items-center rounded-full border border-red-300/30 px-2.5 py-0.5 text-xs font-medium text-red-200" style={{ background: 'rgba(239,68,68,0.15)' }}>
-                <span className="mr-1 h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
+              <span key={symptom} className="inline-flex items-center rounded-full border border-red-300/30 px-4 py-1 text-sm font-medium text-red-200" style={{ background: 'rgba(239,68,68,0.15)' }}>
+                <span className="mr-2 h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
                 {symptom}
               </span>
             ))}
@@ -165,14 +166,14 @@ function PlainDiseasePanel({ details }: { details: DiseaseDetail }) {
 
       {details.precautions.length > 0 && (
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" />
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/60">Precautions</p>
+          <div className="flex items-center gap-2 mb-3">
+            <ShieldCheck className="h-4 w-4 text-emerald-300" />
+            <p className="text-xs font-bold uppercase tracking-widest text-white/60">Precautions</p>
           </div>
-          <ol className="space-y-2">
+          <ol className="space-y-3">
             {details.precautions.map((precaution, index) => (
-              <li key={precaution} className="flex items-start gap-2 text-sm text-white/80">
-                <span className="shrink-0 mt-0.5 inline-flex items-center justify-center h-5 w-5 rounded-full text-[10px] font-bold text-emerald-200 border border-emerald-400/40" style={{ background: 'rgba(16,185,129,0.20)' }}>
+              <li key={precaution} className="flex items-start gap-3 text-base text-white/80">
+                <span className="shrink-0 mt-0.5 inline-flex items-center justify-center h-6 w-6 rounded-full text-[11px] font-bold text-emerald-200 border border-emerald-400/40" style={{ background: 'rgba(16,185,129,0.20)' }}>
                   {index + 1}
                 </span>
                 {precaution}
@@ -186,6 +187,7 @@ function PlainDiseasePanel({ details }: { details: DiseaseDetail }) {
 }
 
 function DiseaseGuideCard({ disease }: { disease: Merged }) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [enhanced, setEnhanced] = useState<EnhancedInfo | null>(null);
   const hasDetails = !!disease.details && (disease.details.symptoms.length > 0 || disease.details.precautions.length > 0);
   const [enhancing, setEnhancing] = useState(Boolean(hasDetails));
@@ -204,61 +206,73 @@ function DiseaseGuideCard({ disease }: { disease: Merged }) {
   }, [hasDetails, enhancing, enhanced, enhanceFailed, disease]);
 
   return (
-    <div className="rounded-2xl border border-white/20 overflow-hidden backdrop-blur-sm flex flex-col h-[380px]" style={{ background: 'rgba(255,255,255,0.08)' }}>
-      <div className="w-full flex items-center justify-between gap-3 px-5 py-4 shrink-0 bg-black/10 border-b border-white/10">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.15)' }}>
-            <HeartPulse className="h-4 w-4 text-white" />
+    <div className="group relative flex flex-col bg-white/[0.05] rounded-2xl border border-white/10 hover:border-[#0EA5A4]/40 hover:bg-white/[0.08] transition-all duration-300 overflow-hidden w-full shadow-lg">
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0EA5A4]/0 to-[#1E3A8A]/0 group-hover:from-[#0EA5A4]/5 group-hover:to-transparent transition-all duration-500 rounded-2xl pointer-events-none" />
+
+      <button 
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between gap-4 px-6 py-5 bg-black/10 hover:bg-black/20 transition-all duration-300 text-left border-b border-white/10"
+      >
+        <div className="flex items-center gap-5 min-w-0">
+          <div className="shrink-0 w-14 h-14 rounded-xl flex items-center justify-center bg-white/10 text-white shadow-sm border border-white/10 group-hover:border-[#0EA5A4]/40 transition-all duration-300">
+            <HeartPulse className="h-7 w-7" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-white truncate">{disease.disease_name}</p>
-            {disease.description && <p className="text-xs text-white/60 truncate">{disease.description}</p>}
+            <p className="text-2xl font-black text-white truncate drop-shadow-sm">{disease.disease_name}</p>
+            {disease.description && <p className="text-base text-white/60 truncate mt-0.5">{disease.description}</p>}
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-4 shrink-0 z-10">
           {enhanced?.severity_level && <SeverityBadge level={enhanced.severity_level} />}
           {!hasDetails && (
-            <span className="hidden sm:inline text-[10px] font-semibold px-2.5 py-0.5 rounded-full border border-white/20 text-white/50">
+            <span className="hidden sm:inline text-xs font-semibold px-3 py-1 rounded-full border border-white/20 text-white/50">
               No details yet
             </span>
+          )}
+          <ChevronDown className={`h-6 w-6 text-white/40 transition-transform duration-500 ${isExpanded ? 'rotate-180 text-[#67e8f9]' : ''}`} />
+        </div>
+      </button>
+
+      <div 
+        className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}
+      >
+        <div className="px-6 pb-8 pt-6 relative z-10 border-t border-white/5 bg-white/[0.02]">
+          {!hasDetails ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center text-white/50">
+              <Stethoscope className="h-8 w-8 mb-3 opacity-50 text-white/30" />
+              <p className="text-base">No details added by health officers yet.</p>
+            </div>
+          ) : enhancing ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-4">
+              <div className="flex items-center gap-3 rounded-xl border border-white/10 px-6 py-4 bg-white/5 shadow-xl">
+                <Loader2 className="h-5 w-5 animate-spin text-white" />
+                <span className="text-base font-medium text-white/80">Analyzing with AI...</span>
+                <Sparkles className="h-5 w-5 text-violet-400" />
+              </div>
+            </div>
+          ) : enhanced ? (
+            <div>
+              <div className="flex items-center gap-2 mb-6 text-xs font-bold uppercase tracking-widest text-white/40 px-1">
+                <Sparkles className="h-4 w-4 text-violet-400" />
+                AI-organized Insight
+              </div>
+              <EnhancedDiseasePanel enhanced={enhanced} />
+            </div>
+          ) : (
+            <div>
+              {enhanceFailed && (
+                <div className="flex items-center gap-3 mb-6 text-sm rounded-xl border border-amber-400/30 px-4 py-3 text-amber-300 bg-amber-400/10">
+                  <TriangleAlert className="h-5 w-5 shrink-0" />
+                  AI enhancement unavailable — showing raw data
+                </div>
+              )}
+              <PlainDiseasePanel details={disease.details!} />
+            </div>
           )}
         </div>
       </div>
 
-      <div className="px-5 pb-5 pt-4 flex-1 overflow-y-auto min-h-0 custom-scrollbar">
-        {!hasDetails ? (
-          <div className="flex flex-col items-center justify-center h-full py-6 text-center text-white/50">
-            <Stethoscope className="h-5 w-5 mb-2 opacity-50" />
-            <p className="text-sm">No details added by health officers yet.</p>
-          </div>
-        ) : enhancing ? (
-          <div className="flex flex-col items-center justify-center h-full py-8 gap-3">
-            <div className="flex items-center gap-2.5 rounded-xl border border-white/10 px-5 py-3" style={{ background: 'rgba(255,255,255,0.05)' }}>
-              <Loader2 className="h-4 w-4 animate-spin text-white" />
-              <span className="text-sm font-medium text-white/80">Analyzing with AI...</span>
-              <Sparkles className="h-4 w-4 text-violet-400" />
-            </div>
-          </div>
-        ) : enhanced ? (
-          <div>
-            <div className="flex items-center gap-1.5 mb-4 text-[10px] font-semibold uppercase tracking-widest text-white/50">
-              <Sparkles className="h-3 w-3 text-violet-400" />
-              AI-organized by Groq (Redis Cached)
-            </div>
-            <EnhancedDiseasePanel enhanced={enhanced} />
-          </div>
-        ) : (
-          <div>
-            {enhanceFailed && (
-              <div className="flex items-center gap-2 mb-3 text-xs rounded-lg border border-amber-400/30 px-3 py-2 text-amber-300" style={{ background: 'rgba(245,158,11,0.15)' }}>
-                <TriangleAlert className="h-3.5 w-3.5 shrink-0" />
-                AI enhancement unavailable — showing raw data
-              </div>
-            )}
-            <PlainDiseasePanel details={disease.details!} />
-          </div>
-        )}
-      </div>
+      <div className="absolute bottom-0 left-0 h-1 w-0 group-hover:w-full bg-gradient-to-r from-[#1E3A8A]/60 via-[#0EA5A4] to-[#1E3A8A]/60 transition-all duration-700" />
     </div>
   );
 }
@@ -311,7 +325,8 @@ export default function SafetyPage() {
 
   return (
     <main className="min-h-screen relative text-white">
-      <div className="fixed inset-0 bg-gradient-to-br from-[#1E3A8A] via-[#1e40af] to-[#0EA5A4] overflow-hidden -z-10">
+      <MicroorganismBackground />
+      <div className="fixed inset-0 bg-gradient-to-br from-[#1E3A8A] via-[#1e40af] to-[#0EA5A4] overflow-hidden -z-20">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-10 left-10 w-72 h-72 bg-white rounded-full blur-3xl" />
           <div className="absolute bottom-10 right-10 w-96 h-96 bg-white rounded-full blur-3xl" />
@@ -320,44 +335,55 @@ export default function SafetyPage() {
 
       <div className="w-full max-w-7xl mx-auto px-4 pt-28 pb-6 relative z-10">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-          <h1 className="text-3xl font-bold tracking-tight text-white drop-shadow-md">How to Stay Safe</h1>
-          <Link href="/map" className="inline-flex items-center rounded-full border border-white/30 px-4 py-2 text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 transition-colors">
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white drop-shadow-md">
+              How to <span className="bg-gradient-to-r from-[#7dd3fc] to-[#67e8f9] bg-clip-text text-transparent">Stay Safe</span>
+            </h1>
+          </div>
+          <Link href="/map" className="inline-flex items-center rounded-full border border-white/30 px-5 py-2.5 text-sm font-medium text-white/90 hover:text-white hover:bg-white/10 transition-colors backdrop-blur-sm bg-white/5">
             Back to Map
           </Link>
         </div>
-        <p className="text-white/80 text-lg font-medium drop-shadow-sm max-w-3xl">
+        <p className="text-white/80 text-base md:text-lg font-medium drop-shadow-sm max-w-3xl mt-2">
           Symptoms and prevention guidance by disease, organized with AI and updated with public health records.
         </p>
       </div>
 
       <div className="w-full max-w-7xl mx-auto px-4 pb-16 relative z-10">
-        <div className="rounded-2xl border border-white/20 p-6 sm:p-8" style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)' }}>
-          {loadingGuide && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-[380px] rounded-2xl border border-white/15 animate-pulse"
-                  style={{ background: 'rgba(255,255,255,0.08)', animationDelay: `${index * 50}ms` }}
-                />
-              ))}
-            </div>
-          )}
+        <div className="relative bg-white/[0.07] backdrop-blur-xl rounded-3xl border border-white/10 overflow-hidden p-6 sm:p-8 md:p-12 shadow-[0_8px_40px_rgba(0,0,0,0.25)]">
+          <div className="absolute -top-20 -right-20 w-64 h-64 bg-[#1E3A8A]/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-[#0EA5A4]/10 rounded-full blur-3xl pointer-events-none" />
 
-          {!loadingGuide && merged.length > 0 && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {merged.map((disease) => (
-                <DiseaseGuideCard key={disease.disease_id} disease={disease} />
-              ))}
-            </div>
-          )}
+          <div className="relative z-10">
+            {loadingGuide && (
+              <div className="flex flex-col gap-6">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="h-24 rounded-2xl border border-white/10 animate-pulse bg-white/5"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  />
+                ))}
+              </div>
+            )}
 
-          {!loadingGuide && merged.length === 0 && (
-            <div className="flex flex-col items-center py-10 text-center text-white/50">
-              <Stethoscope className="h-8 w-8 mb-3 opacity-50" />
-              <p className="text-sm font-medium">No disease information available yet.</p>
-            </div>
-          )}
+            {!loadingGuide && merged.length > 0 && (
+              <div className="flex flex-col gap-6">
+                {merged.map((disease) => (
+                  <DiseaseGuideCard key={disease.disease_id} disease={disease} />
+                ))}
+              </div>
+            )}
+
+            {!loadingGuide && merged.length === 0 && (
+              <div className="flex flex-col items-center py-16 text-center text-white/50 bg-white/[0.03] rounded-2xl border border-white/5">
+                <Stethoscope className="h-10 w-10 mb-4 opacity-50 text-white/30" />
+                <p className="text-base font-medium text-white/80">No disease information available yet.</p>
+              </div>
+            )}
+          </div>
+          
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#0EA5A4]/40 to-transparent" />
         </div>
       </div>
     </main>

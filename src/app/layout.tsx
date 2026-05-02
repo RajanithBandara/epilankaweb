@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Manrope } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import NavbarHandler from "@/app/NavbarHandler";
 import NavBar from "@/components/NavBar";
@@ -59,9 +58,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <Script
+        <script
           id="theme-bootstrap"
-          strategy="beforeInteractive"
+          suppressHydrationWarning
           dangerouslySetInnerHTML={{ __html: themeBootstrapScript }}
         />
       </head>

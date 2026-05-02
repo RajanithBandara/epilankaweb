@@ -15,6 +15,8 @@ import {
     MessageSquare,
 } from "lucide-react";
 import { account } from "@/lib/appwrite";
+import Lottie from "lottie-react";
+import flyingGlobe from "@/constants/flyingGlobeLottie.json";
 
 /* ── Types ─────────────────────────────────────────────────────────── */
 
@@ -30,13 +32,6 @@ type Chat = {
     messages: ChatMessage[];
     createdAt: string;
     updatedAt: string;
-};
-
-const WELCOME: ChatMessage = {
-    role: "assistant",
-    content:
-        "Hello! I'm EpiGuard, your personal health assistant for EpiLanka.\n\nYou can ask me about:\n- Disease symptoms and prevention\n- Mosquito-borne or waterborne disease risks\n- When to seek medical help\n- Public health precautions\n\nI'm only able to help with health and disease-related questions.",
-    createdAt: new Date().toISOString(),
 };
 
 const SUGGESTIONS = [
@@ -254,7 +249,9 @@ export default function TakeCare() {
     const bottomRef = useRef<HTMLDivElement | null>(null);
     const inputRef = useRef<HTMLInputElement | null>(null);
 
+    const hasHistory = chats.length > 0;
     const currentChat = chats.find((c) => c.id === currentChatId);
+    const isNewChat = currentChat && currentChat.messages.length === 0;
 
     const refreshServerJwtCookie = useCallback(async () => {
         try {
@@ -478,10 +475,54 @@ export default function TakeCare() {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
-                <div className="text-center space-y-4">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto" style={{ color: "var(--color-primary)" }} />
-                    <p style={{ color: "var(--dash-text-secondary)" }}>Loading chat history...</p>
+                <div className="text-center space-y-6">
+                    <div className="w-24 h-24 mx-auto relative">
+                        <Lottie animationData={flyingGlobe} loop={true} className="w-full h-full" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <Bot className="h-8 w-8 text-(--color-primary) animate-pulse" />
+                        </div>
+                    </div>
+                    <p className="text-sm font-medium animate-pulse" style={{ color: "var(--dash-text-secondary)" }}>EpiGuard is waking up...</p>
                 </div>
+            </div>
+        );
+    }
+
+    if (!hasHistory) {
+        return (
+            <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)] p-6 text-center animate-fade-in">
+                <div 
+                    className="relative cursor-pointer group mb-8"
+                    onClick={() => {
+                        void createNewChat();
+                        setSidebarOpen(true);
+                    }}
+                >
+                    <div className="w-40 h-40 rounded-[2.5rem] bg-(--color-primary) flex items-center justify-center shadow-2xl transition-all duration-500 group-hover:scale-105 group-hover:rotate-3 relative z-10">
+                        <Bot className="h-20 w-20 text-white" />
+                    </div>
+                    <div className="absolute -inset-12 z-0">
+                        <Lottie animationData={flyingGlobe} loop={true} className="w-full h-full opacity-60 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                </div>
+                
+                <h2 className="text-3xl font-black mb-4 tracking-tight" style={{ color: "var(--dash-text-primary)" }}>
+                    Meet <span className="text-(--color-primary)">EpiGuard AI</span>
+                </h2>
+                <p className="text-base max-w-md mx-auto mb-10 leading-relaxed" style={{ color: "var(--dash-text-secondary)" }}>
+                    Your dedicated health intelligence assistant. Start a chat to receive guidance on disease prevention, symptoms, and localized risks.
+                </p>
+                
+                <button
+                    onClick={() => {
+                        void createNewChat();
+                        setSidebarOpen(true);
+                    }}
+                    className="group flex items-center gap-3 bg-(--color-primary) text-white px-10 py-4 rounded-2xl font-bold shadow-[0_10px_30px_-10px_rgba(var(--color-primary-rgb),0.5)] hover:shadow-[0_15px_40px_-10px_rgba(var(--color-primary-rgb),0.6)] transition-all hover:-translate-y-1 active:translate-y-0"
+                >
+                    <Plus className="h-5 w-5" />
+                    Start Your First Chat
+                </button>
             </div>
         );
     }
@@ -563,29 +604,29 @@ export default function TakeCare() {
                             borderColor: "var(--dash-card-border)",
                         }}
                     >
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                             <button
                                 type="button"
                                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                                className="lg:hidden p-2 hover:opacity-80"
-                                style={{ color: "var(--dash-text-secondary)" }}
+                                className="p-2.5 rounded-xl hover:bg-black/5 transition-colors"
+                                style={{ color: "var(--dash-text-secondary)", border: "1px solid var(--dash-card-border)" }}
                             >
                                 <Menu className="h-5 w-5" />
                             </button>
 
                             <div className="flex items-center gap-3 flex-1">
                                 <div
-                                    className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm"
-                                    style={{ background: "var(--color-primary)", color: "#fff" }}
+                                    className="flex h-10 w-10 items-center justify-center rounded-xl shadow-sm bg-(--color-primary) text-white"
                                 >
-                                    <HeartPulse className="h-5 w-5" />
+                                    <Bot className="h-5 w-5" />
                                 </div>
                                 <div>
-                                    <h1 className="font-bold text-sm lg:text-base" style={{ color: "var(--dash-text-primary)" }}>
-                                        {currentChat?.title || "EpiGuard"}
+                                    <h1 className="font-bold text-sm lg:text-base leading-tight" style={{ color: "var(--dash-text-primary)" }}>
+                                        {currentChat?.title || "EpiGuard AI"}
                                     </h1>
-                                    <p className="text-[10px] lg:text-xs" style={{ color: "var(--dash-text-secondary)" }}>
-                                        AI health assistant
+                                    <p className="text-[10px] lg:text-xs flex items-center gap-1.5" style={{ color: "var(--dash-text-secondary)" }}>
+                                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                        Active health assistant
                                     </p>
                                 </div>
                             </div>
@@ -610,28 +651,44 @@ export default function TakeCare() {
                         className="flex-1 overflow-y-auto px-4 py-5 space-y-4 lg:px-6"
                         style={{ background: "var(--dash-bg)" }}
                     >
-                        {currentChat && currentChat.messages.length === 0 && (
-                            <>
-                                <Bubble message={WELCOME} />
-                                <div className="flex flex-wrap gap-2 pt-4">
+                        {isNewChat && (
+                            <div className="flex flex-col items-center justify-center h-full py-10 px-6 text-center animate-fade-in">
+                                <div className="relative w-56 h-56 mb-2">
+                                    <Lottie animationData={flyingGlobe} loop={true} className="w-full h-full" />
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <div className="w-16 h-16 rounded-2xl bg-(--color-primary) flex items-center justify-center shadow-2xl relative z-10">
+                                            <Bot className="h-8 w-8 text-white" />
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <h3 className="text-2xl font-black mb-2" style={{ color: "var(--dash-text-primary)" }}>
+                                    How can I help you today?
+                                </h3>
+                                <p className="text-sm max-w-sm mx-auto mb-8 leading-relaxed" style={{ color: "var(--dash-text-secondary)" }}>
+                                    I&apos;m EpiGuard, and I&apos;m ready to assist with your health and disease protection questions.
+                                </p>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
                                     {SUGGESTIONS.map((s) => (
                                         <button
                                             key={s}
                                             type="button"
                                             onClick={() => void handleSend(s)}
                                             disabled={sending}
-                                            className="rounded-full border px-3 py-1.5 text-xs font-medium transition hover:opacity-80 disabled:opacity-50"
+                                            className="flex items-center gap-3 rounded-xl border p-4 text-xs font-medium text-left transition hover:bg-black/5 hover:border-(--color-primary)/30 disabled:opacity-50"
                                             style={{
-                                                background: "var(--dash-card-header-bg)",
+                                                background: "var(--dash-card-bg)",
                                                 borderColor: "var(--dash-card-border)",
-                                                color: "var(--color-primary)",
+                                                color: "var(--dash-text-primary)",
                                             }}
                                         >
+                                            <MessageSquare className="h-4 w-4 shrink-0 text-(--color-primary)" />
                                             {s}
                                         </button>
                                     ))}
                                 </div>
-                            </>
+                            </div>
                         )}
 
                         {currentChat?.messages.map((msg, idx) => (
