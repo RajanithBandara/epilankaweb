@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { MapPin, FileText, TrendingUp, Calendar, AlertCircle, Loader2, Filter } from 'lucide-react';
+import { MapPin, FileText, TrendingUp, Calendar, AlertCircle, Loader2 } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import {

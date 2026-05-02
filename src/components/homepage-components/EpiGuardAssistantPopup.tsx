@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Bot, Loader2, MessageSquare, Send, Sparkles, X, ShieldAlert, Plus } from "lucide-react";
+import { Bot, Loader2, Send, Sparkles, X, ShieldAlert, Plus } from "lucide-react";
 
 /* ── Types ─────────────────────────────────────────────────────────── */
 

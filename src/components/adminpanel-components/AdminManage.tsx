@@ -77,7 +77,7 @@ export default function AdminManagePanel() {
         finally { setLoading(false); }
     }
 
-    useEffect(() => { void loadAdmins(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { void loadAdmins(); }, []);
 
     async function handleRegister(ev: React.FormEvent) {
         ev.preventDefault();
