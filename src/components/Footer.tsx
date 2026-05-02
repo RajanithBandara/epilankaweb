@@ -75,7 +75,7 @@ function Footer() {
 
     return (
         <footer ref={footerRef} className="relative bg-transparent pb-6 pt-4">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6">
+            <div className="max-w-8xl mx-auto px-4 sm:px-6">
                 <div
                     className="footer-container relative rounded-3xl border border-white/10 overflow-hidden"
                     style={{
