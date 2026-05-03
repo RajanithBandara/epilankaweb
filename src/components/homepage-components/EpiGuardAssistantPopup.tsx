@@ -274,7 +274,7 @@ export default function EpiGuardAssistantPopup() {
         </button>
       ) : (
         <div
-          className="pointer-events-auto flex h-[min(70vh,640px)] w-[calc(100vw-2rem)] max-w-[24rem] flex-col overflow-hidden rounded-2xl border shadow-2xl sm:w-[24rem] md:w-[26rem] origin-bottom-right transition-all animate-fade-in-scale bg-white/10 backdrop-blur-2xl border-white/20"
+          className="pointer-events-auto flex h-[calc(100vh-6rem)] sm:h-[640px] max-h-[calc(100vh-6rem)] w-[calc(100vw-2rem)] max-w-[24rem] flex-col overflow-hidden rounded-2xl border shadow-2xl sm:w-[24rem] md:w-[26rem] origin-bottom-right transition-all animate-fade-in-scale bg-white/10 backdrop-blur-2xl border-white/20"
         >
           <div
             className="flex items-center justify-between gap-3 border-b px-4 py-3 border-white/20 bg-white/5"
@@ -319,7 +319,8 @@ export default function EpiGuardAssistantPopup() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-transparent">
+          <div className="relative flex-1 min-h-0 w-full">
+            <div className="absolute inset-0 overflow-y-auto px-4 py-4 space-y-4 bg-transparent custom-scrollbar">
             {messages.map((message, index) => (
               <Bubble key={`${message.role}-${index}`} message={message} />
             ))}
@@ -344,15 +345,17 @@ export default function EpiGuardAssistantPopup() {
                   <Bot className="h-4 w-4" />
                 </div>
                 <div
-                  className="inline-flex items-center gap-2 rounded-2xl rounded-bl-sm px-4 py-3 text-xs bg-white/10 backdrop-blur-md border border-white/20 text-white/70"
+                  className="inline-flex items-center gap-1.5 rounded-2xl rounded-bl-sm px-4 py-4 text-xs bg-white/10 backdrop-blur-md border border-white/20 text-white/70 h-[38px]"
                 >
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Thinking…
+                  <span className="typing-dot"></span>
+                  <span className="typing-dot"></span>
+                  <span className="typing-dot"></span>
                 </div>
               </div>
             )}
 
-            <div ref={bottomRef} />
+              <div ref={bottomRef} />
+            </div>
           </div>
 
           <div className="border-t px-4 py-3 space-y-3 border-white/20 bg-white/5">

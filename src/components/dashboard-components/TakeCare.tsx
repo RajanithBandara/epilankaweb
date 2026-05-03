@@ -590,7 +590,7 @@ export default function TakeCare() {
                     />
                 )}
 
-                <div className="relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden">
+                <div className="relative z-10 min-w-0 flex-1 overflow-hidden grid grid-rows-[auto_1fr_auto]" style={{minHeight:0}}>
                     <div
                         className="flex items-center justify-between gap-3 px-4 py-3 border-b lg:px-6"
                         style={{
@@ -642,7 +642,7 @@ export default function TakeCare() {
                     </div>
 
                     <div
-                        className="flex-1 overflow-y-auto px-4 py-5 space-y-4 lg:px-6"
+                        className="overflow-y-auto px-4 py-5 space-y-4 lg:px-6"
                         style={{ background: "var(--dash-bg)" }}
                     >
                         {isNewChat && (
@@ -715,15 +715,16 @@ export default function TakeCare() {
                                     <Bot className="h-4 w-4" />
                                 </div>
                                 <div
-                                    className="inline-flex items-center gap-2 rounded-2xl rounded-bl-sm px-4 py-3 text-xs"
+                                    className="inline-flex items-center gap-1.5 rounded-2xl rounded-bl-sm px-4 py-4 text-xs h-[38px]"
                                     style={{
                                         background: "var(--dash-card-bg)",
                                         border: "1px solid var(--dash-card-border)",
                                         color: "var(--dash-text-muted)",
                                     }}
                                 >
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                    EpiGuard is thinking...
+                                    <span className="typing-dot"></span>
+                                    <span className="typing-dot"></span>
+                                    <span className="typing-dot"></span>
                                 </div>
                             </div>
                         )}
