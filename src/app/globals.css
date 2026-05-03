@@ -229,7 +229,7 @@
     align-items: center;
     justify-content: center;
     transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
-    box-shadow: 0 1px 3px rgba(15,23,42,0.06);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
     color: var(--dash-text-secondary);
     flex-shrink: 0;
 }
@@ -432,6 +432,42 @@
     animation: page-reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Typing Animation */
+@keyframes typing-dot {
+
+    0%,
+    100% {
+        transform: translateY(0);
+        opacity: 0.5;
+    }
+
+    50% {
+        transform: translateY(-4px);
+        opacity: 1;
+    }
+}
+
+.typing-dot {
+    animation: typing-dot 1.4s infinite ease-in-out;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: currentColor;
+    display: inline-block;
+}
+
+.typing-dot:nth-child(1) {
+    animation-delay: 0.8s;
+}
+
+.typing-dot:nth-child(2) {
+    animation-delay: 1s;
+}
+
+.typing-dot:nth-child(3) {
+    animation-delay: 1.2s;
+}
+
 /* Ensure html and body take full height without extra space */
 html {
     height: 100%;
@@ -538,7 +574,8 @@ body:has(main[data-not-found-page="true"]) {
     background: linear-gradient(180deg, #3b82f6, #0ea5e9);
 }
 
-::view-transition-old(root), ::view-transition-new(root) {
+::view-transition-old(root),
+::view-transition-new(root) {
     animation: none;
     mix-blend-mode: normal;
 }
