@@ -9,6 +9,7 @@ import CtaSection from "@/components/homepage-components/CtaSection";
 import EpiGuardAssistantPopup from "@/components/homepage-components/EpiGuardAssistantPopup";
 import dynamic from "next/dynamic";
 import { getGsap } from "@/lib/gsap";
+import Lenis from "lenis";
 
 // Dynamically import Three.js component with no SSR
 const ThreeBackground = dynamic(
@@ -21,12 +22,27 @@ export default function HomePage() {
   const pageRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    const { gsap } = getGsap();
+    const { gsap, ScrollTrigger } = getGsap();
     const root = pageRef.current;
 
     if (!root) {
       return;
     }
+
+    // Initialize Lenis for smooth scrolling and slower scroll speed
+    const lenis = new Lenis({
+      duration: 1.5,
+      smoothWheel: true,
+      wheelMultiplier: 0.7,
+    });
+
+    lenis.on("scroll", ScrollTrigger.update);
+
+    gsap.ticker.add((time) => {
+      lenis.raf(time * 1000);
+    });
+
+    gsap.ticker.lagSmoothing(0);
 
     const ctx = gsap.context(() => {
       const sections = gsap.utils.toArray<HTMLElement>("[data-home-scroll-section]");
@@ -78,7 +94,10 @@ export default function HomePage() {
       });
     }, root);
 
-    return () => ctx.revert();
+    return () => {
+      ctx.revert();
+      lenis.destroy();
+    };
   }, []);
 
   return (
@@ -101,7 +120,7 @@ export default function HomePage() {
       <div className="relative z-10">
         <HeroSection />
         {/* Floating sections container */}
-        <div className="relative">
+        <div className="relative pb-32 space-y-24 pt-12">
           <div data-home-scroll-section>
             <StatSection />
           </div>

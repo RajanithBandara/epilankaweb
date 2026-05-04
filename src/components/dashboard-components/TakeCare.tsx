@@ -15,7 +15,8 @@ import {
     MessageSquare,
 } from "lucide-react";
 import { account } from "@/lib/appwrite";
-import Lottie from "lottie-react";
+import dynamic from "next/dynamic";
+const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 import flyingGlobe from "@/constants/flyingGlobeLottie.json";
 
 /* ── Types ─────────────────────────────────────────────────────────── */

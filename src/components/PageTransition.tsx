@@ -13,6 +13,8 @@ export default function PageTransition({ children }: { children: React.ReactNode
 
   const isAppRoute = useMemo(() => {
     return (
+      safePath === "/map" ||
+      safePath.startsWith("/epiguard") ||
       safePath.startsWith("/dashboard") ||
       safePath.startsWith("/admindashboard") ||
       safePath.startsWith("/officerdashboard")
@@ -68,15 +70,13 @@ export default function PageTransition({ children }: { children: React.ReactNode
       {!isAppRoute && <LoadingScreen isLoading={isLoading} />}
 
       <div
-        className={`min-h-screen ${
-          isAppRoute ? "duration-400" : "duration-900"
-        } ease-[cubic-bezier(0.22,1,0.36,1)] transition-[opacity,transform] will-change-[opacity,transform] ${
-          showContent
+        className={`min-h-screen ${isAppRoute ? "duration-400" : "duration-900"
+          } ease-[cubic-bezier(0.22,1,0.36,1)] transition-[opacity,transform] will-change-[opacity,transform] ${showContent
             ? "opacity-100 translate-y-0 scale-100"
             : isAppRoute
               ? "opacity-100 translate-y-0 scale-100"
               : "opacity-0 translate-y-2 scale-[0.99]"
-        }`}
+          }`}
       >
         {children}
       </div>
