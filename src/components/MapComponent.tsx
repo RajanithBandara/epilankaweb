@@ -10,9 +10,9 @@ import {
     Loader2,
     Info,
     Bell,
-    AlertCircle
+    AlertCircle,
+    RefreshCw
 } from 'lucide-react';
-import { FaSyncAlt } from "react-icons/fa";
 import { DatePicker } from '@/components/ui/datepicker';
 import {
     Tooltip,
@@ -813,7 +813,7 @@ export default function MapComponent({ variant = 'default' }: MapComponentProps)
                         onClick={() => window.location.reload()}
                         className={`text-white font-semibold text-xs py-1.5 px-4 rounded-xl transition-all shadow-md ${isMono ? 'bg-white/10 hover:bg-white/20 border border-white/25' : 'bg-white/15 hover:bg-white/25 border border-white/30'}`}
                     >
-                        <FaSyncAlt size={20} />
+                        <RefreshCw size={16} />
                     </button>
                 </div>
             </div>

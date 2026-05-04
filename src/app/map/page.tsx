@@ -2,6 +2,8 @@
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { useEffect } from 'react';
+import Lenis from 'lenis';
 import { ShieldCheck } from 'lucide-react';
 
 // Dynamically import MapComponent to prevent SSR "window is not defined" issues
@@ -15,6 +17,23 @@ const MapComponent = dynamic(() => import('@/components/MapComponent'), {
 });
 
 export default function MapPage() {
+    useEffect(() => {
+        const lenis = new Lenis({
+            duration: 1.5,
+            smoothWheel: true,
+            wheelMultiplier: 0.7,
+        });
+
+        function raf(time: number) {
+            lenis.raf(time);
+            requestAnimationFrame(raf);
+        }
+
+        requestAnimationFrame(raf);
+
+        return () => lenis.destroy();
+    }, []);
+
     return (
         <main className="min-h-screen flex flex-col relative text-white">
             {/* Fixed background */}

@@ -2,8 +2,27 @@
 
 import MicroorganismBackground from '@/components/safety-components/MicroorganismBackground';
 import EpiGuardChat from '@/components/safety-components/EpiGuardChat';
+import { useEffect } from 'react';
+import Lenis from 'lenis';
 
 export default function SafetyPage() {
+    useEffect(() => {
+        const lenis = new Lenis({
+            duration: 1.5,
+            smoothWheel: true,
+            wheelMultiplier: 0.7,
+        });
+
+        function raf(time: number) {
+            lenis.raf(time);
+            requestAnimationFrame(raf);
+        }
+
+        requestAnimationFrame(raf);
+
+        return () => lenis.destroy();
+    }, []);
+
     return (
         <main className="h-screen overflow-hidden relative text-white flex flex-col">
             <MicroorganismBackground />
