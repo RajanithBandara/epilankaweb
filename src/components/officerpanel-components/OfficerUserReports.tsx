@@ -7,6 +7,7 @@ import { formatDistanceToNow } from "date-fns";
 type Report = {
     report_id: string;
     description: string;
+    user_id?: string;
     district_info?: {
         district_name: string;
         province_name: string;
@@ -27,6 +28,8 @@ export default function OfficerUserReports() {
     const [error, setError] = useState("");
     const [searchDistrict, setSearchDistrict] = useState("");
     const [appliedDistrict, setAppliedDistrict] = useState("");
+    const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
+    const [banLoading, setBanLoading] = useState<Record<string, boolean>>({});
 
     const fetchReports = async (districtFilter: string) => {
         setLoading(true);
@@ -50,6 +53,46 @@ export default function OfficerUserReports() {
     useEffect(() => {
         fetchReports(appliedDistrict);
     }, [appliedDistrict]);
+
+    const handleDeleteReport = async (reportId: string, district: string) => {
+        if (!confirm("Are you sure you want to delete this report?")) return;
+        if (!district) {
+            alert("Cannot delete report without a district.");
+            return;
+        }
+        
+        setActionLoading(prev => ({ ...prev, [reportId]: true }));
+        try {
+            const res = await fetch(`/api/officer/user-reports/delete?report_id=${encodeURIComponent(reportId)}&district=${encodeURIComponent(district)}`, {
+                method: 'DELETE'
+            });
+            if (!res.ok) throw new Error("Failed to delete");
+            setReports(prev => prev.filter(r => r.report_id !== reportId));
+        } catch (err) {
+            alert("Failed to delete report.");
+        } finally {
+            setActionLoading(prev => ({ ...prev, [reportId]: false }));
+        }
+    };
+
+    const handleBanUser = async (userId: string) => {
+        if (!confirm("Are you sure you want to ban this user? They will no longer be able to log in.")) return;
+        
+        setBanLoading(prev => ({ ...prev, [userId]: true }));
+        try {
+            const res = await fetch(`/api/officer/users/ban`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId })
+            });
+            if (!res.ok) throw new Error("Failed to ban");
+            alert("User banned successfully.");
+        } catch (err) {
+            alert("Failed to ban user.");
+        } finally {
+            setBanLoading(prev => ({ ...prev, [userId]: false }));
+        }
+    };
 
     const getSeverityBadge = (severity?: string) => {
         switch (severity?.toLowerCase()) {
@@ -114,6 +157,7 @@ export default function OfficerUserReports() {
                                 <th className="px-5 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Analysis</th>
                                 <th className="px-5 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Location</th>
                                 <th className="px-5 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider text-right">Age</th>
+                                <th className="px-5 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -124,11 +168,12 @@ export default function OfficerUserReports() {
                                         <td className="px-5 py-4"><div className="h-5 w-24 bg-zinc-200 dark:bg-zinc-800 rounded-sm" /></td>
                                         <td className="px-5 py-4"><div className="h-4 w-28 bg-zinc-200 dark:bg-zinc-800 rounded" /></td>
                                         <td className="px-5 py-4 flex justify-end"><div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded" /></td>
+                                        <td className="px-5 py-4"><div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" /></td>
                                     </tr>
                                 ))
                             ) : reports.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="px-5 py-12 text-center text-zinc-500 dark:text-zinc-400">
+                                    <td colSpan={5} className="px-5 py-12 text-center text-zinc-500 dark:text-zinc-400">
                                         <ShieldAlert className="h-8 w-8 mx-auto mb-3 text-zinc-300 dark:text-zinc-700" />
                                         <p className="text-sm font-medium">No reports found.</p>
                                         {appliedDistrict && <p className="text-xs mt-1">Try clearing the district filter.</p>}
@@ -174,6 +219,26 @@ export default function OfficerUserReports() {
                                             <div className="flex items-center justify-end gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
                                                 <Calendar className="h-3.5 w-3.5" />
                                                 {r.created_at ? formatDistanceToNow(new Date(r.created_at), { addSuffix: true }) : "Unknown"}
+                                            </div>
+                                        </td>
+                                        <td className="px-5 py-4 align-top text-right">
+                                            <div className="flex flex-col items-end gap-2">
+                                                <button 
+                                                    onClick={() => handleDeleteReport(r.report_id, r.district_info?.district_name || "")}
+                                                    disabled={actionLoading[r.report_id]}
+                                                    className="text-xs font-medium text-red-500 hover:text-red-600 disabled:opacity-50 transition-colors"
+                                                >
+                                                    {actionLoading[r.report_id] ? "Deleting..." : "Delete Report"}
+                                                </button>
+                                                {r.user_id && (
+                                                    <button 
+                                                        onClick={() => handleBanUser(r.user_id!)}
+                                                        disabled={banLoading[r.user_id]}
+                                                        className="text-xs font-medium text-orange-500 hover:text-orange-600 disabled:opacity-50 transition-colors"
+                                                    >
+                                                        {banLoading[r.user_id] ? "Banning..." : "Ban User"}
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
