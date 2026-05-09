@@ -36,7 +36,7 @@ EpiWatch Lanka is a modern, intelligent disease surveillance platform designed t
 
 ### **Frontend & Backend**
 - **Framework:** [Next.js 16.2.3](https://nextjs.org/) (App Router)
-- **Library:** [React 19](https://react.dev/)
+- **Library:** [React 19.2.1](https://react.dev/)
 - **Language:** [TypeScript 5](https://www.typescriptlang.org/)
 - **Styling:** [Tailwind CSS 4](https://tailwindcss.com/), [Framer Motion](https://www.framer.com/motion/), [GSAP](https://gsap.com/), [Lucide React Icons](https://lucide.dev/)
 
@@ -88,40 +88,40 @@ npm install
 ```
 
 ### 3. Environment Setup
-Create a `.env.local` file in the root directory with the following variables:
+Create a `.env` file in the root directory with the following variables:
 
 ```env
 # API Configuration
-NEXT_PUBLIC_API_URL=http://localhost:3000
-NEXT_PUBLIC_SECRET_KEY=your_secret_key
+NEXT_PUBLIC_API_URL=https://api.epilanka.app
+SECRET_KEY=your_secret_key
+INTERNAL_API_KEY=your_internal_api_key
 
 # TomTom Maps
 NEXT_PUBLIC_TOMTOM_API_KEY=your_tomtom_api_key
 
 # Appwrite Configuration
 NEXT_PUBLIC_APPWRITE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_APPWRITE_ENDPOINT=https://cloud.appwrite.io/v1
-NEXT_PUBLIC_APPWRITE_API_KEY=your_appwrite_api_key
+NEXT_PUBLIC_APPWRITE_PROJECT_NAME=epilanka
+NEXT_PUBLIC_APPWRITE_ENDPOINT=https://sgp.cloud.appwrite.io/v1
 
 # MongoDB
 MONGODB_URI=your_mongodb_connection_string
 MONGODB_DB_NAME=epilanka
 
 # Redis
-REDIS_URL=your_redis_connection_string
-
-# Firebase OAuth
-NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_firebase_project_id
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
+REDIS_PUBLIC_URL=your_redis_connection_string
 
 # AI Service
 GROQ_API_KEY=your_groq_api_key
 GEMINI_API_KEY=your_gemini_api_key
 
-# Internal Security
-INTERNAL_API_KEY=your_internal_api_key
+# Firebase OAuth (If used for separate frontend integration)
+NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_firebase_project_id
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
 ```
+
+*Note: Ensure you use `.env` for local development. Do not commit sensitive keys to version control.*
 
 ### 4. Run the development server
 ```bash
@@ -133,14 +133,14 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to see the a
 
 ## 📜 Scripts
 
-| Script | Description |
-| :--- | :--- |
-| `npm run dev` | Starts the Next.js development server with hot reload |
-| `npm run build` | Builds the application for production |
-| `npm run start` | Runs the production server |
-| `npm run lint` | Runs ESLint to check code quality and style |
-| `npm run test` | Runs linting and build validation |
-| `npm run prepare` | Sets up Husky git hooks |
+| Script | Command | Description |
+| :--- | :--- | :--- |
+| `npm run dev` | `next dev` | Starts the Next.js development server with hot reload |
+| `npm run build` | `next build` | Builds the application for production |
+| `npm run start` | `next start` | Runs the production server |
+| `npm run lint` | `eslint` | Runs ESLint to check code quality and style |
+| `npm run test` | `npm run lint` | Currently mapped to linting (TODO: Add unit/integration tests) |
+| `npm run prepare` | `husky` | Sets up Husky git hooks |
 
 ---
 
@@ -305,6 +305,18 @@ The application follows a **Wine Red + Black + White** color scheme:
 - **Secondary:** Black / Charcoal (`#0D0D0D`, `#1A1A1A`)
 - **Background:** White & Light Grey (`#F5F5F5`, `#FFFFFF`)
 
+*Note: Theme configuration can be found in `src/constants/theme.ts` and `src/styles/theme.css`.*
+
+---
+
+## 📈 Future Roadmap / TODOs
+
+- [ ] Implement comprehensive unit and integration tests (Jest, Playwright).
+- [ ] Add more detailed epidemiological predictive models.
+- [ ] Enhance real-time notification system with Socket.IO.
+- [ ] Expand health facility database for all provinces.
+- [ ] Add multi-language support (Sinhala, Tamil).
+
 ---
 
 ## 📊 Key Features Implemented
@@ -322,28 +334,7 @@ The application follows a **Wine Red + Black + White** color scheme:
 - ✅ PDF report generation
 - ✅ Caching layer with Redis
 - ✅ Real-time updates with Socket.IO (prepared)
-- ✅ AI integration for disease insights (Groq)
-
----
-
-## 🧪 Testing & Quality
-
-Currently, code quality is maintained through:
-```bash
-npm run lint    # ESLint validation
-npm run build   # Build verification
-npm run test    # Combined lint + build
-```
-
-**Note:** Comprehensive test suites (Jest, Playwright) are planned for future releases.
-
----
-
-## 📦 Dependency Management
-
-- **Husky:** Git hooks for pre-commit validation
-- **ESLint:** Code quality and style enforcement
-- **TypeScript:** Type safety throughout the project
+- ✅ AI integration for disease insights (Groq, Gemini)
 
 ---
 
@@ -363,6 +354,19 @@ The application is optimized for deployment on:
 - Vercel (recommended for Next.js)
 - Docker containers
 - Traditional Node.js hosting
+
+---
+
+## 🧪 Testing & Quality
+
+Currently, code quality is maintained through:
+```bash
+npm run lint    # ESLint validation
+npm run build   # Build verification
+npm run test    # Maps to npm run lint
+```
+
+**Note:** Comprehensive test suites (Jest, Playwright) are planned for future releases.
 
 ---
 

@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Missing user_id" }, { status: 400 });
         }
         
-        const cookieToken = req.cookies.get("appwrite-jwt")?.value;
+        const cookieToken = req.cookies.get("appwrite-officer-jwt")?.value;
         const authHeader = req.headers.get("authorization");
         const headerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : undefined;
         const token = headerToken || cookieToken;
