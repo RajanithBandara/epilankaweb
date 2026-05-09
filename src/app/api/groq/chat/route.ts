@@ -3,8 +3,83 @@ import { NextRequest, NextResponse } from "next/server";
 const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
+const FASTAPI_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_SECRET_KEY = process.env.SECRET_KEY || process.env.API_SECRET_KEY || "";
 
-const SYSTEM_PROMPT = `You are EpiGuard, an expert AI health assistant for EpiLanka — a public health monitoring platform in Sri Lanka.
+// ── Disease context fetcher ───────────────────────────────────────────────────
+
+type DiseaseEntry = {
+    disease_id: number;
+    disease_name: string;
+    description: string;
+    current_cases: number;
+    risk_level: "safe" | "low" | "medium" | "high";
+};
+
+type DiseaseContext = {
+    week_number: number;
+    year: number;
+    diseases: DiseaseEntry[];
+};
+
+async function fetchDiseaseContext(): Promise<DiseaseContext | null> {
+    try {
+        const res = await fetch(`${FASTAPI_BASE}/chat/disease-context`, {
+            headers: { "x-api-key": API_SECRET_KEY },
+            // 3-second timeout so a slow backend never blocks the chat
+            signal: AbortSignal.timeout(3000),
+        });
+        if (!res.ok) return null;
+        return (await res.json()) as DiseaseContext;
+    } catch {
+        // Backend unreachable — fall back to pure AI knowledge
+        return null;
+    }
+}
+
+function buildDiseaseContextBlock(ctx: DiseaseContext): string {
+    if (!ctx.diseases.length) return "";
+
+    const riskEmoji: Record<string, string> = {
+        high: "🔴 HIGH",
+        medium: "🟡 MEDIUM",
+        low: "🟢 LOW",
+        safe: "✅ SAFE",
+    };
+
+    const lines: string[] = [
+        `[EPILANKA DATABASE CONTEXT — Week ${ctx.week_number}, ${ctx.year}]`,
+        `The following diseases are officially tracked in the EpiLanka public health system.`,
+        `Use this data when answering prevention, symptom, and risk questions:`,
+        ``,
+    ];
+
+    for (const d of ctx.diseases) {
+        const risk = riskEmoji[d.risk_level] ?? d.risk_level.toUpperCase();
+        const cases = d.current_cases > 0
+            ? `${d.current_cases} case${d.current_cases !== 1 ? "s" : ""} reported this week`
+            : "no cases reported this week";
+        lines.push(`Disease: ${d.disease_name}`);
+        lines.push(`  Risk Level: ${risk} — ${cases}`);
+        if (d.description) {
+            lines.push(`  Info: ${d.description}`);
+        }
+        lines.push(``);
+    }
+
+    lines.push(
+        `[END DATABASE CONTEXT]`,
+        `When users ask about prevention, symptoms, or risks for any of the above diseases,`,
+        `prioritize the official EpiLanka data above. If asked which diseases are most active`,
+        `or dangerous right now, refer to the case counts and risk levels listed above.`,
+    );
+
+    return lines.join("\n");
+}
+
+// ── Base system prompt ────────────────────────────────────────────────────────
+
+const BASE_SYSTEM_PROMPT = `You are EpiGuard, an expert AI health assistant for EpiLanka — a public health monitoring platform in Sri Lanka.
 
 Your ONLY purpose is to answer questions about health, medicine, and disease. You are knowledgeable about:
 - Infectious and tropical diseases common in Sri Lanka (Dengue, Malaria, Chikungunya, Typhoid, Leptospirosis, COVID-19, etc.)
@@ -47,6 +122,13 @@ export async function POST(request: NextRequest) {
     }
 
     try {
+        // Fetch live disease context from the EpiLanka database (non-blocking fallback)
+        const diseaseCtx = await fetchDiseaseContext();
+        const contextBlock = diseaseCtx ? buildDiseaseContextBlock(diseaseCtx) : "";
+        const systemPrompt = contextBlock
+            ? `${contextBlock}\n\n${BASE_SYSTEM_PROMPT}`
+            : BASE_SYSTEM_PROMPT;
+
         const groqResponse = await fetch(GROQ_API_URL, {
             method: "POST",
             headers: {
@@ -56,7 +138,7 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify({
                 model: MODEL,
                 messages: [
-                    { role: "system", content: SYSTEM_PROMPT },
+                    { role: "system", content: systemPrompt },
                     ...messages,
                 ],
                 temperature: 0.6,

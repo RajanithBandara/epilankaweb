@@ -72,8 +72,8 @@ function FeaturesSection() {
             <div className="max-w-5xl mx-auto">
                 <div className="relative bg-white/[0.07] backdrop-blur-xl rounded-3xl border border-white/10 overflow-hidden p-8 md:p-12 shadow-[0_8px_40px_rgba(0,0,0,0.25)]">
                     {/* Decorative glows */}
-                    <div className="absolute -top-20 -right-20 w-64 h-64 bg-[#1E3A8A]/15 rounded-full blur-3xl pointer-events-none" />
-                    <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-[#0EA5A4]/10 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(30, 58, 138, 0.15) 0%, transparent 70%)' }} />
+                    <div className="absolute -bottom-20 -left-20 w-64 h-64 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(14, 165, 164, 0.10) 0%, transparent 70%)' }} />
 
                     <div className="relative">
                         {/* Section Header */}

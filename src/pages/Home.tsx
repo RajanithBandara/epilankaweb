@@ -29,11 +29,11 @@ export default function HomePage() {
       return;
     }
 
-    // Initialize Lenis for smooth scrolling and slower scroll speed
+    // Initialize Lenis for snappier smooth scrolling
     const lenis = new Lenis({
-      duration: 1.5,
+      duration: 1.2,
       smoothWheel: true,
-      wheelMultiplier: 0.7,
+      wheelMultiplier: 1.0,
     });
 
     lenis.on("scroll", ScrollTrigger.update);
@@ -111,8 +111,8 @@ export default function HomePage() {
 
         {/* Decorative background elements */}
         <div className="absolute inset-0 opacity-10">
-          <div data-home-glow="left" className="absolute top-10 left-10 w-72 h-72 bg-white rounded-full blur-3xl"></div>
-          <div data-home-glow="right" className="absolute bottom-10 right-10 w-96 h-96 bg-white rounded-full blur-3xl"></div>
+          <div data-home-glow="left" className="absolute top-10 left-10 w-72 h-72 rounded-full will-change-transform" style={{ background: "radial-gradient(circle, rgba(255,255,255,1) 0%, transparent 70%)" }}></div>
+          <div data-home-glow="right" className="absolute bottom-10 right-10 w-96 h-96 rounded-full will-change-transform" style={{ background: "radial-gradient(circle, rgba(255,255,255,1) 0%, transparent 70%)" }}></div>
         </div>
       </div>
 
@@ -121,16 +121,16 @@ export default function HomePage() {
         <HeroSection />
         {/* Floating sections container */}
         <div className="relative pb-32 space-y-24 pt-12">
-          <div data-home-scroll-section>
+          <div data-home-scroll-section className="will-change-transform">
             <StatSection />
           </div>
-          <div data-home-scroll-section>
+          <div data-home-scroll-section className="will-change-transform">
             <AboutSection />
           </div>
-          <div data-home-scroll-section>
+          <div data-home-scroll-section className="will-change-transform">
             <FeaturesSection />
           </div>
-          <div data-home-scroll-section>
+          <div data-home-scroll-section className="will-change-transform">
             <CtaSection />
           </div>
         </div>

@@ -45,74 +45,204 @@ const SUGGESTIONS = [
     "How to protect my family from mosquito-borne diseases?",
 ];
 
+// ── Rich message rendering ────────────────────────────────────────────────────
+
 type RenderBlock =
+    | { type: "heading"; level: 1 | 2 | 3; text: string }
     | { type: "paragraph"; text: string }
-    | { type: "list"; items: string[] };
+    | { type: "bullet_list"; items: string[] }
+    | { type: "ordered_list"; items: string[] }
+    | { type: "callout"; text: string }
+    | { type: "blockquote"; text: string }
+    | { type: "divider" };
+
+/** Render inline markdown: **bold**, *italic*, `code` */
+function InlineText({ text }: { text: string }) {
+    const tokens = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
+    return (
+        <>
+            {tokens.map((tok, i) => {
+                if (tok.startsWith("**") && tok.endsWith("**") && tok.length > 4)
+                    return <strong key={i} className="font-semibold text-[#67e8f9]">{tok.slice(2, -2)}</strong>;
+                if (tok.startsWith("*") && tok.endsWith("*") && tok.length > 2)
+                    return <em key={i} className="italic text-white/80">{tok.slice(1, -1)}</em>;
+                if (tok.startsWith("`") && tok.endsWith("`") && tok.length > 2)
+                    return (
+                        <code key={i} className="rounded px-1 py-0.5 text-[11px] font-mono"
+                            style={{ background: "rgba(103,232,249,0.15)", color: "#67e8f9" }}>
+                            {tok.slice(1, -1)}
+                        </code>
+                    );
+                return <span key={i}>{tok}</span>;
+            })}
+        </>
+    );
+}
+
+const CALLOUT_PREFIX = /^[\u{1F534}\u{1F7E1}\u{1F7E2}\u2705\u26A0\uFE0F\u2757\u2139\uFE0F\u{1F4A1}\u{1F6A8}\u{1F3E5}\u{1F48A}\u{1F321}\u{1F99F}]/u;
 
 function parseMessageBlocks(content: string): RenderBlock[] {
     const blocks: RenderBlock[] = [];
     const lines = content.replace(/\r/g, "").split("\n");
-    const paragraphBuffer: string[] = [];
-    const listBuffer: string[] = [];
+    let bulletBuffer: string[] = [];
+    let orderedBuffer: string[] = [];
 
-    const flushParagraph = () => {
-        if (!paragraphBuffer.length) return;
-        blocks.push({ type: "paragraph", text: paragraphBuffer.join(" ").trim() });
-        paragraphBuffer.length = 0;
+    const flushBullet = () => {
+        if (!bulletBuffer.length) return;
+        blocks.push({ type: "bullet_list", items: [...bulletBuffer] });
+        bulletBuffer = [];
     };
-
-    const flushList = () => {
-        if (!listBuffer.length) return;
-        blocks.push({ type: "list", items: [...listBuffer] });
-        listBuffer.length = 0;
+    const flushOrdered = () => {
+        if (!orderedBuffer.length) return;
+        blocks.push({ type: "ordered_list", items: [...orderedBuffer] });
+        orderedBuffer = [];
     };
+    const flushAll = () => { flushBullet(); flushOrdered(); };
 
     for (const rawLine of lines) {
         const line = rawLine.trim();
-        const bulletMatch = line.match(/^(?:[-*\u2022]|\d+\.)\s+(.+)$/);
 
-        if (!line) {
-            flushParagraph();
-            flushList();
+        if (!line) { flushAll(); continue; }
+
+        // Horizontal divider
+        if (/^[-*_]{3,}$/.test(line)) {
+            flushAll();
+            blocks.push({ type: "divider" });
             continue;
         }
 
-        if (bulletMatch?.[1]) {
-            flushParagraph();
-            listBuffer.push(bulletMatch[1].replace(/[*`_]/g, "").trim());
+        // Headings: ###, ##, #
+        const hMatch = line.match(/^(#{1,3})\s+(.+)$/);
+        if (hMatch) {
+            flushAll();
+            const level = Math.min(hMatch[1].length, 3) as 1 | 2 | 3;
+            blocks.push({ type: "heading", level, text: hMatch[2].replace(/[*_`]/g, "").trim() });
             continue;
         }
 
-        flushList();
-        paragraphBuffer.push(line.replace(/[*`_]/g, "").trim());
+        // Blockquote: > text
+        if (line.startsWith("> ")) {
+            flushAll();
+            blocks.push({ type: "blockquote", text: line.slice(2).trim() });
+            continue;
+        }
+
+        // Unordered list: -, *, •
+        const bMatch = line.match(/^[-*•]\s+(.+)$/);
+        if (bMatch) { flushOrdered(); bulletBuffer.push(bMatch[1].trim()); continue; }
+
+        // Ordered list: 1. 2. …
+        const oMatch = line.match(/^\d+[.)]\s+(.+)$/);
+        if (oMatch) { flushBullet(); orderedBuffer.push(oMatch[1].trim()); continue; }
+
+        // Emoji callout line
+        if (CALLOUT_PREFIX.test(line)) {
+            flushAll();
+            blocks.push({ type: "callout", text: line });
+            continue;
+        }
+
+        // Plain paragraph
+        flushAll();
+        blocks.push({ type: "paragraph", text: line });
     }
 
-    flushParagraph();
-    flushList();
-
-    return blocks.filter((b) => (b.type === "paragraph" ? Boolean(b.text) : b.items.length > 0));
+    flushAll();
+    return blocks;
 }
 
 function FormattedMessage({ content }: { content: string }) {
     const blocks = parseMessageBlocks(content);
+
     return (
-        <div className="space-y-2">
-            {blocks.map((block, index) =>
-                block.type === "paragraph" ? (
-                    <p key={`p-${index}`} className="whitespace-pre-wrap">
-                        {block.text}
-                    </p>
-                ) : (
-                    <ul key={`l-${index}`} className="list-disc space-y-1 pl-5">
-                        {block.items.map((item, itemIndex) => (
-                            <li key={`i-${index}-${itemIndex}`}>{item}</li>
-                        ))}
-                    </ul>
-                )
-            )}
+        <div className="space-y-2.5 text-sm leading-relaxed">
+            {blocks.map((block, index) => {
+                switch (block.type) {
+
+                    case "heading": {
+                        const cls: Record<1 | 2 | 3, string> = {
+                            1: "text-base font-black text-white border-b border-white/10 pb-1",
+                            2: "text-sm font-bold text-[#67e8f9]",
+                            3: "text-[11px] font-semibold uppercase tracking-widest text-white/60",
+                        };
+                        return <p key={index} className={cls[block.level]}>{block.text}</p>;
+                    }
+
+                    case "paragraph":
+                        return (
+                            <p key={index} className="text-white/85 whitespace-pre-wrap">
+                                <InlineText text={block.text} />
+                            </p>
+                        );
+
+                    case "bullet_list":
+                        return (
+                            <ul key={index} className="space-y-2 pl-0.5">
+                                {block.items.map((item, i) => (
+                                    <li key={i} className="flex items-start gap-2.5">
+                                        <span className="mt-[7px] h-1.5 w-1.5 rounded-full shrink-0 bg-[#67e8f9]" />
+                                        <span className="text-white/85 flex-1"><InlineText text={item} /></span>
+                                    </li>
+                                ))}
+                            </ul>
+                        );
+
+                    case "ordered_list":
+                        return (
+                            <ol key={index} className="space-y-2 pl-0.5">
+                                {block.items.map((item, i) => (
+                                    <li key={i} className="flex items-start gap-2.5">
+                                        <span
+                                            className="shrink-0 h-5 w-5 rounded-full text-[10px] font-bold flex items-center justify-center mt-0.5"
+                                            style={{
+                                                background: "rgba(103,232,249,0.12)",
+                                                color: "#67e8f9",
+                                                border: "1px solid rgba(103,232,249,0.3)",
+                                            }}
+                                        >{i + 1}</span>
+                                        <span className="text-white/85 flex-1"><InlineText text={item} /></span>
+                                    </li>
+                                ))}
+                            </ol>
+                        );
+
+                    case "callout":
+                        return (
+                            <div
+                                key={index}
+                                className="rounded-lg px-3 py-2.5 font-medium"
+                                style={{
+                                    background: "rgba(103,232,249,0.08)",
+                                    border: "1px solid rgba(103,232,249,0.22)",
+                                    color: "rgba(255,255,255,0.92)",
+                                }}
+                            >
+                                <InlineText text={block.text} />
+                            </div>
+                        );
+
+                    case "blockquote":
+                        return (
+                            <div
+                                key={index}
+                                className="rounded-r-lg px-3 py-2 italic text-white/70"
+                                style={{ borderLeft: "3px solid #0EA5A4", background: "rgba(14,165,164,0.08)" }}
+                            >
+                                <InlineText text={block.text} />
+                            </div>
+                        );
+
+                    case "divider":
+                        return <div key={index} className="border-t border-white/8 my-1" />;
+
+                    default:
+                        return null;
+                }
+            })}
         </div>
     );
 }
+
 
 async function readStream(response: Response, onDelta: (chunk: string) => void) {
     if (!response.body) throw new Error("Empty stream");
@@ -190,32 +320,87 @@ function Bubble({ message }: { message: ChatMessage }) {
     );
 }
 
-function ChatListItem({ chat, isActive, onClick, onDelete }: { chat: Chat; isActive: boolean; onClick: () => void; onDelete: (id: string) => void }) {
+function ChatListItem({ chat, isActive, onClick, onDelete, onRename }: { chat: Chat; isActive: boolean; onClick: () => void; onDelete: (id: string) => void; onRename: (id: string, title: string) => void }) {
+    const [isEditing, setIsEditing] = useState(false);
+    const [editTitle, setEditTitle] = useState(chat.title);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (isEditing) {
+            inputRef.current?.focus();
+            inputRef.current?.select();
+        }
+    }, [isEditing]);
+
+    const handleSave = () => {
+        setIsEditing(false);
+        const trimmed = editTitle.trim();
+        if (trimmed && trimmed !== chat.title) {
+            onRename(chat.id, trimmed);
+        } else {
+            setEditTitle(chat.title);
+        }
+    };
+
     return (
         <div
             className={`group flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 cursor-pointer transition ${isActive
                 ? "bg-white/10 border border-white/10"
                 : "hover:bg-white/5 border border-transparent"
                 }`}
-            onClick={onClick}
+            onClick={() => !isEditing && onClick()}
         >
             <div className="flex items-center gap-2 flex-1 min-w-0">
                 <MessageSquare className={`h-4 w-4 shrink-0 ${isActive ? "text-[#67e8f9]" : "text-white/40"}`} />
-                <span className={`text-sm truncate ${isActive ? "text-white font-medium" : "text-white/60"}`}>
-                    {chat.title}
-                </span>
+                {isEditing ? (
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        onBlur={handleSave}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSave();
+                            if (e.key === "Escape") {
+                                setIsEditing(false);
+                                setEditTitle(chat.title);
+                            }
+                        }}
+                        className="flex-1 bg-transparent border-none outline-none text-sm text-white focus:ring-0 p-0 m-0 w-full"
+                    />
+                ) : (
+                    <span className={`text-sm truncate ${isActive ? "text-white font-medium" : "text-white/60"}`}>
+                        {chat.title}
+                    </span>
+                )}
             </div>
-            <button
-                type="button"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(chat.id);
-                }}
-                className="opacity-0 group-hover:opacity-100 transition p-1 hover:bg-white/10 rounded text-white/40 hover:text-red-400"
-                title="Delete chat"
-            >
-                <Trash2 className="h-3.5 w-3.5" />
-            </button>
+            
+            {!isEditing && (
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsEditing(true);
+                        }}
+                        className="p-1 hover:bg-white/10 rounded text-white/40 hover:text-[#67e8f9]"
+                        title="Rename chat"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(chat.id);
+                        }}
+                        className="p-1 hover:bg-white/10 rounded text-white/40 hover:text-red-400"
+                        title="Delete chat"
+                    >
+                        <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                </div>
+            )}
         </div>
     );
 }
@@ -345,6 +530,31 @@ export default function EpiGuardChat() {
             }
         },
         [currentChatId, chats, fetchWithAuth]
+    );
+
+    const renameChat = useCallback(
+        async (chatId: string, newTitle: string) => {
+            try {
+                // Optimistically update UI
+                setChats((prev) =>
+                    prev.map((chat) => (chat.id === chatId ? { ...chat, title: newTitle } : chat))
+                );
+
+                const res = await fetchWithAuth(`/api/chat-history?chatId=${chatId}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ title: newTitle }),
+                });
+
+                if (!res.ok) {
+                    // Revert on failure by reloading chats (or just showing an error, reloading is safer)
+                    setError("Failed to rename chat");
+                }
+            } catch (err) {
+                setError(err instanceof Error ? err.message : "Failed to rename chat");
+            }
+        },
+        [fetchWithAuth]
     );
 
     const saveMessage = useCallback(
@@ -574,6 +784,7 @@ export default function EpiGuardChat() {
                                 setSidebarOpen(false);
                             }}
                             onDelete={deleteChat}
+                            onRename={renameChat}
                         />
                     ))}
                 </div>

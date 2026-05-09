@@ -29,7 +29,7 @@ export default function ThreeBackground() {
     // ── Renderer ────────────────────────────────────────────────────────
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // Reduced from 2 for better performance
     renderer.setClearColor(0x000000, 0);
     container.appendChild(renderer.domElement);
 
@@ -40,7 +40,7 @@ export default function ThreeBackground() {
     const R = 8; // globe radius
 
     // ── 1. Inner subtle sphere (adds slight depth without blocking gradient) ──
-    const innerGeo = new THREE.SphereGeometry(R * 0.98, 48, 48);
+    const innerGeo = new THREE.SphereGeometry(R * 0.98, 32, 32);
     const innerMat = new THREE.MeshBasicMaterial({
       color: 0x1e3a8a,
       transparent: true,
@@ -49,7 +49,7 @@ export default function ThreeBackground() {
     globeGroup.add(new THREE.Mesh(innerGeo, innerMat));
 
     // ── 2. Wireframe globe shell ─────────────────────────────────────────
-    const wireGeo = new THREE.SphereGeometry(R, 36, 36);
+    const wireGeo = new THREE.SphereGeometry(R, 24, 24);
     const wireMat = new THREE.MeshBasicMaterial({
       color: 0x1e40af,
       wireframe: true,
@@ -72,8 +72,8 @@ export default function ThreeBackground() {
       const r = Math.cos(lat) * R;
       const y = Math.sin(lat) * R;
       const pts: THREE.Vector3[] = [];
-      for (let j = 0; j <= 128; j++) {
-        const θ = (j / 128) * Math.PI * 2;
+      for (let j = 0; j <= 64; j++) {
+        const θ = (j / 64) * Math.PI * 2;
         pts.push(new THREE.Vector3(r * Math.cos(θ), y, r * Math.sin(θ)));
       }
       globeGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), gridMat()));
@@ -83,8 +83,8 @@ export default function ThreeBackground() {
     for (let i = 0; i < 18; i++) {
       const lon = (i / 18) * Math.PI * 2;
       const pts: THREE.Vector3[] = [];
-      for (let j = 0; j <= 64; j++) {
-        const lat = (j / 64) * Math.PI - Math.PI / 2;
+      for (let j = 0; j <= 32; j++) {
+        const lat = (j / 32) * Math.PI - Math.PI / 2;
         pts.push(new THREE.Vector3(
           R * Math.cos(lat) * Math.cos(lon),
           R * Math.sin(lat),
@@ -95,7 +95,7 @@ export default function ThreeBackground() {
     }
 
     // ── 4. Atmosphere glow (two layers) ─────────────────────────────────
-    const atmoGeo1 = new THREE.SphereGeometry(R * 1.08, 48, 48);
+    const atmoGeo1 = new THREE.SphereGeometry(R * 1.08, 32, 32);
     const atmoMat1 = new THREE.MeshBasicMaterial({
       color: 0x38bdf8,
       transparent: true,
@@ -106,7 +106,7 @@ export default function ThreeBackground() {
     });
     globeGroup.add(new THREE.Mesh(atmoGeo1, atmoMat1));
 
-    const atmoGeo2 = new THREE.SphereGeometry(R * 1.18, 48, 48);
+    const atmoGeo2 = new THREE.SphereGeometry(R * 1.18, 32, 32);
     const atmoMat2 = new THREE.MeshBasicMaterial({
       color: 0x0ea5a4,
       transparent: true,
@@ -272,9 +272,9 @@ export default function ThreeBackground() {
       return { geo, mat, pts };
     };
 
-    const stars      = makeParticles(2500, R + 3,  R + 22, 0.06, 0.55, 0xffffff);
-    const innerDust  = makeParticles(800,  R + 1,  R + 4,  0.05, 0.35, 0x7dd3fc);
-    const outerRing  = makeParticles(400,  R + 0.5, R + 2,  0.04, 0.5,  0x22d3ee);
+    const stars      = makeParticles(1500, R + 3,  R + 22, 0.06, 0.55, 0xffffff);
+    const innerDust  = makeParticles(400,  R + 1,  R + 4,  0.05, 0.35, 0x7dd3fc);
+    const outerRing  = makeParticles(200,  R + 0.5, R + 2,  0.04, 0.5,  0x22d3ee);
 
     // ── Mouse & scroll ────────────────────────────────────────────────────
     let mouseX = 0, mouseY = 0;

@@ -94,3 +94,38 @@ export async function DELETE(req: NextRequest) {
         return NextResponse.json({ error: "Failed to delete chat" }, { status: 500 });
     }
 }
+
+/** PATCH /api/chat-history?chatId=xxx — update a specific chat's title */
+export async function PATCH(req: NextRequest) {
+    const jwt = getJwt(req);
+    if (!jwt) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const chatId = req.nextUrl.searchParams.get("chatId");
+    if (!chatId) {
+        return NextResponse.json({ error: "chatId query parameter required" }, { status: 400 });
+    }
+
+    let body: { title: string };
+    try {
+        body = await req.json();
+    } catch {
+        return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+
+    if (!body.title || !body.title.trim()) {
+        return NextResponse.json({ error: "title is required" }, { status: 400 });
+    }
+
+    try {
+        const res = await fetch(`${BACKEND}/chat/history/${chatId}/title`, {
+            method: "PATCH",
+            headers: backendHeaders(jwt),
+            body: JSON.stringify({ title: body.title }),
+        });
+        const data = await res.json();
+        return NextResponse.json(data, { status: res.status });
+    } catch (err) {
+        console.error("[chat-history PATCH]", err);
+        return NextResponse.json({ error: "Failed to rename chat" }, { status: 500 });
+    }
+}

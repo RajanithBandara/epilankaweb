@@ -56,8 +56,8 @@ function StatSection() {
             <div className="max-w-5xl mx-auto">
                 <div className="relative bg-white/[0.07] backdrop-blur-xl rounded-3xl border border-white/10 overflow-hidden shadow-[0_8px_40px_rgba(0,0,0,0.25)]">
                     {/* Decorative glows */}
-                    <div className="absolute -top-16 -right-16 w-40 h-40 bg-[#1E3A8A]/15 rounded-full blur-3xl pointer-events-none" />
-                    <div className="absolute -bottom-16 -left-16 w-40 h-40 bg-[#0EA5A4]/15 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute -top-16 -right-16 w-40 h-40 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(30, 58, 138, 0.15) 0%, transparent 70%)' }} />
+                    <div className="absolute -bottom-16 -left-16 w-40 h-40 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(14, 165, 164, 0.15) 0%, transparent 70%)' }} />
 
                     {/* Stats grid */}
                     <div className="relative grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-white/10">

@@ -16,12 +16,310 @@ import {
     Clock,
     ChevronRight,
     BrainCircuit,
+    ShieldAlert,
+    XCircle,
+    Link2Off,
+    MessageSquareWarning,
+    HeartPulse,
+    Flame,
+    Info,
 } from "lucide-react";
 import { useLocation } from "@/contexts/LocationContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { account } from "@/lib/appwrite";
 import { getDashboardCache, setDashboardCache } from "@/lib/dashboardCache";
 import axios from "axios";
+
+// ── Content moderation — Layers 1 & 2 (client-side, instant) ────────────────
+// Layers 3 (Detoxify ML) & 4 (Groq AI) run server-side only during submission.
+
+import { Filter } from "bad-words";
+
+const MIN_CHARS = 20;
+const MAX_CHARS = 2000;
+
+// Layer 2 — bad-words 1300+ word dataset + domain-specific extras
+const _filter = new Filter();
+_filter.addWords(
+    "buy now", "free offer", "limited time offer", "act now",
+    "make money", "earn cash", "work from home", "weight loss",
+    "casino", "lottery", "jackpot", "winner", "prize", "cash prize",
+    "discount", "subscribe", "unsubscribe", "free trial", "risk free",
+    "guaranteed", "no cost", "earn money",
+    "send me your", "give me your", "share your details",
+    "personal information", "credit card", "bank account",
+    "asdf", "qwerty", "zxcv", "test123", "hello world",
+    "bomb", "terrorist", "massacre", "genocide",
+    "public shame", "expose you", "humiliate", "name and shame",
+);
+
+// Layer 1 — link & call-to-action regex (mirrors backend content_filter.py exactly)
+const _LINK_RE = new RegExp(
+    [
+        "https?://",
+        "ftp://",
+        "www\\.",
+        "mailto:",
+        "\\b\\w{2,}\\.(?:com|net|org|io|lk|gov|edu|info|biz|co|app|me|tv|uk|au)\\b",
+        "\\bbit\\.ly\\b", "\\btinyurl\\b", "\\bt\\.co\\b", "\\bgoo\\.gl\\b",
+        "\\bfollow\\s+(?:this\\s+)?link\\b",
+        "\\bclick\\s+here\\b",
+        "\\bget\\s+here\\b",
+        "\\bvisit\\s+(?:this\\s+)?(?:site|page|url|link|website)\\b",
+        "\\bcheck\\s+(?:this\\s+)?out\\b",
+        "\\bmy\\s+(?:profile|page|website|data|info|details)\\b",
+        "\\bshare\\s+(?:your|my)\\s+(?:data|info|details|link)\\b",
+        "\\bget\\s+(?:your|my)\\s+(?:data|info|details)\\b",
+        "\\bdownload\\s+(?:now|here|this)\\b",
+        "\\bjoin\\s+(?:now|here|us)\\b",
+        "\\bregister\\s+(?:now|here)\\b",
+        "\\bsign\\s+up\\s+(?:now|here)\\b",
+    ].join("|"),
+    "i"
+);
+
+/**
+ * Client-side validation: Layers 1 & 2 only.
+ * Returns null if valid, or a user-facing error string.
+ * Layers 3 (Detoxify) & 4 (Groq) run server-side during submission.
+ */
+function validateReportContent(text: string): string | null {
+    const t = text.trim();
+    if (t.length === 0) return null;
+    if (t.length < MIN_CHARS)
+        return `Too short — add at least ${MIN_CHARS - t.length} more character${MIN_CHARS - t.length !== 1 ? "s" : ""}.`;
+    if (t.length > MAX_CHARS)
+        return `Too long — remove ${t.length - MAX_CHARS} character${t.length - MAX_CHARS !== 1 ? "s" : ""}.`;
+    // Layer 1
+    const linkMatch = _LINK_RE.exec(t);
+    if (linkMatch) return `Links and promotional phrases are not allowed (found: "${linkMatch[0].trim()}").`;
+    // Layer 2
+    if (_filter.isProfane(t)) return "Inappropriate language or spam detected. Health reports only.";
+    if (/(.)\1{6,}/.test(t)) return "Repeated characters detected — looks like spam.";
+    const symbolRatio = (t.match(/[^\w\s]/g) ?? []).length / Math.max(t.length, 1);
+    if (symbolRatio > 0.35) return "Too many special characters. Please use plain text.";
+    const letters = t.match(/[a-zA-Z]/g) ?? [];
+    if (letters.length > 30) {
+        const capsRatio = letters.filter((c) => c === c.toUpperCase()).length / letters.length;
+        if (capsRatio > 0.75) return "Please avoid writing in ALL CAPS.";
+    }
+    const words = t.toLowerCase().match(/\w+/g) ?? [];
+    if (words.length >= 10 && new Set(words).size / words.length < 0.3)
+        return "Too much repeated text — please describe the incident in your own words.";
+    return null;
+}
+
+
+// ── Rejection feedback system ─────────────────────────────────────────────────
+// Maps the pipeline error message to a rich structured rejection object.
+
+type RejectionLayer = "link" | "spam" | "toxicity" | "health" | "validation" | "system";
+
+interface RejectionInfo {
+    layer:   RejectionLayer;
+    title:   string;
+    message: string;
+    hint:    string;
+    example: string;
+}
+
+function parseRejection(errorMsg: string): RejectionInfo {
+    const m = errorMsg.toLowerCase();
+
+    // Layer 1 — Link / CTA detection
+    if (m.includes("links and promotional") || m.includes("follow this link") ||
+        m.includes("cannot contain links") || m.includes("urls or links") ||
+        m.includes("url") || m.includes("website")) {
+        return {
+            layer:   "link",
+            title:   "Link or Promotional Phrase Detected",
+            message: errorMsg,
+            hint:    "Remove all URLs, website addresses, and phrases like \"click here\", \"follow this link\", \"get here\", or \"visit this site\".",
+            example: "\"10 children in Gampaha reported dengue with high fever and rash over the past 3 days.\"",
+        };
+    }
+
+    // Layer 2 — Spam / profanity
+    if (m.includes("inappropriate language") || m.includes("spam") ||
+        m.includes("profanity") || m.includes("offensive")) {
+        return {
+            layer:   "spam",
+            title:   "Inappropriate Language or Spam Detected",
+            message: errorMsg,
+            hint:    "Use respectful, clinical language. Avoid profanity, promotional words, or marketing phrases.",
+            example: "\"Several adults in Colombo 05 are experiencing vomiting and diarrhoea since yesterday.\"",
+        };
+    }
+
+    // Layer 2 — Structural spam
+    if (m.includes("repeated characters") || m.includes("special characters") ||
+        m.includes("all caps") || m.includes("repeated text")) {
+        return {
+            layer:   "spam",
+            title:   "Spam Pattern Detected",
+            message: errorMsg,
+            hint:    "Write in normal sentence case, avoid repeating characters or words, and use plain text without excessive punctuation.",
+            example: "\"Residents in Kandy reported flu-like symptoms with fever above 38°C.\"",
+        };
+    }
+
+    // Layer 2 — Length
+    if (m.includes("too short") || m.includes("at least 20")) {
+        return {
+            layer:   "validation",
+            title:   "Report Too Short",
+            message: errorMsg,
+            hint:    "Include the disease name or symptoms, number of people affected, and a rough timeline.",
+            example: "\"3 cases of suspected typhoid in Jaffna — patients have high fever, headache, and abdominal pain for 5 days.\"",
+        };
+    }
+    if (m.includes("too long") || m.includes("2,000 characters") || m.includes("2000 characters")) {
+        return {
+            layer:   "validation",
+            title:   "Report Too Long",
+            message: errorMsg,
+            hint:    "Shorten your description to the key facts: disease, symptoms, case count, and location.",
+            example: "\"Dengue outbreak in Ratnapura — 12 cases, fever and joint pain, past 2 weeks.\"",
+        };
+    }
+
+    // Layer 3 — Detoxify toxicity
+    if (m.includes("harmful") || m.includes("threatening") || m.includes("toxic") ||
+        m.includes("offensive content") || m.includes("factual and respectful")) {
+        return {
+            layer:   "toxicity",
+            title:   "Harmful or Offensive Content Detected",
+            message: errorMsg,
+            hint:    "Keep your report factual and respectful. Avoid threats, insults, or language targeting individuals or groups.",
+            example: "\"School children in Matara are showing signs of food poisoning — vomiting and nausea after lunch.\"",
+        };
+    }
+
+    // Layer 4 — Groq health relevance
+    if (m.includes("doesn\u2019t appear") || m.includes("health or disease") ||
+        m.includes("real health") || m.includes("genuine health") ||
+        m.includes("health incident") || m.includes("epilanka only accepts")) {
+        return {
+            layer:   "health",
+            title:   "Not a Health Incident Report",
+            message: errorMsg,
+            hint:    "EpiLanka only accepts genuine disease and health incident reports. Describe actual symptoms, patient counts, or health concerns in your community.",
+            example: "\"A cluster of dengue cases has been identified in Wattala — 7 confirmed, fever and rash reported.\"",
+        };
+    }
+
+    // Fallback — generic system error
+    return {
+        layer:   "system",
+        title:   "Submission Failed",
+        message: errorMsg,
+        hint:    "Please check your report content and try again. If the problem persists, refresh the page.",
+        example: "",
+    };
+}
+
+const LAYER_STYLES: Record<RejectionLayer, { bg: string; border: string; accent: string; badge: string }> = {
+    link:       { bg: "rgba(234,88,12,0.07)",  border: "rgba(234,88,12,0.30)",  accent: "#c2410c", badge: "bg-orange-100 text-orange-700" },
+    spam:       { bg: "rgba(220,38,38,0.07)",  border: "rgba(220,38,38,0.30)",  accent: "#dc2626", badge: "bg-red-100 text-red-700" },
+    toxicity:   { bg: "rgba(168,85,247,0.07)", border: "rgba(168,85,247,0.30)", accent: "#9333ea", badge: "bg-purple-100 text-purple-700" },
+    health:     { bg: "rgba(37,99,235,0.07)",  border: "rgba(37,99,235,0.30)",  accent: "#1d4ed8", badge: "bg-blue-100 text-blue-700" },
+    validation: { bg: "rgba(245,158,11,0.07)", border: "rgba(245,158,11,0.30)", accent: "#d97706", badge: "bg-amber-100 text-amber-700" },
+    system:     { bg: "rgba(100,116,139,0.07)",border: "rgba(100,116,139,0.30)",accent: "#475569", badge: "bg-slate-100 text-slate-700" },
+};
+
+const LAYER_ICON: Record<RejectionLayer, React.ReactNode> = {
+    link:       <Link2Off className="h-5 w-5 shrink-0" />,
+    spam:       <MessageSquareWarning className="h-5 w-5 shrink-0" />,
+    toxicity:   <Flame className="h-5 w-5 shrink-0" />,
+    health:     <HeartPulse className="h-5 w-5 shrink-0" />,
+    validation: <AlertCircle className="h-5 w-5 shrink-0" />,
+    system:     <XCircle className="h-5 w-5 shrink-0" />,
+};
+
+const LAYER_LABEL: Record<RejectionLayer, string> = {
+    link:       "Layer 1 • Link Detection",
+    spam:       "Layer 2 • Spam Filter",
+    toxicity:   "Layer 3 • Toxicity Detection",
+    health:     "Layer 4 • Health Relevance",
+    validation: "Validation",
+    system:     "System Error",
+};
+
+function RejectionCard({ errorMsg, onDismiss }: { errorMsg: string; onDismiss: () => void }) {
+    const rej    = parseRejection(errorMsg);
+    const styles = LAYER_STYLES[rej.layer];
+    const icon   = LAYER_ICON[rej.layer];
+    const label  = LAYER_LABEL[rej.layer];
+
+    return (
+        <div
+            className="rounded-2xl border overflow-hidden animate-fade-in-scale"
+            style={{ background: styles.bg, borderColor: styles.border }}
+        >
+            {/* Header */}
+            <div
+                className="flex items-center justify-between px-4 py-3 border-b"
+                style={{ borderColor: styles.border }}
+            >
+                <div className="flex items-center gap-2.5" style={{ color: styles.accent }}>
+                    {icon}
+                    <span className="text-sm font-bold">{rej.title}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span
+                        className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                        style={{ background: styles.border, color: styles.accent }}
+                    >
+                        {label}
+                    </span>
+                    <button
+                        onClick={onDismiss}
+                        className="rounded-lg p-1 transition-opacity hover:opacity-70"
+                        style={{ color: styles.accent }}
+                        aria-label="Dismiss"
+                    >
+                        <XCircle className="h-4 w-4" />
+                    </button>
+                </div>
+            </div>
+
+            {/* Body */}
+            <div className="px-4 py-3 space-y-3">
+                {/* Error detail */}
+                <p className="text-sm" style={{ color: styles.accent }}>
+                    {rej.message}
+                </p>
+
+                {/* Fix hint */}
+                <div
+                    className="flex items-start gap-2 rounded-xl px-3 py-2.5"
+                    style={{ background: "var(--dash-card-bg)", border: `1px solid ${styles.border}` }}
+                >
+                    <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: styles.accent }} />
+                    <p className="text-xs" style={{ color: "var(--dash-text-secondary)" }}>
+                        <span className="font-semibold" style={{ color: styles.accent }}>How to fix: </span>
+                        {rej.hint}
+                    </p>
+                </div>
+
+                {/* Example */}
+                {rej.example && (
+                    <div
+                        className="rounded-xl px-3 py-2.5"
+                        style={{ background: "var(--dash-card-bg)", border: `1px solid ${styles.border}` }}
+                    >
+                        <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: styles.accent }}>
+                            ✓ Example of a valid report
+                        </p>
+                        <p className="text-xs italic" style={{ color: "var(--dash-text-secondary)" }}>
+                            {rej.example}
+                        </p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
 
 interface ExtractedData {
     disease_name: string | null;
@@ -156,12 +454,21 @@ function StatusBadge({ status }: { status: string | null }) {
 export default function DiseaseReportPage() {
     const [description,    setDescription]    = useState("");
     const [loading,        setLoading]        = useState(false);
+    const [validating,     setValidating]     = useState(false);
     const [extractedData,  setExtractedData]  = useState<ExtractedData | null>(null);
     const [submitResponse, setSubmitResponse] = useState<SubmitResponse | null>(null);
     const [error,          setError]          = useState<string | null>(null);
     const [history,        setHistory]        = useState<HistoryReport[]>([]);
     const [historyLoading, setHistoryLoading] = useState(false);
     const [voteLoadingByReport, setVoteLoadingByReport] = useState<Record<string, boolean>>({});
+
+    // Live content validation
+    const contentError = useMemo(() => validateReportContent(description), [description]);
+    const charCount = description.trim().length;
+    const charCountColor =
+        charCount > MAX_CHARS ? "var(--color-danger)" :
+        charCount >= MAX_CHARS * 0.9 ? "#f97316" :
+        "var(--dash-text-muted)";
 
     const { user } = useAuth();
     const { locationData, isLoading: locationLoading, error: locationError } = useLocation();
@@ -174,11 +481,13 @@ export default function DiseaseReportPage() {
 
     const analyzeAndSubmit = async () => {
         if (!description.trim()) { setError("Please enter a disease report."); return; }
+        if (contentError) { setError(contentError); return; }
         if (!locationData?.user_location) { setError("Location data not available. Please refresh the page."); return; }
-        setLoading(true); setError(null); setExtractedData(null); setSubmitResponse(null);
+        setLoading(true); setValidating(true); setError(null); setExtractedData(null); setSubmitResponse(null);
         try {
             if (!user?.$id) throw new Error("Authentication required. Please log in again.");
             const jwtObj = await account.createJWT();
+            // Server runs Layers 1-2 (guard), then Detoxify (Layer 3), then Groq health check (Layer 4)
             const response = await fetch("/api/extract-disease-info", {
                 method: "POST",
                 headers: {
@@ -192,6 +501,7 @@ export default function DiseaseReportPage() {
                     longitude: locationData.user_location.longitude,
                 }),
             });
+            setValidating(false); // layers 3-4 complete
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || "Failed to process report");
             setExtractedData(data.extracted_data);
@@ -199,8 +509,9 @@ export default function DiseaseReportPage() {
             setDescription("");
         } catch (err) {
             setError(err instanceof Error ? err.message : "An unexpected error occurred");
-        } finally { setLoading(false); }
+        } finally { setLoading(false); setValidating(false); }
     };
+
 
     const fetchReportHistory = useCallback(async (forceRefresh = false) => {
         if (!locationData?.nearest_area?.district_name) return;
@@ -404,43 +715,63 @@ export default function DiseaseReportPage() {
                                 className="w-full px-4 py-3 rounded-xl resize-none transition-all duration-200 text-sm border outline-none"
                                 style={{
                                     background: "var(--dash-input-bg)",
-                                    borderColor: "var(--dash-input-border)",
+                                    borderColor: contentError && description.trim().length > 0
+                                        ? "rgba(220,38,38,0.55)"
+                                        : !contentError && description.trim().length > 0
+                                        ? "rgba(22,163,74,0.45)"
+                                        : "var(--dash-input-border)",
                                     color: "var(--dash-input-text)",
                                 }}
                                 disabled={loading || locationLoading}
                             />
-                            <p className="text-xs" style={{ color: "var(--dash-text-muted)" }}>
-                                Include symptoms, location specifics, and timeline for accurate AI analysis.
-                            </p>
+
+                            {/* Inline hint + character counter */}
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 text-xs">
+                                    {contentError && description.trim().length > 0 ? (
+                                        <span className="flex items-start gap-1.5" style={{ color: "var(--color-danger)" }}>
+                                            <ShieldAlert className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                                            {contentError}
+                                        </span>
+                                    ) : !contentError && description.trim().length > 0 ? (
+                                        <span className="flex items-center gap-1.5" style={{ color: "var(--color-success)" }}>
+                                            <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                                            Looks good — ready to submit.
+                                        </span>
+                                    ) : (
+                                        <span style={{ color: "var(--dash-text-muted)" }}>
+                                            Include symptoms, location specifics, and timeline for accurate AI analysis.
+                                        </span>
+                                    )}
+                                </div>
+                                <span className="text-xs font-mono shrink-0" style={{ color: charCountColor }}>
+                                    {charCount}/{MAX_CHARS}
+                                </span>
+                            </div>
 
                             <Button
                                 onClick={analyzeAndSubmit}
-                                disabled={loading || locationLoading || !locationData}
+                                disabled={loading || locationLoading || !locationData || Boolean(contentError && description.trim().length > 0)}
                                 className="cursor-pointer w-full text-white font-semibold py-2.5 rounded-xl shadow-md transition-all duration-200 disabled:opacity-60"
                                 style={{
                                     background: "linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%)",
                                 }}
                             >
-                                {loading ? (
+                                {validating ? (
+                                    <><ShieldAlert className="mr-2 h-4 w-4 animate-pulse" />Validating content…</>
+                                ) : loading ? (
                                     <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Analyzing with AI…</>
                                 ) : (
                                     <><Send className="mr-2 h-4 w-4" />Submit Report</>
                                 )}
                             </Button>
 
-                            {/* Error */}
+                            {/* Error — rich rejection card */}
                             {error && (
-                                <div
-                                    className="flex items-start gap-2.5 rounded-xl border px-4 py-3 text-sm animate-fade-in-scale"
-                                    style={{
-                                        background: "rgba(220,38,38,0.08)",
-                                        borderColor: "rgba(220,38,38,0.28)",
-                                        color: "var(--color-danger)",
-                                    }}
-                                >
-                                    <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                                    <span>{error}</span>
-                                </div>
+                                <RejectionCard
+                                    errorMsg={error}
+                                    onDismiss={() => setError(null)}
+                                />
                             )}
 
                             {/* Success banner */}
