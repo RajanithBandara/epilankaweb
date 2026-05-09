@@ -23,6 +23,8 @@ import {
     HeartPulse,
     Flame,
     Info,
+    Trash2,
+    Edit2,
 } from "lucide-react";
 import { useLocation } from "@/contexts/LocationContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -461,6 +463,73 @@ export default function DiseaseReportPage() {
     const [history,        setHistory]        = useState<HistoryReport[]>([]);
     const [historyLoading, setHistoryLoading] = useState(false);
     const [voteLoadingByReport, setVoteLoadingByReport] = useState<Record<string, boolean>>({});
+
+    // New state for Edit/Delete
+    const [editingReportId, setEditingReportId] = useState<string | null>(null);
+    const [editingDescription, setEditingDescription] = useState("");
+    const [editingLoading, setEditingLoading] = useState<Record<string, boolean>>({});
+    const [deletingLoading, setDeletingLoading] = useState<Record<string, boolean>>({});
+
+    const handleDeleteReport = async (reportId: string) => {
+        if (!confirm("Are you sure you want to delete this report?")) return;
+        
+        try {
+            if (!locationData?.nearest_area?.district_name) throw new Error("Location data not available");
+            
+            setDeletingLoading(prev => ({ ...prev, [reportId]: true }));
+            await axios.delete(`/api/user-reports/delete?reportid=${reportId}&location=${locationData.nearest_area.district_name}`);
+            
+            setHistory(prev => {
+                const updated = prev.filter(r => r.report_id !== reportId);
+                if (historyCacheKey) setDashboardCache(historyCacheKey, updated);
+                return updated;
+            });
+        } catch (err) {
+            setError("Failed to delete report. Please try again.");
+        } finally {
+            setDeletingLoading(prev => {
+                const copy = { ...prev };
+                delete copy[reportId];
+                return copy;
+            });
+        }
+    };
+
+    const handleUpdateReport = async (reportId: string) => {
+        if (!editingDescription.trim()) return;
+        const err = validateReportContent(editingDescription);
+        if (err) {
+            setError(err);
+            return;
+        }
+
+        try {
+            if (!locationData?.nearest_area?.district_name) throw new Error("Location data not available");
+            
+            setEditingLoading(prev => ({ ...prev, [reportId]: true }));
+            
+            await axios.put(`/api/user-reports/update`, {
+                reportid: reportId,
+                location: locationData.nearest_area.district_name,
+                description: editingDescription.trim()
+            });
+            
+            setHistory(prev => {
+                const updated = prev.map(r => r.report_id === reportId ? { ...r, description: editingDescription.trim() } : r);
+                if (historyCacheKey) setDashboardCache(historyCacheKey, updated);
+                return updated;
+            });
+            setEditingReportId(null);
+        } catch (err) {
+            setError("Failed to update report. Please try again.");
+        } finally {
+            setEditingLoading(prev => {
+                const copy = { ...prev };
+                delete copy[reportId];
+                return copy;
+            });
+        }
+    };
 
     // Live content validation
     const contentError = useMemo(() => validateReportContent(description), [description]);
@@ -1009,12 +1078,69 @@ export default function DiseaseReportPage() {
                                             </div>
 
                                             {/* Description */}
-                                            <p
-                                                className="text-sm line-clamp-2"
-                                                style={{ color: "var(--dash-text-secondary)" }}
-                                            >
-                                                {report.description}
-                                            </p>
+                                            {editingReportId === report.report_id ? (
+                                                <div className="space-y-2 mt-2">
+                                                    <Textarea
+                                                        value={editingDescription}
+                                                        onChange={(e) => setEditingDescription(e.target.value)}
+                                                        className="w-full text-sm min-h-[80px]"
+                                                        style={{
+                                                            background: "var(--dash-input-bg)",
+                                                            borderColor: "var(--dash-input-border)",
+                                                            color: "var(--dash-text-primary)",
+                                                        }}
+                                                    />
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => setEditingReportId(null)}
+                                                            disabled={editingLoading[report.report_id]}
+                                                        >
+                                                            Cancel
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() => handleUpdateReport(report.report_id)}
+                                                            disabled={editingLoading[report.report_id] || !editingDescription.trim()}
+                                                            style={{ background: "var(--color-primary)", color: "white" }}
+                                                        >
+                                                            {editingLoading[report.report_id] ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div>
+                                                    <p
+                                                        className="text-sm line-clamp-2"
+                                                        style={{ color: "var(--dash-text-secondary)" }}
+                                                    >
+                                                        {report.description}
+                                                    </p>
+                                                    {report.user_id === user?.$id && (
+                                                        <div className="flex gap-3 mt-2">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditingReportId(report.report_id);
+                                                                    setEditingDescription(report.description);
+                                                                }}
+                                                                className="text-xs flex items-center gap-1 hover:underline"
+                                                                style={{ color: "var(--color-primary)" }}
+                                                            >
+                                                                <Edit2 className="h-3 w-3" /> Edit
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteReport(report.report_id)}
+                                                                disabled={deletingLoading[report.report_id]}
+                                                                className="text-xs flex items-center gap-1 hover:underline"
+                                                                style={{ color: "var(--color-danger)" }}
+                                                            >
+                                                                {deletingLoading[report.report_id] ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />} Delete
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
 
                                             {/* Stats chips */}
                                             {report.extracted_data && (
