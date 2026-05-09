@@ -11,7 +11,7 @@ export async function DELETE(req: NextRequest) {
             return NextResponse.json({ error: "Missing report_id or district" }, { status: 400 });
         }
         
-        const cookieToken = req.cookies.get("appwrite-jwt")?.value;
+        const cookieToken = req.cookies.get("appwrite-officer-jwt")?.value;
         const authHeader = req.headers.get("authorization");
         const headerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : undefined;
         const token = headerToken || cookieToken;
