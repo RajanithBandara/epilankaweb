@@ -32,8 +32,8 @@ function CtaSection() {
             <div className="max-w-5xl mx-auto">
                 <div className="relative bg-gradient-to-br from-[#1E3A8A] via-[#1e40af] to-[#0c7490] rounded-3xl border border-white/10 overflow-hidden shadow-[0_8px_40px_rgba(14,165,164,0.2)]">
                     {/* Decorative glows */}
-                    <div className="absolute -top-24 -left-24 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none" />
-                    <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-[#0EA5A4]/20 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute -top-24 -left-24 w-64 h-64 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 70%)' }} />
+                    <div className="absolute -bottom-24 -right-24 w-64 h-64 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(14, 165, 164, 0.20) 0%, transparent 70%)' }} />
 
                     {/* Mesh grid overlay */}
                     <div
