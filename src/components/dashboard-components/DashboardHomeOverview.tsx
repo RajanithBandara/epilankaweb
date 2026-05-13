@@ -19,6 +19,13 @@ import { getDashboardCache, setDashboardCache } from '@/lib/dashboardCache';
 
 type RiskLevel = 'safe' | 'low' | 'medium' | 'high';
 
+interface RiskItem {
+    disease_id: string | number;
+    disease_name: string;
+    level: RiskLevel;
+    count: number;
+}
+
 const LOCATION_REPORTS_CACHE_TTL_MS = 2 * 60 * 1000;
 
 interface LocationReport {
@@ -129,9 +136,10 @@ export default function DashboardHomeOverview() {
     const [refreshing, setRefreshing] = useState(false);
 
     const districtName = locationData?.nearest_area?.district_name;
+    const provinceName = locationData?.nearest_area?.province_name;
 
-    const fetchReportsForDistrict = useCallback(async (district: string, forceRefresh = false) => {
-        const cacheKey = `reports-location:${district}:limit-5:days-30`;
+    const fetchReportsForDistrict = useCallback(async (district: string, province?: string, forceRefresh = false) => {
+        const cacheKey = `reports-location:${district}:${province || 'all'}:limit-5:days-30`;
 
         if (!forceRefresh) {
             const cached = getDashboardCache<LocationReportsResponse>(cacheKey, LOCATION_REPORTS_CACHE_TTL_MS);
@@ -146,12 +154,9 @@ export default function DashboardHomeOverview() {
         setReportsLoading(true);
         setReportsError(null);
         try {
-            const params = new URLSearchParams({
-                district_name: district,
-                limit: '5',
-                skip: '0',
-                days: '30',
-            });
+            const params = new URLSearchParams({ limit: '5', skip: '0', days: '30' });
+            params.set('district_name', district);
+            if (province?.trim()) params.set('province_name', province.trim());
             const response = await fetch(`/api/reports/location?${params.toString()}`);
             const payload = await response.json().catch(() => null);
             if (!response.ok) {
@@ -171,11 +176,11 @@ export default function DashboardHomeOverview() {
     }, []);
 
     useEffect(() => {
-        if (districtName) fetchReportsForDistrict(districtName);
-    }, [districtName, fetchReportsForDistrict]);
+        if (districtName) fetchReportsForDistrict(districtName, provinceName);
+    }, [districtName, provinceName, fetchReportsForDistrict]);
 
-    const activeAlerts = useMemo(() => {
-        const riskLevels = locationData?.nearest_area?.risk_levels ?? {};
+    const activeAlerts = useMemo<RiskItem[]>(() => {
+        const riskLevels = (locationData?.nearest_area?.risk_levels ?? {}) as Record<string, RiskItem>;
         return Object.values(riskLevels)
             .filter((risk) => risk.level === 'high' || risk.level === 'medium')
             .sort((a, b) => {
@@ -190,7 +195,7 @@ export default function DashboardHomeOverview() {
     const onRefresh = async () => {
         setRefreshing(true);
         await refetchLocation();
-        if (districtName) await fetchReportsForDistrict(districtName, true);
+        if (districtName) await fetchReportsForDistrict(districtName, provinceName, true);
         setRefreshing(false);
     };
 
@@ -402,8 +407,8 @@ export default function DashboardHomeOverview() {
                                         borderColor: "var(--dash-card-border)",
                                         animationDelay: `${idx * 40}ms`,
                                     }}
-                                    onMouseEnter={e => (e.currentTarget.style.background = "var(--dash-nav-hover-bg)")}
-                                    onMouseLeave={e => (e.currentTarget.style.background = "var(--dash-card-bg)")}
+                                    onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => (e.currentTarget.style.background = "var(--dash-nav-hover-bg)")}
+                                    onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => (e.currentTarget.style.background = "var(--dash-card-bg)")}
                                 >
                                     <div className="mt-1 w-2.5 h-2.5 rounded-full bg-blue-400 shrink-0 ring-2 ring-blue-100 dark:ring-blue-400/20" />
                                     <div className="flex-1 min-w-0">
