@@ -13,7 +13,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 
-interface ExtractedData {
+interface LocalExtractedData {
     [key: string]: string | number | null | undefined;
     disease_name?: string | null;
 }
@@ -26,7 +26,7 @@ interface Report {
         district_name: string;
         province_name: string;
     };
-    extracted_data?: ExtractedData;
+    extracted_data?: LocalExtractedData;
     week_number: number;
     year: number;
     status: string;
@@ -219,7 +219,7 @@ export default function AreaReportsList() {
             const groupedByDistrict = new Map<string, DistrictReportGroup>();
             responseData.reports.forEach((report) => {
                         // Filter out reports with unknown disease
-                        const extData = report.extracted_data as ExtractedData | undefined;
+                                const extData = report.extracted_data as LocalExtractedData | undefined;
                         const diseaseName = (extData?.disease_name ?? '').toLowerCase();
                 if (diseaseName.includes('unknown')) return;
 
@@ -396,7 +396,7 @@ export default function AreaReportsList() {
                                     <div className="border-t border-white/10 p-4 space-y-2.5 bg-black/20 backdrop-blur-sm">
                                         {group.recent_reports.length > 0 ? (
                                             group.recent_reports.map((report) => {
-                                                const dn = (report.extracted_data as ExtractedData)?.disease_name;
+                                                const dn = (report.extracted_data as LocalExtractedData)?.disease_name;
                                                 const statusCfg = getStatusStyle(report.status);
                                                 return (
                                                     <div
@@ -505,7 +505,7 @@ export default function AreaReportsList() {
             {/* ── Report Detail Modal Drawer ─────────────────────────────── */}
             {selectedReport && (() => {
                 const r = selectedReport;
-                const dn = (r.extracted_data as ExtractedData)?.disease_name;
+                const dn = (r.extracted_data as LocalExtractedData)?.disease_name;
                 const statusCfg = getStatusStyle(r.status);
                 return (
                     <>
