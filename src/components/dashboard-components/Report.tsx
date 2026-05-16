@@ -25,6 +25,11 @@ import {
     Info,
     Trash2,
     Edit2,
+    X,
+    Activity,
+    User,
+    Tag,
+    BarChart2,
 } from "lucide-react";
 import { useLocation } from "@/contexts/LocationContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -469,6 +474,7 @@ export default function DiseaseReportPage() {
     const [editingDescription, setEditingDescription] = useState("");
     const [editingLoading, setEditingLoading] = useState<Record<string, boolean>>({});
     const [deletingLoading, setDeletingLoading] = useState<Record<string, boolean>>({});
+    const [selectedReport, setSelectedReport] = useState<HistoryReport | null>(null);
 
     const handleDeleteReport = async (reportId: string) => {
         if (!confirm("Are you sure you want to delete this report?")) return;
@@ -541,6 +547,7 @@ export default function DiseaseReportPage() {
 
     const { user } = useAuth();
     const { locationData, isLoading: locationLoading, error: locationError } = useLocation();
+    const provinceName = locationData?.nearest_area?.province_name;
 
     const historyCacheKey = useMemo(() => {
         const district = locationData?.nearest_area?.district_name;
@@ -599,7 +606,9 @@ export default function DiseaseReportPage() {
             const response = await axios.get("/api/reports/location", {
                 params: {
                     district_name: locationData.nearest_area.district_name,
+                    province_name: provinceName,
                     user_id: user?.$id,
+                    days: 30,
                 },
             });
             const nextHistory = (response.data.reports || []) as HistoryReport[];
@@ -951,7 +960,7 @@ export default function DiseaseReportPage() {
 
                 {/* ── Right column: recent reports ─────────────────────────── */}
                 <aside className="xl:col-span-7 space-y-3 xl:sticky xl:top-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
                             <Clock className="h-4 w-4" style={{ color: "var(--dash-text-muted)" }} />
                             <h2 className="text-base font-semibold" style={{ color: "var(--dash-text-primary)" }}>
@@ -961,11 +970,7 @@ export default function DiseaseReportPage() {
                         {locationData?.nearest_area && (
                             <span
                                 className="text-xs font-medium rounded-full px-2.5 py-1 border"
-                                style={{
-                                    color: "var(--color-primary)",
-                                    background: "rgba(30,58,138,0.08)",
-                                    borderColor: "rgba(30,58,138,0.2)",
-                                }}
+                                style={{ color: "var(--color-primary)", background: "rgba(30,58,138,0.08)", borderColor: "rgba(30,58,138,0.2)" }}
                             >
                                 {locationData.nearest_area.district_name}
                             </span>
@@ -973,256 +978,400 @@ export default function DiseaseReportPage() {
                     </div>
 
                     {historyLoading ? (
-                        <div
-                            className="rounded-2xl border space-y-3 p-6"
-                            style={{ background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)" }}
-                        >
-                            <div className="h-12 w-3/4 bg-foreground/10 rounded-md animate-pulse" />
-                            <div className="h-12 w-full bg-foreground/10 rounded-md animate-pulse" />
-                            <div className="h-12 w-full bg-foreground/10 rounded-md animate-pulse" />
-                            <div className="h-12 w-5/6 bg-foreground/10 rounded-md animate-pulse" />
+                        <div className="rounded-2xl border p-5 space-y-3" style={{ background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)" }}>
+                            {[...Array(4)].map((_, i) => (
+                                <div key={i} className="flex gap-3 animate-pulse">
+                                    <div className="w-1 rounded-full shrink-0 bg-slate-200 dark:bg-slate-700" style={{ minHeight: "56px" }} />
+                                    <div className="flex-1 space-y-2 py-1">
+                                        <div className="h-4 rounded bg-slate-200 dark:bg-slate-700" style={{ width: "55%" }} />
+                                        <div className="h-3 rounded bg-slate-100 dark:bg-slate-800" style={{ width: "85%" }} />
+                                        <div className="h-3 rounded bg-slate-100 dark:bg-slate-800" style={{ width: "38%" }} />
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     ) : history.length === 0 ? (
-                        <div
-                            className="flex flex-col items-center justify-center rounded-2xl border py-14 text-center"
-                            style={{ background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)" }}
-                        >
-                            <div
-                                className="w-12 h-12 rounded-2xl border flex items-center justify-center mb-3"
-                                style={{
-                                    background: "var(--dash-card-header-bg)",
-                                    borderColor: "var(--dash-card-border)",
-                                }}
-                            >
+                        <div className="flex flex-col items-center justify-center rounded-2xl border py-14 text-center"
+                            style={{ background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)" }}>
+                            <div className="w-12 h-12 rounded-2xl border flex items-center justify-center mb-3"
+                                style={{ background: "var(--dash-card-header-bg)", borderColor: "var(--dash-card-border)" }}>
                                 <FileText className="h-6 w-6" style={{ color: "var(--dash-text-muted)" }} />
                             </div>
-                            <p className="text-sm font-semibold" style={{ color: "var(--dash-text-secondary)" }}>
-                                No reports found
-                            </p>
-                            <p className="text-xs mt-1" style={{ color: "var(--dash-text-muted)" }}>
-                                No disease reports for this area yet.
-                            </p>
+                            <p className="text-sm font-semibold" style={{ color: "var(--dash-text-secondary)" }}>No reports found</p>
+                            <p className="text-xs mt-1" style={{ color: "var(--dash-text-muted)" }}>No disease reports for this area yet.</p>
                         </div>
-                    ) : (
-                        <div className="space-y-3 xl:max-h-[calc(100vh-13rem)] xl:overflow-y-auto xl:pr-1">
-                            {(() => {
-                                const twoWeeksAgo = new Date();
-                                twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+                    ) : (() => {
+                        const thirtyDaysAgo = new Date();
+                        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                        const displayedHistory = [...history]
+                            .filter(r => {
+                                const createdAt = new Date(r.created_at);
+                                const dn = r.extracted_data?.disease_name?.toLowerCase() || "";
+                                return !Number.isNaN(createdAt.getTime()) && createdAt >= thirtyDaysAgo && !dn.includes("unknown");
+                            })
+                            .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
 
-                                const displayedHistory = [...history]
-                                    .filter(r => new Date(r.created_at) >= twoWeeksAgo)
-                                    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+                        if (displayedHistory.length === 0) {
+                            return (
+                                <div className="text-center py-10 text-sm rounded-2xl border"
+                                    style={{ color: "var(--dash-text-muted)", background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)" }}>
+                                    No verified reports in the last 30 days.
+                                </div>
+                            );
+                        }
 
-                                if (displayedHistory.length === 0) {
+                        return (
+                            <div className="space-y-2 xl:max-h-[calc(100vh-13rem)] xl:overflow-y-auto xl:pr-1">
+                                {displayedHistory.map((report, index) => {
+                                    const stripColor = report.extracted_data ? getSeverityStripColor(report.extracted_data.severity) : "var(--dash-card-border)";
+                                    const sevCfg = getSeverityConfig(report.extracted_data?.severity ?? "unknown");
+                                    const statCfg = getStatusConfig(report.status);
+                                    const isOwn = report.user_id === user?.$id;
+
                                     return (
-                                        <div className="text-center py-6 text-sm" style={{ color: "var(--dash-text-muted)" }}>
-                                            No recent reports scored or found within the last 14 days.
-                                        </div>
-                                    );
-                                }
+                                        <div
+                                            key={report.report_id}
+                                            className="animate-fade-in-scale group relative overflow-hidden rounded-2xl border cursor-pointer select-none"
+                                            style={{
+                                                background: "var(--dash-card-bg)",
+                                                borderColor: "var(--dash-card-border)",
+                                                animationDelay: String(index * 40) + "ms",
+                                                transition: "box-shadow 0.22s ease, transform 0.22s ease, border-color 0.22s ease",
+                                            }}
+                                            onMouseEnter={e => {
+                                                const el = e.currentTarget as HTMLElement;
+                                                el.style.boxShadow = "0 8px 32px -8px rgba(30,58,138,0.18)";
+                                                el.style.transform = "translateY(-2px)";
+                                                el.style.borderColor = "rgba(30,58,138,0.3)";
+                                            }}
+                                            onMouseLeave={e => {
+                                                const el = e.currentTarget as HTMLElement;
+                                                el.style.boxShadow = "";
+                                                el.style.transform = "";
+                                                el.style.borderColor = "var(--dash-card-border)";
+                                            }}
+                                            onClick={() => setSelectedReport(report)}
+                                        >
+                                            {/* Severity left accent bar */}
+                                            <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl transition-all group-hover:w-1.5"
+                                                style={{ background: stripColor }} />
 
-                                return displayedHistory.map((report, index) => {
-                                    const severityStripColor = report.extracted_data
-                                    ? getSeverityStripColor(report.extracted_data.severity)
-                                    : null;
-                                return (
-                                    <div
-                                        key={report.report_id}
-                                        className="card-panel animate-fade-in-scale overflow-hidden"
-                                        style={{ animationDelay: `${index * 50}ms` }}
-                                    >
-                                        {/* Severity top strip */}
-                                        {severityStripColor && (
-                                            <div
-                                                className="h-1 w-full"
-                                                style={{ background: severityStripColor }}
-                                            />
-                                        )}
+                                            <div className="pl-5 pr-4 py-3.5 flex items-start gap-3">
+                                                {/* Severity icon */}
+                                                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border"
+                                                    style={{ background: sevCfg.bg, borderColor: sevCfg.border }}>
+                                                    <HeartPulse className="h-4 w-4" style={{ color: sevCfg.color }} />
+                                                </div>
 
-                                        <div className="p-4 sm:p-5 space-y-3">
-                                            {/* Header */}
-                                            <div className="flex items-start justify-between gap-3">
                                                 <div className="flex-1 min-w-0">
-                                                    <h3
-                                                        className="text-sm font-semibold truncate"
-                                                        style={{ color: "var(--dash-text-primary)" }}
-                                                    >
-                                                        {report.extracted_data?.disease_name || "Unverified Report"}
-                                                    </h3>
-                                                    <p
-                                                        className="text-xs mt-0.5"
-                                                        style={{ color: "var(--dash-text-muted)" }}
-                                                    >
-                                                        {new Date(report.created_at).toLocaleDateString("en-US", {
-                                                            month: "short",
-                                                            day: "numeric",
-                                                            hour: "2-digit",
-                                                            minute: "2-digit",
-                                                        })}
-                                                    </p>
-                                                </div>
-                                                <div className="flex flex-col items-end gap-1.5">
-                                                    <StatusBadge status={report.status} />
-                                                    <div
-                                                        className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border"
-                                                        style={{
-                                                            background: "rgba(30,58,138,0.08)",
-                                                            borderColor: "rgba(30,58,138,0.22)",
-                                                            color: "var(--color-primary)"
-                                                        }}
-                                                    >
-                                                        <ThumbsUp className="h-3 w-3" />
-                                                        {report.score ?? 0} Votes
+                                                    <div className="flex items-start justify-between gap-2 mb-1">
+                                                        <h3 className="text-sm font-semibold truncate" style={{ color: "var(--dash-text-primary)" }}>
+                                                            {report.extracted_data?.disease_name || "Health Report"}
+                                                        </h3>
+                                                        <span className="shrink-0 text-[10px] font-bold rounded-full px-2 py-0.5 border"
+                                                            style={{ color: statCfg.color, background: statCfg.bg, borderColor: statCfg.border }}>
+                                                            {report.status || "pending"}
+                                                        </span>
                                                     </div>
-                                                </div>
-                                            </div>
 
-                                            {/* Description */}
-                                            {editingReportId === report.report_id ? (
-                                                <div className="space-y-2 mt-2">
-                                                    <Textarea
-                                                        value={editingDescription}
-                                                        onChange={(e) => setEditingDescription(e.target.value)}
-                                                        className="w-full text-sm min-h-[80px]"
-                                                        style={{
-                                                            background: "var(--dash-input-bg)",
-                                                            borderColor: "var(--dash-input-border)",
-                                                            color: "var(--dash-text-primary)",
-                                                        }}
-                                                    />
-                                                    <div className="flex justify-end gap-2">
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => setEditingReportId(null)}
-                                                            disabled={editingLoading[report.report_id]}
-                                                        >
-                                                            Cancel
-                                                        </Button>
-                                                        <Button
-                                                            size="sm"
-                                                            onClick={() => handleUpdateReport(report.report_id)}
-                                                            disabled={editingLoading[report.report_id] || !editingDescription.trim()}
-                                                            style={{ background: "var(--color-primary)", color: "white" }}
-                                                        >
-                                                            {editingLoading[report.report_id] ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div>
-                                                    <p
-                                                        className="text-sm line-clamp-2"
-                                                        style={{ color: "var(--dash-text-secondary)" }}
-                                                    >
+                                                    <p className="text-xs line-clamp-2 mb-2.5" style={{ color: "var(--dash-text-secondary)" }}>
                                                         {report.description}
                                                     </p>
-                                                    {report.user_id === user?.$id && (
-                                                        <div className="flex gap-3 mt-2">
-                                                            <button
-                                                                onClick={() => {
-                                                                    setEditingReportId(report.report_id);
-                                                                    setEditingDescription(report.description);
-                                                                }}
-                                                                className="text-xs flex items-center gap-1 hover:underline"
-                                                                style={{ color: "var(--color-primary)" }}
-                                                            >
-                                                                <Edit2 className="h-3 w-3" /> Edit
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDeleteReport(report.report_id)}
-                                                                disabled={deletingLoading[report.report_id]}
-                                                                className="text-xs flex items-center gap-1 hover:underline"
-                                                                style={{ color: "var(--color-danger)" }}
-                                                            >
-                                                                {deletingLoading[report.report_id] ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />} Delete
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
 
-                                            {/* Stats chips */}
-                                            {report.extracted_data && (
-                                                <div className="grid grid-cols-3 gap-2">
-                                                    <InfoChip label="Cases" value={report.extracted_data.cases_reported ?? "N/A"} />
-                                                    <InfoChip label="Type"  value={report.extracted_data.disease_type} />
-                                                    <div
-                                                        className="rounded-xl border px-3 py-2.5"
-                                                        style={{
-                                                            background: "var(--dash-card-bg)",
-                                                            borderColor: "var(--dash-card-border)",
-                                                        }}
-                                                    >
-                                                        <p
-                                                            className="text-[10px] font-bold uppercase tracking-wider mb-1"
-                                                            style={{ color: "var(--dash-text-muted)" }}
-                                                        >
-                                                            Severity
-                                                        </p>
-                                                        <SeverityBadge severity={report.extracted_data.severity} />
+                                                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                                                        <div className="flex items-center gap-1.5">
+                                                            {report.extracted_data && (
+                                                                <span className="text-[10px] font-semibold rounded-md px-1.5 py-0.5 border"
+                                                                    style={{ color: sevCfg.color, background: sevCfg.bg, borderColor: sevCfg.border }}>
+                                                                    {report.extracted_data.severity}
+                                                                </span>
+                                                            )}
+                                                            {report.extracted_data?.cases_reported != null && (
+                                                                <span className="text-[10px]" style={{ color: "var(--dash-text-muted)" }}>
+                                                                    {report.extracted_data.cases_reported} cases
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex items-center gap-3">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (!voteLoadingByReport[report.report_id] && user?.$id) {
+                                                                        toggleVoteReport(report.report_id, Boolean(report.has_voted));
+                                                                    }
+                                                                }}
+                                                                disabled={Boolean(voteLoadingByReport[report.report_id]) || !user?.$id}
+                                                                className={`flex items-center gap-1.5 text-[10px] font-semibold px-2 py-1 rounded-md transition-colors border ${report.has_voted ? 'bg-blue-50/50 border-blue-200/50' : 'hover:bg-slate-50 border-transparent hover:border-slate-200'}`}
+                                                                style={{ color: report.has_voted ? "var(--color-primary)" : "var(--dash-text-muted)" }}
+                                                            >
+                                                                {voteLoadingByReport[report.report_id] ? (
+                                                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                                                ) : report.has_voted ? (
+                                                                    <CheckCircle2 className="h-3 w-3" />
+                                                                ) : (
+                                                                    <ThumbsUp className="h-3 w-3" />
+                                                                )}
+                                                                {report.score ?? 0}
+                                                            </button>
+                                                            <span className="text-[10px]" style={{ color: "var(--dash-text-muted)" }}>
+                                                                {new Date(report.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                                            </span>
+                                                            {isOwn && (
+                                                                <span className="text-[10px] font-bold rounded px-1.5 py-0.5"
+                                                                    style={{ background: "rgba(30,58,138,0.08)", color: "var(--color-primary)" }}>
+                                                                    Mine
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
+
+                                                <ChevronRight className="h-4 w-4 shrink-0 mt-3 opacity-20 group-hover:opacity-60 transition-all group-hover:translate-x-0.5"
+                                                    style={{ color: "var(--color-primary)" }} />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        );
+                    })()}
+                </aside>
+            </div>
+
+            {/* ── Report Detail Modal Drawer ────────────────────────────────── */}
+            {selectedReport && (() => {
+                const r = selectedReport;
+                const stripColor = r.extracted_data ? getSeverityStripColor(r.extracted_data.severity) : "var(--color-primary)";
+                const sevCfg = getSeverityConfig(r.extracted_data?.severity ?? "unknown");
+                const statCfg = getStatusConfig(r.status);
+                const isOwn = r.user_id === user?.$id;
+
+                return (
+                    <>
+                        {/* Backdrop */}
+                        <div
+                            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+                            style={{ animation: "fade-in 0.18s ease forwards" }}
+                            onClick={() => { if (editingReportId !== r.report_id) { setSelectedReport(null); setEditingReportId(null); } }}
+                        />
+
+                        {/* Slide-in drawer */}
+                        <div
+                            className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-lg flex flex-col overflow-hidden"
+                            style={{
+                                background: "var(--dash-panel-bg)",
+                                borderLeft: "1px solid var(--dash-panel-border)",
+                                boxShadow: "-24px 0 60px -10px rgba(0,0,0,0.22)",
+                                animation: "slide-in-right 0.3s cubic-bezier(0.16,1,0.3,1) forwards",
+                            }}
+                        >
+                            {/* Gradient top accent */}
+                            <div className="h-1.5 w-full shrink-0"
+                                style={{ background: "linear-gradient(90deg," + stripColor + ", var(--color-secondary))" }} />
+
+                            {/* Header */}
+                            <div className="flex items-start justify-between gap-3 px-6 pt-5 pb-4 border-b shrink-0"
+                                style={{ borderColor: "var(--dash-card-border)" }}>
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
+                                        style={{ background: sevCfg.bg, borderColor: sevCfg.border }}>
+                                        <HeartPulse className="h-5 w-5" style={{ color: sevCfg.color }} />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <h2 className="text-base font-bold truncate" style={{ color: "var(--dash-text-primary)" }}>
+                                            {r.extracted_data?.disease_name || "Health Report"}
+                                        </h2>
+                                        <p className="text-xs" style={{ color: "var(--dash-text-muted)" }}>
+                                            {new Date(r.created_at).toLocaleDateString("en-US", {
+                                                weekday: "short", year: "numeric", month: "short",
+                                                day: "numeric", hour: "2-digit", minute: "2-digit"
+                                            })}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => { setSelectedReport(null); setEditingReportId(null); }}
+                                    className="shrink-0 rounded-xl p-2 transition-all hover:opacity-70"
+                                    style={{ background: "var(--dash-card-header-bg)", color: "var(--dash-text-muted)", border: "1px solid var(--dash-card-border)" }}
+                                    aria-label="Close"
+                                >
+                                    <X className="h-4 w-4" />
+                                </button>
+                            </div>
+
+                            {/* Scrollable content */}
+                            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+
+                                {/* Status + Severity badges row */}
+                                <div className="flex flex-wrap gap-2">
+                                    <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border"
+                                        style={{ color: statCfg.color, background: statCfg.bg, borderColor: statCfg.border }}>
+                                        <CheckCircle2 className="h-3 w-3" /> {r.status || "pending"}
+                                    </span>
+                                    {r.extracted_data && (
+                                        <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border"
+                                            style={{ color: sevCfg.color, background: sevCfg.bg, borderColor: sevCfg.border }}>
+                                            <ShieldAlert className="h-3 w-3" /> {r.extracted_data.severity} severity
+                                        </span>
+                                    )}
+                                    <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border"
+                                        style={{ color: "var(--color-primary)", background: "rgba(30,58,138,0.08)", borderColor: "rgba(30,58,138,0.2)" }}>
+                                        <ThumbsUp className="h-3 w-3" /> {r.score ?? 0} votes
+                                    </span>
+                                </div>
+
+                                {/* Full description */}
+                                <div className="rounded-xl border p-4 space-y-2"
+                                    style={{ background: "var(--dash-card-header-bg)", borderColor: "var(--dash-card-border)" }}>
+                                    <p className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5"
+                                        style={{ color: "var(--dash-text-muted)" }}>
+                                        <FileText className="h-3 w-3" /> Description
+                                    </p>
+                                    {editingReportId === r.report_id ? (
+                                        <div className="space-y-2">
+                                            <Textarea
+                                                value={editingDescription}
+                                                onChange={e => setEditingDescription(e.target.value)}
+                                                className="w-full text-sm min-h-[120px] rounded-lg"
+                                                style={{ background: "var(--dash-input-bg)", borderColor: "var(--dash-input-border)", color: "var(--dash-text-primary)" }}
+                                            />
+                                            <div className="flex justify-end gap-2">
+                                                <Button variant="outline" size="sm"
+                                                    onClick={() => setEditingReportId(null)}
+                                                    disabled={editingLoading[r.report_id]}>
+                                                    Cancel
+                                                </Button>
+                                                <Button size="sm"
+                                                    onClick={() => handleUpdateReport(r.report_id)}
+                                                    disabled={editingLoading[r.report_id] || !editingDescription.trim()}
+                                                    style={{ background: "var(--color-primary)", color: "white" }}>
+                                                    {editingLoading[r.report_id] ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm leading-relaxed whitespace-pre-wrap"
+                                            style={{ color: "var(--dash-text-secondary)" }}>
+                                            {r.description}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* AI extracted data */}
+                                {r.extracted_data && (
+                                    <div className="space-y-3">
+                                        <p className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5"
+                                            style={{ color: "var(--dash-text-muted)" }}>
+                                            <BrainCircuit className="h-3 w-3" /> AI Analysis
+                                        </p>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <InfoChip label="Cases Reported" value={r.extracted_data.cases_reported ?? "N/A"} />
+                                            <InfoChip label="Disease Type" value={r.extracted_data.disease_type} />
+                                            {r.extracted_data.time_period && (
+                                                <InfoChip label="Time Period" value={r.extracted_data.time_period} />
                                             )}
-
-                                            {/* Vote toggle */}
-                                            <Toggle
-                                                pressed={Boolean(report.has_voted)}
-                                                disabled={Boolean(voteLoadingByReport[report.report_id]) || !user?.$id}
-                                                onPressedChange={() =>
-                                                    toggleVoteReport(report.report_id, Boolean(report.has_voted))
-                                                }
-                                                className="cursor-pointer w-full flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-xs font-semibold transition-all duration-200"
-                                                style={
-                                                    report.has_voted
-                                                        ? {
-                                                            background: "rgba(30,58,138,0.12)",
-                                                            borderColor: "rgba(30,58,138,0.32)",
-                                                            color: "var(--color-primary)",
-                                                        }
-                                                        : {
-                                                            background: "var(--dash-card-header-bg)",
-                                                            borderColor: "var(--dash-card-border)",
-                                                            color: "var(--dash-text-secondary)",
-                                                        }
-                                                }
-                                            >
-                                                {voteLoadingByReport[report.report_id] ? (
-                                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                ) : report.has_voted ? (
-                                                    <CheckCircle2 className="h-3.5 w-3.5" />
-                                                ) : (
-                                                    <ThumbsUp className="h-3.5 w-3.5" />
-                                                )}
-                                                <span>
-                                                    {report.has_voted ? "Voted • Remove vote" : "I have the same problem"}
+                                            {r.extracted_data.age_group && (
+                                                <InfoChip label="Age Group" value={r.extracted_data.age_group} />
+                                            )}
+                                            <div className="rounded-xl border px-3 py-2.5"
+                                                style={{ background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)" }}>
+                                                <p className="text-[10px] font-bold uppercase tracking-wider mb-1"
+                                                    style={{ color: "var(--dash-text-muted)" }}>Severity</p>
+                                                <SeverityBadge severity={r.extracted_data.severity} />
+                                            </div>
+                                            <div className="rounded-xl border px-3 py-2.5"
+                                                style={{ background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)" }}>
+                                                <p className="text-[10px] font-bold uppercase tracking-wider mb-1"
+                                                    style={{ color: "var(--dash-text-muted)" }}>Confidence</p>
+                                                <span className="text-sm font-semibold" style={{ color: "var(--dash-text-primary)" }}>
+                                                    {r.extracted_data.confidence}
                                                 </span>
-                                            </Toggle>
-
-                                            {/* Location footer */}
-                                            {report.district_info && (
-                                                <div
-                                                    className="flex items-center gap-2 pt-2.5 border-t text-xs"
-                                                    style={{
-                                                        borderColor: "var(--dash-card-border)",
-                                                        color: "var(--dash-text-muted)",
-                                                    }}
-                                                >
-                                                    <MapPin className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--dash-text-muted)" }} />
-                                                    <span>{report.district_info.district_name}</span>
-                                                    <ChevronRight className="h-3 w-3" style={{ opacity: 0.4 }} />
-                                                    <span>{report.district_info.distance_km.toFixed(1)} km away</span>
+                                            </div>
+                                            {r.extracted_data.location_specifics && (
+                                                <div className="col-span-2">
+                                                    <InfoChip label="Location Specifics" value={r.extracted_data.location_specifics} />
                                                 </div>
                                             )}
                                         </div>
+
+                                        {r.extracted_data.symptoms.length > 0 && (
+                                            <div>
+                                                <p className="text-[10px] font-bold uppercase tracking-wider mb-2"
+                                                    style={{ color: "var(--dash-text-muted)" }}>Detected Symptoms</p>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {r.extracted_data.symptoms.map((s, i) => (
+                                                        <span key={i}
+                                                            className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                                                            style={{ background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)", color: "var(--dash-text-secondary)" }}>
+                                                            {s}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                );
-                            });
-                        })()}
+                                )}
+
+                                {/* Location footer */}
+                                {r.district_info && (
+                                    <div className="flex items-center gap-2 rounded-xl border px-4 py-3"
+                                        style={{ background: "var(--dash-card-header-bg)", borderColor: "var(--dash-card-border)" }}>
+                                        <MapPin className="h-4 w-4 shrink-0" style={{ color: "var(--color-primary)" }} />
+                                        <span className="text-sm font-medium" style={{ color: "var(--dash-text-primary)" }}>
+                                            {r.district_info.district_name}
+                                        </span>
+                                        <ChevronRight className="h-3.5 w-3.5 opacity-40" />
+                                        <span className="text-xs" style={{ color: "var(--dash-text-muted)" }}>
+                                            {r.district_info.distance_km.toFixed(1)} km away
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* Vote toggle */}
+                                <Toggle
+                                    pressed={Boolean(r.has_voted)}
+                                    disabled={Boolean(voteLoadingByReport[r.report_id]) || !user?.$id}
+                                    onPressedChange={() => toggleVoteReport(r.report_id, Boolean(r.has_voted))}
+                                    className="cursor-pointer w-full flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all duration-200"
+                                    style={r.has_voted
+                                        ? { background: "rgba(30,58,138,0.12)", borderColor: "rgba(30,58,138,0.32)", color: "var(--color-primary)" }
+                                        : { background: "var(--dash-card-header-bg)", borderColor: "var(--dash-card-border)", color: "var(--dash-text-secondary)" }
+                                    }
+                                >
+                                    {voteLoadingByReport[r.report_id] ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : r.has_voted ? (
+                                        <CheckCircle2 className="h-4 w-4" />
+                                    ) : (
+                                        <ThumbsUp className="h-4 w-4" />
+                                    )}
+                                    <span>{r.has_voted ? "Voted • Remove vote" : "I have the same problem"}</span>
+                                </Toggle>
+
+                                {/* Owner actions */}
+                                {isOwn && editingReportId !== r.report_id && (
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => { setEditingReportId(r.report_id); setEditingDescription(r.description); }}
+                                            className="flex-1 flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-xs font-semibold transition-all hover:opacity-80"
+                                            style={{ borderColor: "rgba(30,58,138,0.22)", color: "var(--color-primary)", background: "rgba(30,58,138,0.06)" }}>
+                                            <Edit2 className="h-3.5 w-3.5" /> Edit Report
+                                        </button>
+                                        <button
+                                            onClick={async () => { await handleDeleteReport(r.report_id); setSelectedReport(null); }}
+                                            disabled={deletingLoading[r.report_id]}
+                                            className="flex-1 flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-xs font-semibold transition-all hover:opacity-80 disabled:opacity-50"
+                                            style={{ borderColor: "rgba(220,38,38,0.25)", color: "var(--color-danger)", background: "rgba(220,38,38,0.06)" }}>
+                                            {deletingLoading[r.report_id] ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                                            Delete
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    )}
-                </aside>
-            </div>
+                    </>
+                );
+            })()}
         </div>
     );
 }
