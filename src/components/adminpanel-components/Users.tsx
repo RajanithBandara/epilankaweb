@@ -33,7 +33,7 @@ const inputCls = "bg-white border border-slate-200 text-slate-900 placeholder:te
 function Section({ title, children, collapsible }: { title: string; children: React.ReactNode; collapsible?: boolean }) {
     const [open, setOpen] = useState(true);
     return (
-        <div className="border-t border-slate-200 pt-4">
+        <div className="border-t border-slate-100 pt-4">
             <button type="button" onClick={() => collapsible && setOpen((o) => !o)}
                 className={["flex w-full items-center justify-between mb-3", collapsible ? "cursor-pointer" : "cursor-default"].join(" ")}>
                 <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">{title}</span>
@@ -167,7 +167,7 @@ export default function AdminUsersPanel() {
                     </button>
                 </div>
 
-                <ScrollArea className="flex-1 rounded-xl border border-slate-200 bg-white shadow-sm">
+                <ScrollArea className="flex-1 rounded-lg border border-slate-100 bg-white">
                     <div className="p-2 space-y-0.5">
                         {loading && !users.length ? (
                             <div className="flex items-center justify-center py-8"><Loader2 className="w-4 h-4 animate-spin text-slate-400" /></div>
@@ -203,7 +203,7 @@ export default function AdminUsersPanel() {
             </aside>
 
             {/* RIGHT — detail panel */}
-            <div className="flex-1 rounded-xl border border-slate-200 bg-white overflow-hidden flex flex-col shadow-sm">
+            <div className="flex-1 rounded-lg border border-slate-100 bg-white overflow-hidden flex flex-col">
                 {!selectedUser ? (
                     <div className="flex-1 flex items-center justify-center">
                         <div className="text-center space-y-2">
@@ -217,7 +217,7 @@ export default function AdminUsersPanel() {
 
                             {/* Header */}
                             <div className="flex items-start gap-4 mb-6">
-                                <div className="w-12 h-12 rounded-xl border border-slate-200 overflow-hidden bg-slate-50 flex items-center justify-center shrink-0">
+                                <div className="w-12 h-12 rounded-lg border border-slate-100 overflow-hidden bg-slate-50 flex items-center justify-center shrink-0">
                                     {selectedUser.profile_image
                                         /* eslint-disable-next-line @next/next/no-img-element */
                                         ? <img src={selectedUser.profile_image} alt="" className="w-full h-full object-cover" />

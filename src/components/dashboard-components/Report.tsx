@@ -30,6 +30,12 @@ import {
     User,
     Tag,
     BarChart2,
+    Search,
+    TrendingUp,
+    Filter as FilterIcon,
+    Users,
+    Plus,
+    RefreshCw,
 } from "lucide-react";
 import { useLocation } from "@/contexts/LocationContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -415,6 +421,48 @@ const getStatusConfig = (status: string | null): StatusConfig => {
     }
 };
 
+// Relative time helper — "2h ago", "3d ago", etc.
+function formatRelativeTime(iso: string): string {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    const diffMs = Date.now() - d.getTime();
+    const sec = Math.round(diffMs / 1000);
+    if (sec < 60) return "just now";
+    const min = Math.round(sec / 60);
+    if (min < 60) return `${min}m ago`;
+    const hr = Math.round(min / 60);
+    if (hr < 24) return `${hr}h ago`;
+    const days = Math.round(hr / 24);
+    if (days < 7) return `${days}d ago`;
+    const weeks = Math.round(days / 7);
+    if (weeks < 5) return `${weeks}w ago`;
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+// Quick-fill suggestion templates — speed up reporting common scenarios
+const QUICK_SUGGESTIONS: { label: string; icon: React.ReactNode; template: string }[] = [
+    {
+        label: "Fever cluster",
+        icon: <Flame className="h-3 w-3" />,
+        template: "Multiple people in our area are reporting high fever (above 38°C) with body aches over the last ",
+    },
+    {
+        label: "Dengue symptoms",
+        icon: <HeartPulse className="h-3 w-3" />,
+        template: "Cases of dengue-like symptoms — fever, severe headache, joint pain, and skin rash — have been observed in ",
+    },
+    {
+        label: "Stomach illness",
+        icon: <Activity className="h-3 w-3" />,
+        template: "Several residents are experiencing vomiting, diarrhoea, and abdominal pain since ",
+    },
+    {
+        label: "Respiratory",
+        icon: <ShieldAlert className="h-3 w-3" />,
+        template: "A cluster of respiratory infections with cough, sore throat, and fatigue has appeared in ",
+    },
+];
+
 function InfoChip({ label, value }: { label: string; value: React.ReactNode }) {
     return (
         <div
@@ -475,6 +523,11 @@ export default function DiseaseReportPage() {
     const [editingLoading, setEditingLoading] = useState<Record<string, boolean>>({});
     const [deletingLoading, setDeletingLoading] = useState<Record<string, boolean>>({});
     const [selectedReport, setSelectedReport] = useState<HistoryReport | null>(null);
+
+    // Filter / search state for recent reports
+    const [searchQuery, setSearchQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState<"all" | "verified" | "pending" | "investigating">("all");
+    const [textareaFocused, setTextareaFocused] = useState(false);
 
     const handleDeleteReport = async (reportId: string) => {
         if (!confirm("Are you sure you want to delete this report?")) return;
@@ -677,25 +730,132 @@ export default function DiseaseReportPage() {
         }
     };
 
+    // Compute overview stats from history
+    const overviewStats = useMemo(() => {
+        const myReports = history.filter(r => r.user_id === user?.$id).length;
+        const verified = history.filter(r => r.status?.toLowerCase() === "verified" || r.status?.toLowerCase() === "confirmed").length;
+        const totalVotes = history.reduce((sum, r) => sum + (r.score ?? 0), 0);
+        // Most reported disease
+        const diseaseCounts = new Map<string, number>();
+        history.forEach(r => {
+            const name = r.extracted_data?.disease_name;
+            if (name && !name.toLowerCase().includes("unknown")) {
+                diseaseCounts.set(name, (diseaseCounts.get(name) ?? 0) + 1);
+            }
+        });
+        let topDisease: string | null = null;
+        let topCount = 0;
+        diseaseCounts.forEach((c, name) => { if (c > topCount) { topCount = c; topDisease = name; } });
+        return { total: history.length, myReports, verified, totalVotes, topDisease, topCount };
+    }, [history, user?.$id]);
+
+    const applySuggestion = (template: string) => {
+        const next = description.trim().length === 0 ? template : description.trim() + " " + template;
+        setDescription(next);
+    };
+
     return (
         <div className="w-full max-w-7xl mx-auto space-y-5">
 
-            {/* ── Page header ─────────────────────────────────────────────── */}
-            <div className="flex items-center gap-3">
-                <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md shrink-0"
-                    style={{ background: "var(--color-primary)" }}
-                >
-                    <FileText className="w-5 h-5 text-white" />
+            {/* ── Page header with gradient hero ─────────────────────────── */}
+            <div
+                className="relative overflow-hidden rounded-2xl border p-5 sm:p-6 animate-fade-in"
+                style={{
+                    background: "linear-gradient(135deg, rgba(30,58,138,0.10) 0%, rgba(124,58,237,0.06) 50%, rgba(30,58,138,0.04) 100%)",
+                    borderColor: "var(--dash-card-border)",
+                }}
+            >
+                {/* Decorative blobs */}
+                <div className="pointer-events-none absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-30 blur-3xl"
+                    style={{ background: "radial-gradient(circle, var(--color-primary) 0%, transparent 70%)" }} />
+                <div className="pointer-events-none absolute -bottom-20 -left-10 w-56 h-56 rounded-full opacity-20 blur-3xl"
+                    style={{ background: "radial-gradient(circle, #7c3aed 0%, transparent 70%)" }} />
+
+                <div className="relative flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5">
+                    <div
+                        className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shrink-0 ring-4 ring-white/40 dark:ring-white/5"
+                        style={{ background: "linear-gradient(135deg, var(--color-primary) 0%, #7c3aed 100%)" }}
+                    >
+                        <FileText className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                            <h1 className="text-xl sm:text-2xl font-bold tracking-tight" style={{ color: "var(--dash-text-primary)" }}>
+                                Health Incident Report
+                            </h1>
+                            <span className="hidden sm:inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border"
+                                style={{ background: "rgba(124,58,237,0.10)", color: "#7c3aed", borderColor: "rgba(124,58,237,0.28)" }}>
+                                <Sparkles className="h-2.5 w-2.5" /> AI
+                            </span>
+                        </div>
+                        <p className="text-xs sm:text-sm" style={{ color: "var(--dash-text-secondary)" }}>
+                            Report an outbreak in your area — AI extracts disease, severity, and cases automatically.
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => fetchReportHistory(true)}
+                        disabled={historyLoading}
+                        className="hidden sm:inline-flex shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-semibold transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                        style={{
+                            background: "var(--dash-card-bg)",
+                            borderColor: "var(--dash-card-border)",
+                            color: "var(--dash-text-secondary)",
+                        }}
+                    >
+                        <RefreshCw className={`h-3.5 w-3.5 ${historyLoading ? "animate-spin" : ""}`} />
+                        Refresh
+                    </button>
                 </div>
-                <div>
-                    <h1 className="text-xl font-bold tracking-tight" style={{ color: "var(--dash-text-primary)" }}>
-                        Health Incident Report
-                    </h1>
-                    <p className="text-xs" style={{ color: "var(--dash-text-muted)" }}>
-                        AI-powered community health monitoring
-                    </p>
+
+                {/* Stats strip */}
+                <div className="relative mt-5 grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                    {[
+                        { icon: <FileText className="h-3.5 w-3.5" />, label: "In your area", value: overviewStats.total, color: "var(--color-primary)", bg: "rgba(30,58,138,0.08)" },
+                        { icon: <User className="h-3.5 w-3.5" />,     label: "Your reports", value: overviewStats.myReports, color: "#7c3aed", bg: "rgba(124,58,237,0.08)" },
+                        { icon: <CheckCircle2 className="h-3.5 w-3.5" />, label: "Verified", value: overviewStats.verified, color: "#15803d", bg: "rgba(22,163,74,0.08)" },
+                        { icon: <ThumbsUp className="h-3.5 w-3.5" />, label: "Total votes", value: overviewStats.totalVotes, color: "#c2410c", bg: "rgba(234,88,12,0.08)" },
+                    ].map((s, i) => (
+                        <div
+                            key={s.label}
+                            className="rounded-xl border px-3 py-2.5 backdrop-blur-sm transition-transform hover:-translate-y-0.5 animate-fade-in-up"
+                            style={{
+                                background: "var(--dash-card-bg)",
+                                borderColor: "var(--dash-card-border)",
+                                animationDelay: `${i * 60}ms`,
+                            }}
+                        >
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                                <span className="text-[10px] font-bold uppercase tracking-wider truncate" style={{ color: "var(--dash-text-muted)" }}>
+                                    {s.label}
+                                </span>
+                                <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
+                                    style={{ background: s.bg, color: s.color }}>
+                                    {s.icon}
+                                </div>
+                            </div>
+                            <p className="text-lg font-bold tabular-nums" style={{ color: "var(--dash-text-primary)" }}>
+                                {historyLoading && history.length === 0 ? (
+                                    <span className="inline-block w-8 h-5 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                                ) : s.value}
+                            </p>
+                        </div>
+                    ))}
                 </div>
+
+                {/* Trending disease pill */}
+                {overviewStats.topDisease && overviewStats.topCount > 1 && (
+                    <div className="relative mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 animate-fade-in-up"
+                        style={{
+                            background: "rgba(244,63,94,0.08)",
+                            borderColor: "rgba(244,63,94,0.25)",
+                            animationDelay: "240ms",
+                        }}>
+                        <TrendingUp className="h-3 w-3" style={{ color: "#e11d48" }} />
+                        <span className="text-[11px] font-semibold" style={{ color: "#be123c" }}>
+                            Trending: <span className="font-bold">{overviewStats.topDisease}</span> ({overviewStats.topCount} reports)
+                        </span>
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
@@ -770,11 +930,11 @@ export default function DiseaseReportPage() {
                         <div className="card-panel-header">
                             <div
                                 className="w-7 h-7 rounded-lg flex items-center justify-center shadow-sm"
-                                style={{ background: "var(--color-primary)" }}
+                                style={{ background: "linear-gradient(135deg, var(--color-primary) 0%, #7c3aed 100%)" }}
                             >
                                 <Sparkles className="h-3.5 w-3.5 text-white" />
                             </div>
-                            <div>
+                            <div className="flex-1">
                                 <h2 className="text-sm font-semibold" style={{ color: "var(--dash-text-primary)" }}>
                                     Describe the Health Incident
                                 </h2>
@@ -782,66 +942,162 @@ export default function DiseaseReportPage() {
                                     Be specific — AI will extract key details
                                 </p>
                             </div>
+                            {description.trim().length > 0 && (
+                                <button
+                                    onClick={() => { setDescription(""); setError(null); setExtractedData(null); setSubmitResponse(null); }}
+                                    className="ml-auto text-[10px] font-semibold rounded-md px-2 py-1 transition-colors hover:opacity-70"
+                                    style={{ color: "var(--dash-text-muted)" }}
+                                    aria-label="Clear text"
+                                >
+                                    Clear
+                                </button>
+                            )}
                         </div>
 
                         <div className="p-5 space-y-4">
-                            <Textarea
-                                placeholder="Describe symptoms, number of cases, affected age group, and timeline…"
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                rows={5}
-                                className="w-full px-4 py-3 rounded-xl resize-none transition-all duration-200 text-sm border outline-none"
-                                style={{
-                                    background: "var(--dash-input-bg)",
-                                    borderColor: contentError && description.trim().length > 0
-                                        ? "rgba(220,38,38,0.55)"
-                                        : !contentError && description.trim().length > 0
-                                        ? "rgba(22,163,74,0.45)"
-                                        : "var(--dash-input-border)",
-                                    color: "var(--dash-input-text)",
-                                }}
-                                disabled={loading || locationLoading}
-                            />
-
-                            {/* Inline hint + character counter */}
-                            <div className="flex items-start justify-between gap-3">
-                                <div className="flex-1 text-xs">
-                                    {contentError && description.trim().length > 0 ? (
-                                        <span className="flex items-start gap-1.5" style={{ color: "var(--color-danger)" }}>
-                                            <ShieldAlert className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                                            {contentError}
-                                        </span>
-                                    ) : !contentError && description.trim().length > 0 ? (
-                                        <span className="flex items-center gap-1.5" style={{ color: "var(--color-success)" }}>
-                                            <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                                            Looks good — ready to submit.
-                                        </span>
-                                    ) : (
-                                        <span style={{ color: "var(--dash-text-muted)" }}>
-                                            Include symptoms, location specifics, and timeline for accurate AI analysis.
-                                        </span>
-                                    )}
+                            {/* Quick suggestion chips — speed up common reports */}
+                            {description.trim().length === 0 && !loading && (
+                                <div className="space-y-2 animate-fade-in">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5"
+                                        style={{ color: "var(--dash-text-muted)" }}>
+                                        <Sparkles className="h-3 w-3" /> Quick start templates
+                                    </p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {QUICK_SUGGESTIONS.map((s) => (
+                                            <button
+                                                key={s.label}
+                                                onClick={() => applySuggestion(s.template)}
+                                                className="group inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all hover:scale-105 active:scale-95"
+                                                style={{
+                                                    background: "var(--dash-card-bg)",
+                                                    borderColor: "var(--dash-card-border)",
+                                                    color: "var(--dash-text-secondary)",
+                                                }}
+                                                onMouseEnter={e => {
+                                                    e.currentTarget.style.borderColor = "rgba(30,58,138,0.4)";
+                                                    e.currentTarget.style.color = "var(--color-primary)";
+                                                    e.currentTarget.style.background = "rgba(30,58,138,0.06)";
+                                                }}
+                                                onMouseLeave={e => {
+                                                    e.currentTarget.style.borderColor = "var(--dash-card-border)";
+                                                    e.currentTarget.style.color = "var(--dash-text-secondary)";
+                                                    e.currentTarget.style.background = "var(--dash-card-bg)";
+                                                }}
+                                            >
+                                                {s.icon}
+                                                {s.label}
+                                                <Plus className="h-2.5 w-2.5 opacity-50 transition-transform group-hover:rotate-90" />
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                                <span className="text-xs font-mono shrink-0" style={{ color: charCountColor }}>
-                                    {charCount}/{MAX_CHARS}
-                                </span>
+                            )}
+
+                            {/* Textarea with animated focus ring */}
+                            <div className="relative">
+                                <div
+                                    className="pointer-events-none absolute inset-0 rounded-xl transition-opacity duration-300"
+                                    style={{
+                                        background: "linear-gradient(135deg, rgba(30,58,138,0.18) 0%, rgba(124,58,237,0.12) 100%)",
+                                        opacity: textareaFocused ? 1 : 0,
+                                        padding: "1.5px",
+                                        WebkitMask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+                                        WebkitMaskComposite: "xor",
+                                        maskComposite: "exclude",
+                                    }}
+                                />
+                                <Textarea
+                                    placeholder="Describe symptoms, number of cases, affected age group, and timeline…"
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    onFocus={() => setTextareaFocused(true)}
+                                    onBlur={() => setTextareaFocused(false)}
+                                    rows={5}
+                                    className="w-full px-4 py-3 rounded-xl resize-none transition-all duration-200 text-sm border outline-none relative"
+                                    style={{
+                                        background: "var(--dash-input-bg)",
+                                        borderColor: contentError && description.trim().length > 0
+                                            ? "rgba(220,38,38,0.55)"
+                                            : !contentError && description.trim().length > 0
+                                            ? "rgba(22,163,74,0.45)"
+                                            : textareaFocused
+                                            ? "transparent"
+                                            : "var(--dash-input-border)",
+                                        color: "var(--dash-input-text)",
+                                    }}
+                                    disabled={loading || locationLoading}
+                                />
+                            </div>
+
+                            {/* Character progress bar */}
+                            <div className="space-y-1.5">
+                                <div className="relative h-1 w-full rounded-full overflow-hidden"
+                                    style={{ background: "var(--dash-card-header-bg)" }}>
+                                    <div
+                                        className="absolute inset-y-0 left-0 rounded-full transition-all duration-300"
+                                        style={{
+                                            width: `${Math.min(100, (charCount / MAX_CHARS) * 100)}%`,
+                                            background: charCount > MAX_CHARS
+                                                ? "linear-gradient(90deg, #f59e0b, var(--color-danger))"
+                                                : charCount >= MIN_CHARS
+                                                ? "linear-gradient(90deg, var(--color-primary), #7c3aed)"
+                                                : "linear-gradient(90deg, #cbd5e1, #94a3b8)",
+                                        }}
+                                    />
+                                    {/* Minimum threshold marker */}
+                                    <div className="absolute top-0 bottom-0 w-px"
+                                        style={{
+                                            left: `${(MIN_CHARS / MAX_CHARS) * 100}%`,
+                                            background: "var(--dash-text-muted)",
+                                            opacity: 0.4,
+                                        }} />
+                                </div>
+
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="flex-1 text-xs">
+                                        {contentError && description.trim().length > 0 ? (
+                                            <span className="flex items-start gap-1.5" style={{ color: "var(--color-danger)" }}>
+                                                <ShieldAlert className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                                                {contentError}
+                                            </span>
+                                        ) : !contentError && description.trim().length > 0 ? (
+                                            <span className="flex items-center gap-1.5" style={{ color: "var(--color-success)" }}>
+                                                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                                                Looks good — ready to submit.
+                                            </span>
+                                        ) : (
+                                            <span style={{ color: "var(--dash-text-muted)" }}>
+                                                Include symptoms, location specifics, and timeline for accurate AI analysis.
+                                            </span>
+                                        )}
+                                    </div>
+                                    <span className="text-xs font-mono tabular-nums shrink-0" style={{ color: charCountColor }}>
+                                        {charCount}<span className="opacity-50">/{MAX_CHARS}</span>
+                                    </span>
+                                </div>
                             </div>
 
                             <Button
                                 onClick={analyzeAndSubmit}
                                 disabled={loading || locationLoading || !locationData || Boolean(contentError && description.trim().length > 0)}
-                                className="cursor-pointer w-full text-white font-semibold py-2.5 rounded-xl shadow-md transition-all duration-200 disabled:opacity-60"
+                                className="group relative cursor-pointer w-full text-white font-semibold py-3 rounded-xl shadow-lg transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed overflow-hidden"
                                 style={{
-                                    background: "linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%)",
+                                    background: loading || validating
+                                        ? "linear-gradient(135deg, var(--color-primary) 0%, #7c3aed 100%)"
+                                        : "linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 50%, #7c3aed 100%)",
+                                    backgroundSize: "200% 200%",
+                                    animation: loading || validating ? "gradient-shift 3s ease infinite" : undefined,
                                 }}
                             >
-                                {validating ? (
-                                    <><ShieldAlert className="mr-2 h-4 w-4 animate-pulse" />Validating content…</>
-                                ) : loading ? (
-                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Analyzing with AI…</>
-                                ) : (
-                                    <><Send className="mr-2 h-4 w-4" />Submit Report</>
-                                )}
+                                <span className="relative inline-flex items-center justify-center">
+                                    {validating ? (
+                                        <><ShieldAlert className="mr-2 h-4 w-4 animate-pulse" />Validating content…</>
+                                    ) : loading ? (
+                                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Analyzing with AI…</>
+                                    ) : (
+                                        <><Send className="mr-2 h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />Submit Report</>
+                                    )}
+                                </span>
                             </Button>
 
                             {/* Error — rich rejection card */}
@@ -966,16 +1222,76 @@ export default function DiseaseReportPage() {
                             <h2 className="text-base font-semibold" style={{ color: "var(--dash-text-primary)" }}>
                                 Recent Reports
                             </h2>
+                            {history.length > 0 && (
+                                <span className="text-[10px] font-bold rounded-full px-2 py-0.5"
+                                    style={{ background: "var(--dash-card-header-bg)", color: "var(--dash-text-muted)" }}>
+                                    {history.length}
+                                </span>
+                            )}
                         </div>
                         {locationData?.nearest_area && (
                             <span
-                                className="text-xs font-medium rounded-full px-2.5 py-1 border"
+                                className="text-xs font-medium rounded-full px-2.5 py-1 border inline-flex items-center gap-1"
                                 style={{ color: "var(--color-primary)", background: "rgba(30,58,138,0.08)", borderColor: "rgba(30,58,138,0.2)" }}
                             >
+                                <MapPin className="h-3 w-3" />
                                 {locationData.nearest_area.district_name}
                             </span>
                         )}
                     </div>
+
+                    {/* Search + filter chips */}
+                    {history.length > 0 && (
+                        <div className="space-y-2 animate-fade-in">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none"
+                                    style={{ color: "var(--dash-text-muted)" }} />
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={e => setSearchQuery(e.target.value)}
+                                    placeholder="Search by disease, symptom, or description…"
+                                    className="w-full rounded-xl border pl-9 pr-9 py-2 text-sm outline-none transition-all focus:ring-2"
+                                    style={{
+                                        background: "var(--dash-input-bg)",
+                                        borderColor: "var(--dash-input-border)",
+                                        color: "var(--dash-input-text)",
+                                    }}
+                                />
+                                {searchQuery && (
+                                    <button
+                                        onClick={() => setSearchQuery("")}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md transition-opacity hover:opacity-70"
+                                        style={{ color: "var(--dash-text-muted)" }}
+                                        aria-label="Clear search"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                                <FilterIcon className="h-3 w-3 mr-0.5" style={{ color: "var(--dash-text-muted)" }} />
+                                {(["all", "verified", "pending", "investigating"] as const).map(f => {
+                                    const active = statusFilter === f;
+                                    return (
+                                        <button
+                                            key={f}
+                                            onClick={() => setStatusFilter(f)}
+                                            className="text-[10px] font-semibold rounded-full px-2.5 py-1 border transition-all capitalize active:scale-95"
+                                            style={
+                                                active
+                                                    ? { background: "var(--color-primary)", borderColor: "var(--color-primary)", color: "#fff" }
+                                                    : { background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)", color: "var(--dash-text-secondary)" }
+                                            }
+                                        >
+                                            {f}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
 
                     {historyLoading ? (
                         <div className="rounded-2xl border p-5 space-y-3" style={{ background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)" }}>
@@ -1003,30 +1319,75 @@ export default function DiseaseReportPage() {
                     ) : (() => {
                         const thirtyDaysAgo = new Date();
                         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                        const displayedHistory = [...history]
+                        const q = searchQuery.trim().toLowerCase();
+                        const baseList = [...history]
                             .filter(r => {
                                 const createdAt = new Date(r.created_at);
                                 const dn = r.extracted_data?.disease_name?.toLowerCase() || "";
-                                return !Number.isNaN(createdAt.getTime()) && createdAt >= thirtyDaysAgo && !dn.includes("unknown");
+                                if (Number.isNaN(createdAt.getTime()) || createdAt < thirtyDaysAgo || dn.includes("unknown")) return false;
+                                if (statusFilter !== "all") {
+                                    const s = r.status?.toLowerCase() ?? "pending";
+                                    if (statusFilter === "verified" && s !== "verified" && s !== "confirmed") return false;
+                                    if (statusFilter === "pending" && s !== "pending") return false;
+                                    if (statusFilter === "investigating" && s !== "investigating") return false;
+                                }
+                                if (q) {
+                                    const haystack = [
+                                        r.description ?? "",
+                                        r.extracted_data?.disease_name ?? "",
+                                        r.extracted_data?.disease_type ?? "",
+                                        ...(r.extracted_data?.symptoms ?? []),
+                                    ].join(" ").toLowerCase();
+                                    if (!haystack.includes(q)) return false;
+                                }
+                                return true;
                             })
                             .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
 
+                        // Top voted reports (>=3 votes) are flagged as trending
+                        const topScore = baseList[0]?.score ?? 0;
+                        const TRENDING_THRESHOLD = 3;
+
+                        const displayedHistory = baseList;
+
                         if (displayedHistory.length === 0) {
                             return (
-                                <div className="text-center py-10 text-sm rounded-2xl border"
-                                    style={{ color: "var(--dash-text-muted)", background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)" }}>
-                                    No verified reports in the last 30 days.
+                                <div className="flex flex-col items-center justify-center rounded-2xl border py-12 px-6 text-center"
+                                    style={{ background: "var(--dash-card-bg)", borderColor: "var(--dash-card-border)" }}>
+                                    <div className="w-14 h-14 rounded-2xl border flex items-center justify-center mb-3"
+                                        style={{ background: "var(--dash-card-header-bg)", borderColor: "var(--dash-card-border)" }}>
+                                        <Search className="h-6 w-6" style={{ color: "var(--dash-text-muted)" }} />
+                                    </div>
+                                    <p className="text-sm font-semibold" style={{ color: "var(--dash-text-secondary)" }}>
+                                        {q || statusFilter !== "all" ? "No matching reports" : "No verified reports yet"}
+                                    </p>
+                                    <p className="text-xs mt-1" style={{ color: "var(--dash-text-muted)" }}>
+                                        {q || statusFilter !== "all"
+                                            ? "Try a different search term or filter."
+                                            : "Be the first to report an incident in your area."}
+                                    </p>
+                                    {(q || statusFilter !== "all") && (
+                                        <button
+                                            onClick={() => { setSearchQuery(""); setStatusFilter("all"); }}
+                                            className="mt-3 text-xs font-semibold rounded-full px-3 py-1 border transition-colors hover:opacity-80"
+                                            style={{ background: "var(--dash-card-header-bg)", borderColor: "var(--dash-card-border)", color: "var(--color-primary)" }}
+                                        >
+                                            Reset filters
+                                        </button>
+                                    )}
                                 </div>
                             );
                         }
 
                         return (
-                            <div className="space-y-2 xl:max-h-[calc(100vh-13rem)] xl:overflow-y-auto xl:pr-1">
+                            <div className="space-y-2 xl:max-h-[calc(100vh-15rem)] xl:overflow-y-auto xl:pr-1">
                                 {displayedHistory.map((report, index) => {
                                     const stripColor = report.extracted_data ? getSeverityStripColor(report.extracted_data.severity) : "var(--dash-card-border)";
                                     const sevCfg = getSeverityConfig(report.extracted_data?.severity ?? "unknown");
                                     const statCfg = getStatusConfig(report.status);
                                     const isOwn = report.user_id === user?.$id;
+                                    const score = report.score ?? 0;
+                                    const isTrending = score >= TRENDING_THRESHOLD && score === topScore;
 
                                     return (
                                         <div
@@ -1040,9 +1401,9 @@ export default function DiseaseReportPage() {
                                             }}
                                             onMouseEnter={e => {
                                                 const el = e.currentTarget as HTMLElement;
-                                                el.style.boxShadow = "0 8px 32px -8px rgba(30,58,138,0.18)";
+                                                el.style.boxShadow = "0 12px 36px -10px rgba(30,58,138,0.22)";
                                                 el.style.transform = "translateY(-2px)";
-                                                el.style.borderColor = "rgba(30,58,138,0.3)";
+                                                el.style.borderColor = "rgba(30,58,138,0.32)";
                                             }}
                                             onMouseLeave={e => {
                                                 const el = e.currentTarget as HTMLElement;
@@ -1052,23 +1413,43 @@ export default function DiseaseReportPage() {
                                             }}
                                             onClick={() => setSelectedReport(report)}
                                         >
+                                            {/* Subtle gradient overlay on hover */}
+                                            <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                                                style={{ background: "linear-gradient(135deg, rgba(30,58,138,0.04) 0%, transparent 60%)" }} />
+
                                             {/* Severity left accent bar */}
                                             <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl transition-all group-hover:w-1.5"
                                                 style={{ background: stripColor }} />
 
-                                            <div className="pl-5 pr-4 py-3.5 flex items-start gap-3">
+                                            <div className="relative pl-5 pr-4 py-3.5 flex items-start gap-3">
                                                 {/* Severity icon */}
-                                                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border"
+                                                <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-transform group-hover:scale-110"
                                                     style={{ background: sevCfg.bg, borderColor: sevCfg.border }}>
                                                     <HeartPulse className="h-4 w-4" style={{ color: sevCfg.color }} />
                                                 </div>
 
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-start justify-between gap-2 mb-1">
-                                                        <h3 className="text-sm font-semibold truncate" style={{ color: "var(--dash-text-primary)" }}>
-                                                            {report.extracted_data?.disease_name || "Health Report"}
-                                                        </h3>
-                                                        <span className="shrink-0 text-[10px] font-bold rounded-full px-2 py-0.5 border"
+                                                        <div className="flex items-center gap-1.5 min-w-0">
+                                                            <h3 className="text-sm font-semibold truncate" style={{ color: "var(--dash-text-primary)" }}>
+                                                                {report.extracted_data?.disease_name || "Health Report"}
+                                                            </h3>
+                                                            {isTrending && (
+                                                                <span
+                                                                    className="inline-flex items-center gap-0.5 shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold border"
+                                                                    style={{
+                                                                        background: "rgba(244,63,94,0.10)",
+                                                                        color: "#e11d48",
+                                                                        borderColor: "rgba(244,63,94,0.28)",
+                                                                        animation: "pulse-glow 2.4s ease-in-out infinite",
+                                                                    }}
+                                                                    title="Trending — most votes in your area"
+                                                                >
+                                                                    <TrendingUp className="h-2.5 w-2.5" /> HOT
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <span className="shrink-0 text-[10px] font-bold rounded-full px-2 py-0.5 border capitalize"
                                                             style={{ color: statCfg.color, background: statCfg.bg, borderColor: statCfg.border }}>
                                                             {report.status || "pending"}
                                                         </span>
@@ -1079,20 +1460,28 @@ export default function DiseaseReportPage() {
                                                     </p>
 
                                                     <div className="flex items-center justify-between gap-2 flex-wrap">
-                                                        <div className="flex items-center gap-1.5">
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
                                                             {report.extracted_data && (
-                                                                <span className="text-[10px] font-semibold rounded-md px-1.5 py-0.5 border"
+                                                                <span className="text-[10px] font-semibold rounded-md px-1.5 py-0.5 border capitalize"
                                                                     style={{ color: sevCfg.color, background: sevCfg.bg, borderColor: sevCfg.border }}>
                                                                     {report.extracted_data.severity}
                                                                 </span>
                                                             )}
                                                             {report.extracted_data?.cases_reported != null && (
-                                                                <span className="text-[10px]" style={{ color: "var(--dash-text-muted)" }}>
-                                                                    {report.extracted_data.cases_reported} cases
+                                                                <span className="inline-flex items-center gap-1 text-[10px] rounded-md px-1.5 py-0.5"
+                                                                    style={{ background: "var(--dash-card-header-bg)", color: "var(--dash-text-secondary)" }}>
+                                                                    <Users className="h-2.5 w-2.5" />
+                                                                    {report.extracted_data.cases_reported}
+                                                                </span>
+                                                            )}
+                                                            {isOwn && (
+                                                                <span className="text-[10px] font-bold rounded-md px-1.5 py-0.5 border"
+                                                                    style={{ background: "rgba(30,58,138,0.08)", color: "var(--color-primary)", borderColor: "rgba(30,58,138,0.22)" }}>
+                                                                    Mine
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <div className="flex items-center gap-3">
+                                                        <div className="flex items-center gap-2">
                                                             <button
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
@@ -1101,8 +1490,12 @@ export default function DiseaseReportPage() {
                                                                     }
                                                                 }}
                                                                 disabled={Boolean(voteLoadingByReport[report.report_id]) || !user?.$id}
-                                                                className={`flex items-center gap-1.5 text-[10px] font-semibold px-2 py-1 rounded-md transition-colors border ${report.has_voted ? 'bg-blue-50/50 border-blue-200/50' : 'hover:bg-slate-50 border-transparent hover:border-slate-200'}`}
-                                                                style={{ color: report.has_voted ? "var(--color-primary)" : "var(--dash-text-muted)" }}
+                                                                className="flex items-center gap-1.5 text-[10px] font-semibold px-2 py-1 rounded-md transition-all border active:scale-95"
+                                                                style={
+                                                                    report.has_voted
+                                                                        ? { background: "rgba(30,58,138,0.10)", borderColor: "rgba(30,58,138,0.28)", color: "var(--color-primary)" }
+                                                                        : { background: "transparent", borderColor: "var(--dash-card-border)", color: "var(--dash-text-muted)" }
+                                                                }
                                                             >
                                                                 {voteLoadingByReport[report.report_id] ? (
                                                                     <Loader2 className="h-3 w-3 animate-spin" />
@@ -1111,22 +1504,20 @@ export default function DiseaseReportPage() {
                                                                 ) : (
                                                                     <ThumbsUp className="h-3 w-3" />
                                                                 )}
-                                                                {report.score ?? 0}
+                                                                <span className="tabular-nums">{report.score ?? 0}</span>
                                                             </button>
-                                                            <span className="text-[10px]" style={{ color: "var(--dash-text-muted)" }}>
-                                                                {new Date(report.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                                            <span
+                                                                className="text-[10px] tabular-nums"
+                                                                style={{ color: "var(--dash-text-muted)" }}
+                                                                title={new Date(report.created_at).toLocaleString()}
+                                                            >
+                                                                {formatRelativeTime(report.created_at)}
                                                             </span>
-                                                            {isOwn && (
-                                                                <span className="text-[10px] font-bold rounded px-1.5 py-0.5"
-                                                                    style={{ background: "rgba(30,58,138,0.08)", color: "var(--color-primary)" }}>
-                                                                    Mine
-                                                                </span>
-                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                <ChevronRight className="h-4 w-4 shrink-0 mt-3 opacity-20 group-hover:opacity-60 transition-all group-hover:translate-x-0.5"
+                                                <ChevronRight className="h-4 w-4 shrink-0 mt-3 opacity-20 group-hover:opacity-80 transition-all group-hover:translate-x-1"
                                                     style={{ color: "var(--color-primary)" }} />
                                             </div>
                                         </div>

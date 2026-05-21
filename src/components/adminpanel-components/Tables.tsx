@@ -75,12 +75,12 @@ export default function AdminTablesPanel() {
                 <div className="flex items-center justify-between">
                     <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest">Tables</span>
                     <button onClick={() => void fetchTables()} disabled={loading}
-                        className="h-7 w-7 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-slate-800 hover:bg-slate-50 disabled:opacity-30 transition-all duration-150 shadow-sm">
+                        className="h-7 w-7 flex items-center justify-center rounded-md border border-slate-100 bg-white text-slate-500 hover:text-slate-800 hover:bg-slate-50 disabled:opacity-30 transition-colors duration-150">
                         <RefreshCw className={["w-3.5 h-3.5", loading ? "animate-spin" : ""].join(" ")} />
                     </button>
                 </div>
 
-                <ScrollArea className="flex-1 rounded-xl border border-slate-200 bg-white">
+                <ScrollArea className="flex-1 rounded-lg border border-slate-100 bg-white">
                     <div className="p-2 space-y-0.5">
                         {loading && tableList.length === 0 ? (
                             <div className="flex items-center justify-center py-12">
@@ -117,7 +117,7 @@ export default function AdminTablesPanel() {
             </aside>
 
             {/* RIGHT — table viewer */}
-            <div className="flex-1 flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+            <div className="flex-1 flex flex-col rounded-lg border border-slate-100 bg-white overflow-hidden">
 
                 {errorMsg && (
                     <div className="flex items-center justify-between gap-2 m-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-xs text-red-600">
@@ -147,7 +147,7 @@ export default function AdminTablesPanel() {
 
                         {/* main content */}
                         <Tabs value={tab} onValueChange={(v) => setTab(v as "table" | "json")} className="flex-1 flex flex-col overflow-hidden">
-                            <TabsList className="w-fit h-7 gap-0.5 bg-slate-100 border border-slate-200 p-0.5 rounded-lg shrink-0">
+                            <TabsList className="w-fit h-7 gap-0.5 bg-slate-50 border border-slate-100 p-0.5 rounded-lg shrink-0">
                                 {(["table", "json"] as const).map((t) => (
                                     <TabsTrigger key={t} value={t}
                                         className="h-6 px-3 text-[11px] font-medium rounded-md data-[state=active]:bg-white data-[state=active]:text-blue-700 data-[state=active]:shadow-sm data-[state=inactive]:text-slate-500 transition-all duration-150">
@@ -158,7 +158,7 @@ export default function AdminTablesPanel() {
 
                             <TabsContent value="table" className="flex-1 overflow-hidden mt-2 flex gap-3">
                                 {/* rows table */}
-                                <div className="flex-1 rounded-lg border border-slate-200 overflow-hidden bg-white">
+                                <div className="flex-1 rounded-lg border border-slate-100 overflow-hidden bg-white">
                                     <ScrollArea className="h-full">
                                         <Table>
                                             <TableHeader>
@@ -195,7 +195,7 @@ export default function AdminTablesPanel() {
 
                                 {/* row detail */}
                                 {selectedRow && (
-                                    <div className="w-64 shrink-0 rounded-lg border border-slate-200 overflow-hidden flex flex-col animate-in slide-in-from-right-2 duration-200 bg-white">
+                                    <div className="w-64 shrink-0 rounded-lg border border-slate-100 overflow-hidden flex flex-col animate-in slide-in-from-right-2 duration-200 bg-white">
                                         <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-100 shrink-0 bg-slate-50">
                                             <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Row detail</span>
                                             <button onClick={() => setSelectedRow(null)} className="text-slate-400 hover:text-slate-600 transition-colors">
@@ -217,7 +217,7 @@ export default function AdminTablesPanel() {
                             </TabsContent>
 
                             <TabsContent value="json" className="flex-1 overflow-hidden mt-2">
-                                <div className="h-full rounded-lg border border-slate-200 overflow-hidden bg-slate-50">
+                                <div className="h-full rounded-lg border border-slate-100 overflow-hidden bg-slate-50/50">
                                     <ScrollArea className="h-full">
                                         <pre className="text-[11px] text-slate-600 p-4 font-mono leading-relaxed">
                                             {JSON.stringify(activeRows, null, 2)}

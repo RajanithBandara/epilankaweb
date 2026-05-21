@@ -125,7 +125,7 @@ export default function AdminManagePanel() {
                     </button>
                 </div>
 
-                <ScrollArea className="flex-1 rounded-xl border border-slate-200 bg-white shadow-sm">
+                <ScrollArea className="flex-1 rounded-lg border border-slate-100 bg-white">
                     <div className="p-2 space-y-0.5">
                         {loading && !admins.length ? (
                             <div className="flex items-center justify-center py-8">
@@ -139,8 +139,8 @@ export default function AdminManagePanel() {
                                 className="group flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg hover:bg-slate-50 transition-all duration-150"
                             >
                                 <div className="flex items-center gap-2.5 min-w-0">
-                                    <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
-                                        <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                                    <div className="w-7 h-7 rounded-md bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
+                                        <ShieldCheck className="w-3.5 h-3.5 text-slate-600" />
                                     </div>
                                     <div className="min-w-0">
                                         <p className="text-xs font-semibold text-slate-800 truncate">{a.name || "(unnamed)"}</p>
@@ -166,15 +166,15 @@ export default function AdminManagePanel() {
             </aside>
 
             {/* RIGHT — form + confirm */}
-            <div className="flex-1 rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col overflow-hidden">
+            <div className="flex-1 rounded-lg border border-slate-100 bg-white flex flex-col overflow-hidden">
 
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                        <UserPlus className="w-4 h-4 text-white" />
+                    <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center">
+                        <UserPlus className="w-4 h-4 text-slate-600" />
                     </div>
                     <div>
-                        <h2 className="text-sm font-semibold text-slate-800">Add Administrator</h2>
+                        <h2 className="text-sm font-semibold text-slate-800">Add administrator</h2>
                         <p className="text-xs text-slate-400">Create a new Appwrite account and grant admin access</p>
                     </div>
                 </div>
@@ -250,7 +250,7 @@ export default function AdminManagePanel() {
             {/* Delete confirmation modal */}
             {deleteId && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm animate-in fade-in duration-150">
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl p-6 w-80 space-y-4">
+                    <div className="bg-white rounded-xl border border-slate-100 shadow-xl p-6 w-80 space-y-4">
                         <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center">
                                 <AlertTriangle className="w-4.5 h-4.5 text-amber-500" />

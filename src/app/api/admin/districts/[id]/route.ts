@@ -9,12 +9,17 @@ function getJwt(request: NextRequest) {
     );
 }
 
-// GET /api/admin/diseases
-export async function GET(request: NextRequest) {
+// PUT /api/admin/districts/[id]
+export async function PUT(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    const { id } = await params;
     const jwt = getJwt(request);
     const api = makeAdminApi(jwt);
+    const body = await request.json();
     try {
-        const res = await api.get('/admin/diseases');
+        const res = await api.put(`/admin/districts/${id}`, body);
         return NextResponse.json(res.data);
     } catch (e: unknown) {
         const err = e as { response?: { data?: unknown; status?: number } };
@@ -22,14 +27,17 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// POST /api/admin/diseases
-export async function POST(request: NextRequest) {
+// DELETE /api/admin/districts/[id]
+export async function DELETE(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    const { id } = await params;
     const jwt = getJwt(request);
     const api = makeAdminApi(jwt);
-    const body = await request.json();
     try {
-        const res = await api.post('/admin/diseases', body);
-        return NextResponse.json(res.data, { status: 201 });
+        const res = await api.delete(`/admin/districts/${id}`);
+        return NextResponse.json(res.data);
     } catch (e: unknown) {
         const err = e as { response?: { data?: unknown; status?: number } };
         return NextResponse.json(err?.response?.data ?? { error: 'Failed' }, { status: err?.response?.status ?? 500 });
