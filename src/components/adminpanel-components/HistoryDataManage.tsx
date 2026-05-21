@@ -388,56 +388,44 @@ export default function HistoricalDataManager() {
     // ── Render ────────────────────────────────────────────────────────────────
 
     const tabClasses = (tabName: TabType) =>
-        `px-4 py-2 font-medium border-b-2 transition ${
+        `px-1 pb-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
             activeTab === tabName
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-600 hover:text-gray-800"
+                ? "border-slate-900 text-slate-900"
+                : "border-transparent text-slate-500 hover:text-slate-800"
         }`;
 
     return (
-        <div className="max-w-7xl mx-auto p-6">
-            {/* Header */}
-            <div className="mb-6">
-                <div className="flex items-center justify-between mb-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-800">
-                            Historical Disease Data
-                        </h1>
-                        <p className="text-sm text-gray-500 mt-1">
-                            Manage weekly disease case records by district
-                        </p>
-                    </div>
-                </div>
-                <div className="flex gap-6 border-b border-gray-200">
-                    <button
-                        onClick={() => setActiveTab("history")}
-                        className={tabClasses("history")}
-                    >
-                        📋 History View
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("charts")}
-                        className={tabClasses("charts")}
-                    >
-                        📊 Charts & Analytics
-                    </button>
-                </div>
+        <div className="animate-in fade-in duration-300">
+            {/* Tabs */}
+            <div className="mb-6 flex gap-6 border-b border-slate-100">
+                <button
+                    onClick={() => setActiveTab("history")}
+                    className={tabClasses("history")}
+                >
+                    History view
+                </button>
+                <button
+                    onClick={() => setActiveTab("charts")}
+                    className={tabClasses("charts")}
+                >
+                    Charts &amp; analytics
+                </button>
             </div>
 
             {/* Time Aggregation Controls for Charts Tab */}
             {activeTab === "charts" && (
-                <div className="mb-6 bg-linear-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+                <div className="mb-6 border border-slate-100 rounded-lg p-4 bg-white">
                     <div className="flex items-center gap-3 flex-wrap">
-                        <span className="text-sm font-semibold text-gray-700">Time Aggregation:</span>
-                        <div className="flex gap-2">
+                        <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Time aggregation</span>
+                        <div className="flex gap-1">
                             {(["daily", "weekly", "monthly", "yearly"] as AggregationType[]).map((agg) => (
                                 <button
                                     key={agg}
                                     onClick={() => setTimeAggregation(agg)}
-                                    className={`px-3 py-1 text-xs font-medium rounded-lg transition ${
+                                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
                                         timeAggregation === agg
-                                            ? "bg-blue-600 text-white"
-                                            : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                                            ? "bg-slate-900 text-white"
+                                            : "bg-white text-slate-600 border border-slate-100 hover:bg-slate-50"
                                     }`}
                                 >
                                     {agg.charAt(0).toUpperCase() + agg.slice(1)}
@@ -457,15 +445,15 @@ export default function HistoricalDataManager() {
                             setError(null);
                             setSuccess(null);
                         }}
-                        className={`relative px-4 py-2 rounded-lg text-sm font-medium border transition ${
+                        className={`relative h-9 px-3 rounded-md text-sm font-medium border transition-colors ${
                             showFilters
-                                ? "bg-gray-100 border-gray-300 text-gray-700"
-                                : "bg-white border-gray-300 text-gray-600 hover:bg-gray-50"
+                                ? "bg-slate-100 border-slate-200 text-slate-700"
+                                : "bg-white border-slate-100 text-slate-600 hover:bg-slate-50"
                         }`}
                     >
                         Filters
                         {activeFilterCount > 0 && (
-                            <span className="absolute -top-1.5 -right-1.5 bg-blue-600 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center">
+                            <span className="absolute -top-1 -right-1 bg-slate-900 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-medium">
                                 {activeFilterCount}
                             </span>
                         )}
@@ -476,9 +464,9 @@ export default function HistoricalDataManager() {
                             setError(null);
                             setSuccess(null);
                         }}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+                        className="h-9 px-3 rounded-md text-sm font-medium bg-slate-900 text-white hover:bg-slate-800 transition-colors"
                     >
-                        {showForm ? "Cancel" : "+ Add Record"}
+                        {showForm ? "Cancel" : "Add record"}
                     </button>
                 </div>
             )}
@@ -499,9 +487,9 @@ export default function HistoricalDataManager() {
 
             {/* Filter Panel */}
             {activeTab === "history" && showFilters && (
-                <div className="mb-6 bg-gray-50 border border-gray-200 rounded-xl p-5">
-                    <h2 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">
-                        Filter Records
+                <div className="mb-6 bg-slate-50/50 border border-slate-100 rounded-lg p-5">
+                    <h2 className="text-[11px] font-medium text-slate-500 mb-3 uppercase tracking-widest">
+                        Filter records
                     </h2>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div>
@@ -584,8 +572,8 @@ export default function HistoricalDataManager() {
 
             {/* Add Record Form */}
             {activeTab === "history" && showForm && (
-                <div className="mb-8 bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-                    <h2 className="text-lg font-semibold text-gray-700 mb-4">Add New Record</h2>
+                <div className="mb-8 bg-white border border-slate-100 rounded-lg p-6">
+                    <h2 className="text-sm font-semibold text-slate-700 mb-4">Add new record</h2>
                     <form onSubmit={handleSubmit}>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             <div>
@@ -692,13 +680,13 @@ export default function HistoricalDataManager() {
             {activeTab === "charts" && (
             <>
             {fetchingCharts ? (
-                <div className="mb-8 bg-white border border-gray-200 rounded-xl shadow-sm p-8 text-center">
+                <div className="mb-8 bg-white border border-slate-100 rounded-lg p-8 text-center">
                     <div className="inline-block w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
                     <p className="text-gray-500 text-sm">Loading full historical dataset for charts...</p>
                 </div>
             ) : chartRecords.length > 0 ? (
                 <div className="mb-8 grid grid-cols-1 gap-5">
-                    <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
+                    <div className="bg-white border border-slate-100 rounded-lg p-5">
                         <h3 className="text-base font-semibold text-gray-700 mb-1">Weekly Case Trend</h3>
                         <p className="text-xs text-gray-400 mb-3">Based on all historical records in the database</p>
                         <div className="h-[360px]">
@@ -721,7 +709,7 @@ export default function HistoricalDataManager() {
                         </div>
                     </div>
 
-                    <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
+                    <div className="bg-white border border-slate-100 rounded-lg p-5">
                         <h3 className="text-base font-semibold text-gray-700 mb-3">Cases by District (Top 10)</h3>
                         <div className="h-[380px]">
                             <ResponsiveContainer width="100%" height="100%">
@@ -736,7 +724,7 @@ export default function HistoricalDataManager() {
                         </div>
                     </div>
 
-                    <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
+                    <div className="bg-white border border-slate-100 rounded-lg p-5">
                         <h3 className="text-base font-semibold text-gray-700 mb-3">Cases by Disease</h3>
                         <div className="h-[420px]">
                             <ResponsiveContainer width="100%" height="100%">
@@ -762,7 +750,7 @@ export default function HistoricalDataManager() {
                     </div>
                 </div>
             ) : (
-                <div className="mb-8 bg-white border border-gray-200 rounded-xl shadow-sm p-8 text-center text-gray-400 text-sm">
+                <div className="mb-8 bg-white border border-slate-100 rounded-lg p-8 text-center text-slate-400 text-sm">
                     No historical records available for charts.
                 </div>
             )}
@@ -774,7 +762,7 @@ export default function HistoricalDataManager() {
             <>
 
             {/* Records Table */}
-            <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            <div className="bg-white border border-slate-100 rounded-lg overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                     <h2 className="text-base font-semibold text-gray-700">
                         Records{" "}

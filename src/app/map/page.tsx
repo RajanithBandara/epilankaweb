@@ -58,29 +58,6 @@ export default function MapPage() {
                     <MapComponent />
                 </div>
             </div>
-
-            {/* How to Stay Safe section */}
-            <div className="w-full max-w-7xl mx-auto px-4 pb-16 relative z-10">
-                <div className="rounded-2xl border border-white/20 p-6 sm:p-8" style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)' }}>
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.15)' }}>
-                                <ShieldCheck className="h-5 w-5 text-white" />
-                            </div>
-                            <div>
-                                <h2 className="text-xl font-bold text-white">How to Stay Safe</h2>
-                                <p className="text-sm text-white/70">Open the safety page to view symptoms and prevention guidance.</p>
-                            </div>
-                        </div>
-                        <Link
-                            href="/safety"
-                            className="inline-flex items-center rounded-full border border-white/30 px-4 py-2 text-sm font-semibold text-white/90 hover:text-white hover:bg-white/10 transition-colors"
-                        >
-                            View Safety Guide
-                        </Link>
-                    </div>
-                </div>
-            </div>
         </main>
     );
 }

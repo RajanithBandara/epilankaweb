@@ -9,27 +9,13 @@ function getJwt(request: NextRequest) {
     );
 }
 
-// GET /api/admin/diseases
+// GET /api/admin/population
 export async function GET(request: NextRequest) {
     const jwt = getJwt(request);
     const api = makeAdminApi(jwt);
     try {
-        const res = await api.get('/admin/diseases');
+        const res = await api.get('/admin/population/total');
         return NextResponse.json(res.data);
-    } catch (e: unknown) {
-        const err = e as { response?: { data?: unknown; status?: number } };
-        return NextResponse.json(err?.response?.data ?? { error: 'Failed' }, { status: err?.response?.status ?? 500 });
-    }
-}
-
-// POST /api/admin/diseases
-export async function POST(request: NextRequest) {
-    const jwt = getJwt(request);
-    const api = makeAdminApi(jwt);
-    const body = await request.json();
-    try {
-        const res = await api.post('/admin/diseases', body);
-        return NextResponse.json(res.data, { status: 201 });
     } catch (e: unknown) {
         const err = e as { response?: { data?: unknown; status?: number } };
         return NextResponse.json(err?.response?.data ?? { error: 'Failed' }, { status: err?.response?.status ?? 500 });

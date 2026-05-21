@@ -17,13 +17,15 @@ import { account } from '@/lib/appwrite';
 export interface Notification {
     _id: string;
     notification_id: string;
+    title?: string | null;
     text: string;
     severity: 'info' | 'warning' | 'critical' | 'success';
+    category: 'disease' | 'report' | 'system' | 'alert' | 'announcement';
     created_at: string;
     read: boolean;
     read_at?: string | null;
     metadata?: Record<string, unknown>;
-    user_id?: string | null;
+    user_id?: string | null;  // kept for backwards-compat with old docs in DB
 }
 
 export interface NotificationContextType {
@@ -45,14 +47,22 @@ export const NotificationContext = createContext<NotificationContextType | undef
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-const RECONNECT_DELAY = 3000;
+const RECONNECT_DELAY = 3_000;
 const MAX_RECONNECT_ATTEMPTS = 5;
+
 /** Fallback poll interval when socket is disconnected (ms). */
-const OFFLINE_POLL_MS = 5_000;
+const OFFLINE_POLL_MS = 10_000;
+
 /** Heartbeat poll interval even when socket IS connected (ms).
- *  Ensures officer-pushed notifications are delivered even if the
- *  Socket.IO server doesn't emit the event to this client's room. */
-const HEARTBEAT_POLL_MS = 15_000;
+ *  Acts as a safety net if a socket event is missed. */
+const HEARTBEAT_POLL_MS = 30_000;
+
+/**
+ * Appwrite JWTs expire after 15 minutes.
+ * We refresh the JWT at this interval (ms) so the socket stays authenticated.
+ * 13 minutes gives a 2-minute safety margin.
+ */
+const JWT_REFRESH_INTERVAL_MS = 13 * 60 * 1_000;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -116,6 +126,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const offlinePollRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    /** Timer that refreshes the JWT before it expires. */
+    const jwtRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -127,7 +139,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     const initialLoadDoneRef = useRef(false);
 
     // -----------------------------------------------------------------------
-    // Sync unread count
+    // Sync unread count from server
     // -----------------------------------------------------------------------
     const syncUnreadCount = useCallback(async () => {
         if (!user) return;
@@ -149,7 +161,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         async (skip = 0, limit = 30) => {
             if (!user) return;
 
-            if (skip === 0) setIsLoading(true);
+            // Only show the loading spinner on the very first ever fetch (initial mount).
+            // All subsequent background heartbeat / offline-poll fetches are silent.
+            const isInitialLoad = skip === 0 && !initialLoadDoneRef.current;
+            if (isInitialLoad) setIsLoading(true);
+
             try {
                 const params = new URLSearchParams({
                     skip: String(skip),
@@ -165,13 +181,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
                 setNotifications((prev) => {
                     const next = reconcileList(prev, fetched);
 
-                    // Detect genuinely new items (not in the previous list)
+                    // Detect genuinely new items (not in the previous list).
                     // Only fire after initial load so we don't toast on mount.
                     if (initialLoadDoneRef.current) {
                         const prevIds = new Set(prev.map((n) => n.notification_id));
                         const newItems = fetched.filter((n) => !prevIds.has(n.notification_id));
                         if (newItems.length > 0) {
-                            // Surface the most recent one for the toast
                             setLatestNew(newItems[0]);
                         }
                     }
@@ -183,12 +198,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
                 setError(null);
             } catch (err) {
                 console.error('[Notifications] fetch failed:', err);
-                // Don't overwrite error on heartbeat polling — only on user-initiated loads
-                if (skip === 0 && !initialLoadDoneRef.current) {
+                if (isInitialLoad) {
                     setError('Failed to load notifications');
                 }
             } finally {
-                if (skip === 0) {
+                if (isInitialLoad) {
                     setIsLoading(false);
                     initialLoadDoneRef.current = true;
                 }
@@ -215,6 +229,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     );
 
     // -----------------------------------------------------------------------
+    // JWT refresh — push a new token to the server WITHOUT disconnecting
+    // -----------------------------------------------------------------------
+    // connectWebSocketRef is set after connectWebSocket is defined below.
+    // We use a ref so refreshJwt can call it without being in its dep array.
+    const connectWebSocketRef = useRef<(() => Promise<void>) | undefined>(undefined);
+
+    // -----------------------------------------------------------------------
     // Clear heartbeat / offline timers
     // -----------------------------------------------------------------------
     const clearTimers = useCallback(() => {
@@ -230,6 +251,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             clearTimeout(reconnectTimeoutRef.current);
             reconnectTimeoutRef.current = null;
         }
+        if (jwtRefreshRef.current) {
+            clearInterval(jwtRefreshRef.current);
+            jwtRefreshRef.current = null;
+        }
     }, []);
 
     // -----------------------------------------------------------------------
@@ -238,10 +263,16 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     const connectWebSocket = useCallback(async () => {
         if (!user || authLoading) return;
 
-        // Tear down any previous socket
+        // Tear down any previous socket cleanly
         if (socketRef.current) {
+            socketRef.current.removeAllListeners();
             socketRef.current.disconnect();
             socketRef.current = null;
+        }
+        // Clear any pending timers
+        if (jwtRefreshRef.current) {
+            clearInterval(jwtRefreshRef.current);
+            jwtRefreshRef.current = null;
         }
 
         try {
@@ -251,17 +282,20 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             const socketBase = getSocketBaseUrl();
             const socket = io(socketBase, {
                 path: '/socket.io',
-                transports: ['polling', 'websocket'],
+                // Try WebSocket first for lowest latency.
+                // Falls back to long-polling automatically if WebSocket is blocked.
+                transports: ['websocket', 'polling'],
                 auth: { token },
                 query: { token },
                 reconnection: true,
                 reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
                 reconnectionDelay: RECONNECT_DELAY,
+                reconnectionDelayMax: 10_000,
                 timeout: 10_000,
             });
 
             socket.on('connect', () => {
-                console.log('[Notifications] ✅ Socket.IO connected');
+                console.log('[Notifications] ✅ Socket.IO connected (transport:', socket.io.engine.transport.name, ')');
                 setIsConnected(true);
                 setError(null);
 
@@ -277,9 +311,32 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
                     );
                 }
 
+                // Schedule JWT refresh before it expires
+                if (!jwtRefreshRef.current) {
+                    jwtRefreshRef.current = setInterval(
+                        () => {
+                            // Inline JWT refresh: push new token over the live socket
+                            // so we never need to disconnect due to token expiry.
+                            void (async () => {
+                                if (!socket.connected) return;
+                                try {
+                                    const refreshed = await account.createJWT();
+                                    socket.emit('refresh_token', { token: refreshed.jwt });
+                                    console.log('[Notifications] 🔄 JWT refreshed over existing socket');
+                                } catch (refreshErr) {
+                                    console.warn('[Notifications] JWT refresh failed — reconnecting:', refreshErr);
+                                    void connectWebSocketRef.current?.();
+                                }
+                            })();
+                        },
+                        JWT_REFRESH_INTERVAL_MS,
+                    );
+                }
+
                 void fetchNotifications();
             });
 
+            // ── Notification events ──
             socket.on('notification', handleSocketNotification);
 
             socket.on('notification_updated', (updated: Notification) => {
@@ -295,8 +352,27 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
                 void syncUnreadCount();
             });
 
+            // Real-time unread count push (server emits this after mark-read operations)
+            socket.on('unread_count_updated', (payload: { unread_count: number }) => {
+                if (typeof payload.unread_count === 'number') {
+                    setUnreadCount(payload.unread_count);
+                }
+            });
+
+            // ── JWT refresh acknowledgements ──
+            socket.on('token_refreshed', (data: { user_id: string }) => {
+                console.log('[Notifications] ✅ JWT refreshed for user:', data.user_id);
+            });
+
+            socket.on('token_refresh_error', (data: { error: string }) => {
+                console.warn('[Notifications] JWT refresh rejected by server:', data.error, '— reconnecting');
+                // Token is truly dead — full reconnect to get a fresh JWT
+                void connectWebSocket();
+            });
+
+            // ── Connection lifecycle ──
             socket.on('connection', (message: { status?: string }) => {
-                if (message?.status) console.log('[Notifications] status:', message.status);
+                if (message?.status) console.log('[Notifications] server status:', message.status);
             });
 
             socket.on('connect_error', (err: Error) => {
@@ -305,18 +381,23 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
                 setIsConnected(false);
             });
 
-            socket.on('disconnect', () => {
-                console.log('[Notifications] Socket.IO disconnected');
+            socket.on('disconnect', (reason: string) => {
+                console.log('[Notifications] Socket.IO disconnected — reason:', reason);
                 setIsConnected(false);
 
-                // Stop heartbeat, start offline poll
+                // Stop heartbeat and JWT refresh timer; let Socket.IO auto-reconnect handle the rest
                 if (heartbeatRef.current) {
                     clearInterval(heartbeatRef.current);
                     heartbeatRef.current = null;
                 }
+                if (jwtRefreshRef.current) {
+                    clearInterval(jwtRefreshRef.current);
+                    jwtRefreshRef.current = null;
+                }
             });
 
             socketRef.current = socket;
+            connectWebSocketRef.current = connectWebSocket;
         } catch (err) {
             console.error('[Notifications] Failed to create socket:', err);
             setError('Failed to connect to notifications');
@@ -327,6 +408,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             );
         }
     }, [user, authLoading, fetchNotifications, handleSocketNotification, syncUnreadCount]);
+
+    // Keep the ref in sync so refreshJwt can call connectWebSocket
+    useEffect(() => {
+        connectWebSocketRef.current = connectWebSocket;
+    }, [connectWebSocket]);
 
     // -----------------------------------------------------------------------
     // Effects
@@ -346,6 +432,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             void connectWebSocket();
         }
         return () => {
+            socketRef.current?.removeAllListeners();
             socketRef.current?.disconnect();
             socketRef.current = null;
             clearTimers();
@@ -362,6 +449,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             return;
         }
 
+        // Immediately fetch on disconnect then poll
         void fetchNotifications();
 
         offlinePollRef.current = setInterval(

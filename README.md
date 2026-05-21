@@ -7,7 +7,7 @@ A comprehensive web platform for visualizing, analyzing, and predicting infectio
 
 ## 📖 Overview
 
-EpiWatch Lanka is a modern, intelligent disease surveillance platform designed to help the public, health officers, travelers, and administrators monitor and manage disease trends in Sri Lanka.  
+EpiWatch Lanka is a modern, intelligent disease surveillance platform designed to help the public, health officers, travelers, and administrators monitor and manage disease trends in Sri Lanka.
 
 ### Key Features:
 

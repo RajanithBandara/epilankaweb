@@ -9,7 +9,7 @@ import {
   User,
   CalendarDays,
   ChevronRight,
-  Brain
+  Brain,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
