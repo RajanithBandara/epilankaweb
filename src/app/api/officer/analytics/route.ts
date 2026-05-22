@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { makeOfficerApi } from "@/lib/officerapi";
+import { makeOfficerApi } from "@/lib/officerApi";
 
 /**
  * GET /api/officer/analytics
