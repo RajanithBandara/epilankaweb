@@ -17,11 +17,12 @@ import {
     Cell,
     Legend,
 } from "recharts";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const API_BASE = "/api/admin";
 
 const PAGE_SIZE = 20;
-const CHART_FETCH_SIZE = 200;
 
 const DISTRICTS: District[] = [
     { district_id: 1, district_name: "Colombo" },
@@ -71,11 +72,14 @@ const CHART_COLORS = ["#2563eb", "#0ea5e9", "#14b8a6", "#22c55e", "#f59e0b", "#e
 
 type AggregationType = "daily" | "weekly" | "monthly" | "yearly";
 type TabType = "history" | "charts";
+const ANALYTICS_YEARS = [2023, 2024, 2025];
 
 export default function HistoricalDataManager() {
     const [records, setRecords] = useState<HistoryData[]>([]);
     const [chartRecords, setChartRecords] = useState<HistoryData[]>([]);
     const [diseases, setDiseases] = useState<Disease[]>([]);
+    const [analyticsDiseaseId, setAnalyticsDiseaseId] = useState("");
+    const [analyticsYear, setAnalyticsYear] = useState("");
     const [form, setForm] = useState(defaultForm);
     const [filters, setFilters] = useState(defaultFilters);
     const [page, setPage] = useState(0);
@@ -137,36 +141,26 @@ export default function HistoricalDataManager() {
         }
     }, []);
 
-    const fetchAllChartRecords = useCallback(async () => {
+    const fetchAllChartRecords = useCallback(async (diseaseId = "", year = "") => {
         setFetchingCharts(true);
         try {
-            let skip = 0;
-            const allRecords: HistoryData[] = [];
+            const params = new URLSearchParams();
+            if (diseaseId) params.set("disease_id", diseaseId);
+            if (year) params.set("year", year);
 
-            while (true) {
-                const params = new URLSearchParams();
-                params.set("skip", String(skip));
-                params.set("limit", String(CHART_FETCH_SIZE));
-
-                const res = await fetch(`${API_BASE}/historical-data?${params.toString()}`);
-                if (!res.ok) {
-                    const errData = await res.json().catch(() => ({}));
-                    throw new Error(errData.error || "Failed to fetch chart records");
-                }
-
-                const batch: HistoryData[] = await res.json();
-                allRecords.push(...batch);
-
-                if (batch.length < CHART_FETCH_SIZE) {
-                    break;
-                }
-
-                skip += CHART_FETCH_SIZE;
+            const res = await fetch(`${API_BASE}/analytics${params.toString() ? `?${params.toString()}` : ""}`, {
+                cache: "no-store",
+            });
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || "Failed to fetch chart records");
             }
 
-            setChartRecords(allRecords);
+            const payload = (await res.json()) as { records?: HistoryData[] };
+            setChartRecords(payload.records || []);
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Failed to load chart data");
+            setChartRecords([]);
         } finally {
             setFetchingCharts(false);
         }
@@ -174,9 +168,9 @@ export default function HistoricalDataManager() {
 
     useEffect(() => {
         fetchRecords(0, defaultFilters);
-        fetchAllChartRecords();
+        fetchAllChartRecords(analyticsDiseaseId, analyticsYear);
         fetchDiseases();
-    }, [fetchAllChartRecords, fetchDiseases, fetchRecords]);
+    }, [analyticsDiseaseId, analyticsYear, fetchAllChartRecords, fetchDiseases, fetchRecords]);
 
     // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -184,6 +178,18 @@ export default function HistoricalDataManager() {
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
     ) => {
         setFilters((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    };
+
+    const handleAnalyticsDiseaseChange = (value: string) => {
+        const nextDiseaseId = value === "all" ? "" : value;
+        setAnalyticsDiseaseId(nextDiseaseId);
+        void fetchAllChartRecords(nextDiseaseId, analyticsYear);
+    };
+
+    const handleAnalyticsYearChange = (value: string) => {
+        const nextYear = value === "all" ? "" : value;
+        setAnalyticsYear(nextYear);
+        void fetchAllChartRecords(analyticsDiseaseId, nextYear);
     };
 
     const applyFilters = () => {
@@ -239,7 +245,7 @@ export default function HistoricalDataManager() {
             setForm(defaultForm);
             setShowForm(false);
             fetchRecords(page, filters);
-            fetchAllChartRecords();
+            fetchAllChartRecords(analyticsDiseaseId, analyticsYear);
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Something went wrong");
         } finally {
@@ -263,7 +269,7 @@ export default function HistoricalDataManager() {
             }
             setSuccess("Record deleted successfully.");
             fetchRecords(page, filters);
-            fetchAllChartRecords();
+            fetchAllChartRecords(analyticsDiseaseId, analyticsYear);
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Delete failed");
         } finally {
@@ -415,22 +421,84 @@ export default function HistoricalDataManager() {
             {/* Time Aggregation Controls for Charts Tab */}
             {activeTab === "charts" && (
                 <div className="mb-6 border border-slate-100 rounded-lg p-4 bg-white">
-                    <div className="flex items-center gap-3 flex-wrap">
-                        <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Time aggregation</span>
-                        <div className="flex gap-1">
-                            {(["daily", "weekly", "monthly", "yearly"] as AggregationType[]).map((agg) => (
-                                <button
-                                    key={agg}
-                                    onClick={() => setTimeAggregation(agg)}
-                                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                                        timeAggregation === agg
-                                            ? "bg-slate-900 text-white"
-                                            : "bg-white text-slate-600 border border-slate-100 hover:bg-slate-50"
-                                    }`}
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Time aggregation</span>
+                            <div className="flex gap-1">
+                                {(["daily", "weekly", "monthly", "yearly"] as AggregationType[]).map((agg) => (
+                                    <button
+                                        key={agg}
+                                        onClick={() => setTimeAggregation(agg)}
+                                        className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                                            timeAggregation === agg
+                                                ? "bg-slate-900 text-white"
+                                                : "bg-white text-slate-600 border border-slate-100 hover:bg-slate-50"
+                                        }`}
+                                    >
+                                        {agg.charAt(0).toUpperCase() + agg.slice(1)}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2 lg:min-w-[320px]">
+                            <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Analytics disease filter</span>
+                            <div className="flex gap-2 items-center">
+                                <Select value={analyticsDiseaseId || "all"} onValueChange={handleAnalyticsDiseaseChange}>
+                                    <SelectTrigger className="w-full bg-white">
+                                        <SelectValue placeholder="All diseases" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All diseases</SelectItem>
+                                        {diseases.map((disease) => (
+                                            <SelectItem key={disease.disease_id} value={String(disease.disease_id)}>
+                                                {disease.disease_name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => handleAnalyticsDiseaseChange("all")}
+                                    disabled={!analyticsDiseaseId}
                                 >
-                                    {agg.charAt(0).toUpperCase() + agg.slice(1)}
-                                </button>
-                            ))}
+                                    Clear
+                                </Button>
+                            </div>
+                            <p className="text-xs text-slate-500">
+                                Analytics load from the Redis-backed snapshot and can be narrowed by disease.
+                            </p>
+                        </div>
+
+                        <div className="flex flex-col gap-2 lg:min-w-[220px]">
+                            <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Analytics year</span>
+                            <div className="flex gap-2 items-center">
+                                <Select value={analyticsYear || "all"} onValueChange={handleAnalyticsYearChange}>
+                                    <SelectTrigger className="w-full bg-white">
+                                        <SelectValue placeholder="All years" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All years</SelectItem>
+                                        {ANALYTICS_YEARS.map((year) => (
+                                            <SelectItem key={year} value={String(year)}>
+                                                {year}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => handleAnalyticsYearChange("all")}
+                                    disabled={!analyticsYear}
+                                >
+                                    Clear
+                                </Button>
+                            </div>
+                            <p className="text-xs text-slate-500">
+                                Shows cached analytics for 2023, 2024, or 2025.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -682,13 +750,15 @@ export default function HistoricalDataManager() {
             {fetchingCharts ? (
                 <div className="mb-8 bg-white border border-slate-100 rounded-lg p-8 text-center">
                     <div className="inline-block w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
-                    <p className="text-gray-500 text-sm">Loading full historical dataset for charts...</p>
+                    <p className="text-gray-500 text-sm">Loading Redis-backed analytics snapshot...</p>
                 </div>
             ) : chartRecords.length > 0 ? (
                 <div className="mb-8 grid grid-cols-1 gap-5">
                     <div className="bg-white border border-slate-100 rounded-lg p-5">
                         <h3 className="text-base font-semibold text-gray-700 mb-1">Weekly Case Trend</h3>
-                        <p className="text-xs text-gray-400 mb-3">Based on all historical records in the database</p>
+                        <p className="text-xs text-gray-400 mb-3">
+                            Based on the cached historical table{analyticsDiseaseId ? ` for ${diseases.find((disease) => String(disease.disease_id) === analyticsDiseaseId)?.disease_name ?? `disease ${analyticsDiseaseId}`}` : ""}{analyticsYear ? ` in ${analyticsYear}` : ""}
+                        </p>
                         <div className="h-[360px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={weeklyTrendData} margin={{ top: 12, right: 20, left: 8, bottom: 16 }}>

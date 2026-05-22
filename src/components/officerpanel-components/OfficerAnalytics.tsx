@@ -145,29 +145,30 @@ export default function AnalyticsPage() {
             setLoading(true);
             setError(null);
             try {
-                // Determine if we should use cache (only when no filters applied)
                 const useCache = !selectedDistrictId && !selectedDiseaseId && !bypassCache;
-                const cacheKey = "analytics_full_data";
 
                 if (useCache) {
-                    const age = getCacheAge(cacheKey);
-                    if (age < Infinity) {
-                        const cached = getCachedData(cacheKey) as {
-                            reports: ReportRow[];
-                            thresholds: ThresholdRow[];
-                            historyRows: HistoryPatternRow[];
-                        } | null;
-                        if (cached) {
-                            setReports(cached.reports);
-                            setThresholds(cached.thresholds);
-                            setHistoryRows(cached.historyRows);
-                            setCacheAge(age);
-                            setLoading(false);
-                            return;
-                        }
+                    // Fetch consolidated snapshot from server-side Redis cache
+                    const qs = new URLSearchParams();
+                    // optionally pass year/disease if needed in future
+                    const res = await fetch(`/api/officer/analytics${qs.toString() ? `?${qs.toString()}` : ""}`, { cache: "no-store" });
+                    const payload = await res.json();
+                    if (!res.ok) {
+                        throw new Error(payload.error || "Failed to fetch cached analytics");
                     }
+
+                    setReports(payload.reports || []);
+                    setThresholds(payload.thresholds || []);
+                    setHistoryRows(payload.history || []);
+                    const refreshedAt = payload.refreshed_at ? Date.now() - new Date(payload.refreshed_at).getTime() : 0;
+                    setCacheAge(refreshedAt);
+                    setDistricts(payload.metadata?.districts || []);
+                    setDiseases(payload.metadata?.diseases || []);
+                    setLoading(false);
+                    return;
                 }
 
+                // Fall back to live per-endpoint fetches when filters are applied
                 const reportRows: ReportRow[] = [];
                 let skip = 0;
                 let total = 0;
@@ -240,17 +241,7 @@ export default function AnalyticsPage() {
                 const historyData = historyPayload.records || [];
                 setHistoryRows(historyData);
 
-                // Cache full data only when no filters applied
-                if (!selectedDistrictId && !selectedDiseaseId) {
-                    setCachedData(cacheKey, {
-                        reports: reportRows,
-                        thresholds: thresholdPayload.thresholds || [],
-                        historyRows: historyData,
-                    });
-                    setCacheAge(0);
-                } else {
-                    setCacheAge(null);
-                }
+                setCacheAge(null);
             } catch (err: unknown) {
                 setError(err instanceof Error ? err.message : "Failed to load analytics");
                 setReports([]);
