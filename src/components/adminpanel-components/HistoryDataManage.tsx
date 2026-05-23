@@ -396,14 +396,14 @@ export default function HistoricalDataManager() {
     const tabClasses = (tabName: TabType) =>
         `px-1 pb-3 text-sm font-medium border-b-2 -mb-px transition-colors ${
             activeTab === tabName
-                ? "border-slate-900 text-slate-900"
-                : "border-transparent text-slate-500 hover:text-slate-800"
+                ? "border-slate-900 dark:border-slate-100 text-slate-900 dark:text-slate-100"
+                : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
         }`;
 
     return (
         <div className="animate-in fade-in duration-300">
             {/* Tabs */}
-            <div className="mb-6 flex gap-6 border-b border-slate-100">
+            <div className="mb-6 flex gap-6 border-b border-slate-100 dark:border-slate-800">
                 <button
                     onClick={() => setActiveTab("history")}
                     className={tabClasses("history")}
@@ -420,10 +420,10 @@ export default function HistoricalDataManager() {
 
             {/* Time Aggregation Controls for Charts Tab */}
             {activeTab === "charts" && (
-                <div className="mb-6 border border-slate-100 rounded-lg p-4 bg-white">
+                <div className="mb-6 border border-slate-100 dark:border-slate-800 rounded-lg p-4 bg-white dark:bg-slate-900">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                         <div className="flex items-center gap-3 flex-wrap">
-                            <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Time aggregation</span>
+                            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Time aggregation</span>
                             <div className="flex gap-1">
                                 {(["daily", "weekly", "monthly", "yearly"] as AggregationType[]).map((agg) => (
                                     <button
@@ -431,8 +431,8 @@ export default function HistoricalDataManager() {
                                         onClick={() => setTimeAggregation(agg)}
                                         className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
                                             timeAggregation === agg
-                                                ? "bg-slate-900 text-white"
-                                                : "bg-white text-slate-600 border border-slate-100 hover:bg-slate-50"
+                                                ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900"
+                                                : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
                                         }`}
                                     >
                                         {agg.charAt(0).toUpperCase() + agg.slice(1)}
@@ -442,10 +442,10 @@ export default function HistoricalDataManager() {
                         </div>
 
                         <div className="flex flex-col gap-2 lg:min-w-[320px]">
-                            <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Analytics disease filter</span>
+                            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Analytics disease filter</span>
                             <div className="flex gap-2 items-center">
                                 <Select value={analyticsDiseaseId || "all"} onValueChange={handleAnalyticsDiseaseChange}>
-                                    <SelectTrigger className="w-full bg-white">
+                                    <SelectTrigger className="w-full bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100">
                                         <SelectValue placeholder="All diseases" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -460,22 +460,23 @@ export default function HistoricalDataManager() {
                                 <Button
                                     type="button"
                                     variant="outline"
+                                    className="border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                                     onClick={() => handleAnalyticsDiseaseChange("all")}
                                     disabled={!analyticsDiseaseId}
                                 >
                                     Clear
                                 </Button>
                             </div>
-                            <p className="text-xs text-slate-500">
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
                                 Analytics load from the Redis-backed snapshot and can be narrowed by disease.
                             </p>
                         </div>
 
                         <div className="flex flex-col gap-2 lg:min-w-[220px]">
-                            <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Analytics year</span>
+                            <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Analytics year</span>
                             <div className="flex gap-2 items-center">
                                 <Select value={analyticsYear || "all"} onValueChange={handleAnalyticsYearChange}>
-                                    <SelectTrigger className="w-full bg-white">
+                                    <SelectTrigger className="w-full bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100">
                                         <SelectValue placeholder="All years" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -490,13 +491,14 @@ export default function HistoricalDataManager() {
                                 <Button
                                     type="button"
                                     variant="outline"
+                                    className="border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                                     onClick={() => handleAnalyticsYearChange("all")}
                                     disabled={!analyticsYear}
                                 >
                                     Clear
                                 </Button>
                             </div>
-                            <p className="text-xs text-slate-500">
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
                                 Shows cached analytics for 2023, 2024, or 2025.
                             </p>
                         </div>
@@ -515,8 +517,8 @@ export default function HistoricalDataManager() {
                         }}
                         className={`relative h-9 px-3 rounded-md text-sm font-medium border transition-colors ${
                             showFilters
-                                ? "bg-slate-100 border-slate-200 text-slate-700"
-                                : "bg-white border-slate-100 text-slate-600 hover:bg-slate-50"
+                                ? "bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
+                                : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
                         }`}
                     >
                         Filters
@@ -532,7 +534,7 @@ export default function HistoricalDataManager() {
                             setError(null);
                             setSuccess(null);
                         }}
-                        className="h-9 px-3 rounded-md text-sm font-medium bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+                        className="h-9 px-3 rounded-md text-sm font-medium bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors"
                     >
                         {showForm ? "Cancel" : "Add record"}
                     </button>
@@ -541,27 +543,27 @@ export default function HistoricalDataManager() {
 
             {/* Feedback messages */}
             {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm flex justify-between items-start">
+                <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800/50 text-red-700 dark:text-red-400 rounded-lg text-sm flex justify-between items-start">
                     <span>{error}</span>
-                    <button onClick={() => setError(null)} className="ml-4 text-red-400 hover:text-red-600 text-lg leading-none">×</button>
+                    <button onClick={() => setError(null)} className="ml-4 text-red-400 dark:text-red-500 hover:text-red-600 dark:hover:text-red-300 text-lg leading-none">×</button>
                 </div>
             )}
             {success && (
-                <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm flex justify-between items-start">
+                <div className="mb-4 p-3 bg-green-50 dark:bg-emerald-900/30 border border-green-200 dark:border-emerald-800/50 text-green-700 dark:text-emerald-400 rounded-lg text-sm flex justify-between items-start">
                     <span>{success}</span>
-                    <button onClick={() => setSuccess(null)} className="ml-4 text-green-400 hover:text-green-600 text-lg leading-none">×</button>
+                    <button onClick={() => setSuccess(null)} className="ml-4 text-green-400 dark:text-emerald-500 hover:text-green-600 dark:hover:text-emerald-300 text-lg leading-none">×</button>
                 </div>
             )}
 
             {/* Filter Panel */}
             {activeTab === "history" && showFilters && (
-                <div className="mb-6 bg-slate-50/50 border border-slate-100 rounded-lg p-5">
-                    <h2 className="text-[11px] font-medium text-slate-500 mb-3 uppercase tracking-widest">
+                <div className="mb-6 bg-slate-50/50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 rounded-lg p-5">
+                    <h2 className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-widest">
                         Filter records
                     </h2>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div>
-                            <label className="block text-xs font-medium text-gray-500 mb-1">Week</label>
+                            <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Week</label>
                             <input
                                 type="number"
                                 name="week_number"
@@ -570,11 +572,11 @@ export default function HistoricalDataManager() {
                                 min={1}
                                 max={53}
                                 placeholder="1 – 53"
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-gray-500 mb-1">Year</label>
+                            <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Year</label>
                             <input
                                 type="number"
                                 name="year"
@@ -583,16 +585,16 @@ export default function HistoricalDataManager() {
                                 min={1900}
                                 max={2100}
                                 placeholder="e.g. 2025"
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-gray-500 mb-1">District</label>
+                            <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">District</label>
                             <select
                                 name="district_id"
                                 value={filters.district_id}
                                 onChange={handleFilterChange}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
                                 <option value="">All districts</option>
                                 {DISTRICTS.map((d) => (
@@ -603,12 +605,12 @@ export default function HistoricalDataManager() {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-gray-500 mb-1">Disease</label>
+                            <label className="block text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">Disease</label>
                             <select
                                 name="disease_id"
                                 value={filters.disease_id}
                                 onChange={handleFilterChange}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
                                 <option value="">All diseases</option>
                                 {diseases.map((d) => (
@@ -629,7 +631,7 @@ export default function HistoricalDataManager() {
                         {activeFilterCount > 0 && (
                             <button
                                 onClick={clearFilters}
-                                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition"
+                                className="bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition"
                             >
                                 Clear Filters
                             </button>
@@ -640,12 +642,12 @@ export default function HistoricalDataManager() {
 
             {/* Add Record Form */}
             {activeTab === "history" && showForm && (
-                <div className="mb-8 bg-white border border-slate-100 rounded-lg p-6">
-                    <h2 className="text-sm font-semibold text-slate-700 mb-4">Add new record</h2>
+                <div className="mb-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg p-6">
+                    <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">Add new record</h2>
                     <form onSubmit={handleSubmit}>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-600 mb-1">Week Number</label>
+                                <label className="block text-sm font-medium text-gray-600 dark:text-slate-400 mb-1">Week Number</label>
                                 <input
                                     type="number"
                                     name="week_number"
@@ -655,11 +657,11 @@ export default function HistoricalDataManager() {
                                     max={53}
                                     required
                                     placeholder="1 – 53"
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-600 mb-1">Year</label>
+                                <label className="block text-sm font-medium text-gray-600 dark:text-slate-400 mb-1">Year</label>
                                 <input
                                     type="number"
                                     name="year"
@@ -669,17 +671,17 @@ export default function HistoricalDataManager() {
                                     max={2100}
                                     required
                                     placeholder="e.g. 2025"
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-600 mb-1">District</label>
+                                <label className="block text-sm font-medium text-gray-600 dark:text-slate-400 mb-1">District</label>
                                 <select
                                     name="district_id"
                                     value={form.district_id}
                                     onChange={handleFormChange}
                                     required
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     <option value="">Select district</option>
                                     {DISTRICTS.map((d) => (
@@ -690,13 +692,13 @@ export default function HistoricalDataManager() {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-600 mb-1">Disease</label>
+                                <label className="block text-sm font-medium text-gray-600 dark:text-slate-400 mb-1">Disease</label>
                                 <select
                                     name="disease_id"
                                     value={form.disease_id}
                                     onChange={handleFormChange}
                                     required
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     <option value="">Select disease</option>
                                     {diseases.map((d) => (
@@ -707,7 +709,7 @@ export default function HistoricalDataManager() {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-600 mb-1">Case Count</label>
+                                <label className="block text-sm font-medium text-gray-600 dark:text-slate-400 mb-1">Case Count</label>
                                 <input
                                     type="number"
                                     name="case_count"
@@ -716,7 +718,7 @@ export default function HistoricalDataManager() {
                                     min={0}
                                     required
                                     placeholder="e.g. 42"
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                             </div>
                         </div>
@@ -735,7 +737,7 @@ export default function HistoricalDataManager() {
                                     setForm(defaultForm);
                                     setError(null);
                                 }}
-                                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded-lg text-sm font-medium transition"
+                                className="bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 px-6 py-2 rounded-lg text-sm font-medium transition"
                             >
                                 Cancel
                             </button>
@@ -748,15 +750,15 @@ export default function HistoricalDataManager() {
             {activeTab === "charts" && (
             <>
             {fetchingCharts ? (
-                <div className="mb-8 bg-white border border-slate-100 rounded-lg p-8 text-center">
+                <div className="mb-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg p-8 text-center">
                     <div className="inline-block w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
-                    <p className="text-gray-500 text-sm">Loading Redis-backed analytics snapshot...</p>
+                    <p className="text-gray-500 dark:text-slate-400 text-sm">Loading Redis-backed analytics snapshot...</p>
                 </div>
             ) : chartRecords.length > 0 ? (
                 <div className="mb-8 grid grid-cols-1 gap-5">
-                    <div className="bg-white border border-slate-100 rounded-lg p-5">
-                        <h3 className="text-base font-semibold text-gray-700 mb-1">Weekly Case Trend</h3>
-                        <p className="text-xs text-gray-400 mb-3">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg p-5">
+                        <h3 className="text-base font-semibold text-gray-700 dark:text-slate-300 mb-1">Weekly Case Trend</h3>
+                        <p className="text-xs text-gray-400 dark:text-slate-500 mb-3">
                             Based on the cached historical table{analyticsDiseaseId ? ` for ${diseases.find((disease) => String(disease.disease_id) === analyticsDiseaseId)?.disease_name ?? `disease ${analyticsDiseaseId}`}` : ""}{analyticsYear ? ` in ${analyticsYear}` : ""}
                         </p>
                         <div className="h-[360px]">
@@ -779,8 +781,8 @@ export default function HistoricalDataManager() {
                         </div>
                     </div>
 
-                    <div className="bg-white border border-slate-100 rounded-lg p-5">
-                        <h3 className="text-base font-semibold text-gray-700 mb-3">Cases by District (Top 10)</h3>
+                    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg p-5">
+                        <h3 className="text-base font-semibold text-gray-700 dark:text-slate-300 mb-3">Cases by District (Top 10)</h3>
                         <div className="h-[380px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={districtCasesData} margin={{ top: 12, right: 20, left: 8, bottom: 44 }}>
@@ -794,8 +796,8 @@ export default function HistoricalDataManager() {
                         </div>
                     </div>
 
-                    <div className="bg-white border border-slate-100 rounded-lg p-5">
-                        <h3 className="text-base font-semibold text-gray-700 mb-3">Cases by Disease</h3>
+                    <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg p-5">
+                        <h3 className="text-base font-semibold text-gray-700 dark:text-slate-300 mb-3">Cases by Disease</h3>
                         <div className="h-[420px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
@@ -820,7 +822,7 @@ export default function HistoricalDataManager() {
                     </div>
                 </div>
             ) : (
-                <div className="mb-8 bg-white border border-slate-100 rounded-lg p-8 text-center text-slate-400 text-sm">
+                <div className="mb-8 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg p-8 text-center text-slate-400 dark:text-slate-500 text-sm">
                     No historical records available for charts.
                 </div>
             )}
@@ -832,21 +834,21 @@ export default function HistoricalDataManager() {
             <>
 
             {/* Records Table */}
-            <div className="bg-white border border-slate-100 rounded-lg overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                    <h2 className="text-base font-semibold text-gray-700">
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between">
+                    <h2 className="text-base font-semibold text-gray-700 dark:text-slate-300">
                         Records{" "}
                         {activeFilterCount > 0 && (
-                            <span className="text-xs text-blue-600 font-normal ml-1">(filtered)</span>
+                            <span className="text-xs text-blue-600 dark:text-blue-400 font-normal ml-1">(filtered)</span>
                         )}
-                        <span className="text-gray-400 font-normal text-sm ml-1">
+                        <span className="text-gray-400 dark:text-slate-500 font-normal text-sm ml-1">
                             ({records.length}{hasMore ? "+" : ""})
                         </span>
                     </h2>
                     <button
                         onClick={() => fetchRecords(page, filters)}
                         disabled={fetchingRecords}
-                        className="text-sm text-blue-600 hover:underline disabled:opacity-40"
+                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-40"
                     >
                         {fetchingRecords ? "Refreshing..." : "Refresh"}
                     </button>
@@ -855,10 +857,10 @@ export default function HistoricalDataManager() {
                 {fetchingRecords ? (
                     <div className="p-10 text-center">
                         <div className="inline-block w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
-                        <p className="text-gray-400 text-sm">Loading records...</p>
+                        <p className="text-gray-400 dark:text-slate-500 text-sm">Loading records...</p>
                     </div>
                 ) : records.length === 0 ? (
-                    <div className="p-10 text-center text-gray-400 text-sm">
+                    <div className="p-10 text-center text-gray-400 dark:text-slate-500 text-sm">
                         {activeFilterCount > 0
                             ? "No records match the current filters."
                             : "No records found. Add one above."}
@@ -867,7 +869,7 @@ export default function HistoricalDataManager() {
                     <>
                         <div className="overflow-x-auto">
                             <table className="w-full text-sm">
-                                <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
+                                <thead className="bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-slate-400 uppercase text-xs">
                                     <tr>
                                         <th className="px-4 py-3 text-left">Week</th>
                                         <th className="px-4 py-3 text-left">Year</th>
@@ -878,35 +880,35 @@ export default function HistoricalDataManager() {
                                         <th className="px-4 py-3 text-center">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100">
+                                <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                                     {records.map((record) => (
                                         <tr
                                             key={record.data_id}
-                                            className="hover:bg-gray-50 transition"
+                                            className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition"
                                         >
-                                            <td className="px-4 py-3 font-medium text-gray-700">
+                                            <td className="px-4 py-3 font-medium text-gray-700 dark:text-slate-300">
                                                 W{record.week_number}
                                             </td>
-                                            <td className="px-4 py-3 text-gray-600">{record.year}</td>
-                                            <td className="px-4 py-3 text-gray-600">
+                                            <td className="px-4 py-3 text-gray-600 dark:text-slate-400">{record.year}</td>
+                                            <td className="px-4 py-3 text-gray-600 dark:text-slate-400">
                                                 {getDistrictName(record.district_id)}
                                             </td>
-                                            <td className="px-4 py-3 text-gray-600">
+                                            <td className="px-4 py-3 text-gray-600 dark:text-slate-400">
                                                 {getDiseaseName(record.disease_id)}
                                             </td>
                                             <td className="px-4 py-3 text-right">
-                                                <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-medium">
+                                                <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded font-medium">
                                                     {record.case_count.toLocaleString()}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3 text-gray-400 font-mono text-xs truncate max-w-[140px]">
+                                            <td className="px-4 py-3 text-gray-400 dark:text-slate-500 font-mono text-xs truncate max-w-[140px]">
                                                 {record.data_id}
                                             </td>
                                             <td className="px-4 py-3 text-center">
                                                 <button
                                                     onClick={() => handleDelete(record.data_id)}
                                                     disabled={deletingId === record.data_id}
-                                                    className="text-xs text-red-500 hover:text-red-700 disabled:opacity-40 transition font-medium"
+                                                    className="text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400 disabled:opacity-40 transition font-medium"
                                                 >
                                                     {deletingId === record.data_id ? "Deleting..." : "Delete"}
                                                 </button>
@@ -918,22 +920,22 @@ export default function HistoricalDataManager() {
                         </div>
 
                         {/* Pagination */}
-                        <div className="px-6 py-3 border-t border-gray-100 flex items-center justify-between">
-                            <span className="text-xs text-gray-400">
+                        <div className="px-6 py-3 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between">
+                            <span className="text-xs text-gray-400 dark:text-slate-500">
                                 Page {page + 1} · showing {records.length} records
                             </span>
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => handlePageChange(page - 1)}
                                     disabled={page === 0 || fetchingRecords}
-                                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 hover:bg-gray-200 disabled:opacity-40 transition"
+                                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 disabled:opacity-40 transition"
                                 >
                                     ← Previous
                                 </button>
                                 <button
                                     onClick={() => handlePageChange(page + 1)}
                                     disabled={!hasMore || fetchingRecords}
-                                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 hover:bg-gray-200 disabled:opacity-40 transition"
+                                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 disabled:opacity-40 transition"
                                 >
                                     Next →
                                 </button>

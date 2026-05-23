@@ -120,20 +120,20 @@ function StatCardView({ card, value, loading }: { card: StatCard; value: number 
     }
 
     const inner = (
-        <div className="group h-full rounded-lg border border-slate-100 bg-white p-5 hover:border-slate-200 transition-colors duration-150 flex flex-col justify-between">
+        <div className="group h-full rounded-lg border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 hover:border-slate-200 dark:hover:border-slate-700 transition-colors duration-150 flex flex-col justify-between">
             <div className="flex items-start justify-between">
-                <Icon className="w-4 h-4 text-slate-400" />
+                <Icon className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                 {card.href && (
-                    <ArrowRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all duration-150" />
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover:text-slate-600 dark:group-hover:text-slate-300 group-hover:translate-x-0.5 transition-all duration-150" />
                 )}
             </div>
             <div className="mt-6">
                 {display === null
-                    ? <div className="h-7 w-12 bg-slate-100 rounded animate-pulse" />
-                    : <p className="text-2xl font-semibold text-slate-900 tabular-nums tracking-tight">{display}</p>
+                    ? <div className="h-7 w-12 bg-slate-100 dark:bg-slate-800 rounded animate-pulse" />
+                    : <p className="text-2xl font-semibold text-slate-900 dark:text-slate-100 tabular-nums tracking-tight">{display}</p>
                 }
-                <p className="text-[11px] text-slate-400 mt-1">{card.description}</p>
-                <p className="text-[11px] text-slate-500 font-medium mt-0.5">{card.title}</p>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">{card.description}</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">{card.title}</p>
             </div>
         </div>
     );
@@ -142,7 +142,7 @@ function StatCardView({ card, value, loading }: { card: StatCard; value: number 
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
     return (
-        <h2 className="text-[10px] font-medium text-slate-400 uppercase tracking-[0.12em] mb-3">
+        <h2 className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-[0.12em] mb-3">
             {children}
         </h2>
     );
@@ -168,22 +168,22 @@ export default function AdminHome() {
             {/* Greeting */}
             <div className="flex items-end justify-between flex-wrap gap-3">
                 <div>
-                    <p className="text-[11px] text-slate-400 uppercase tracking-widest">{now}</p>
-                    <h1 className="text-2xl font-semibold text-slate-900 tracking-tight mt-1">
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 uppercase tracking-widest">{now}</p>
+                    <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 tracking-tight mt-1">
                         {greeting()}, admin
                     </h1>
-                    <p className="text-sm text-slate-500 mt-1">Here&apos;s what&apos;s happening across EpiLanka today.</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Here&apos;s what&apos;s happening across EpiLanka today.</p>
                 </div>
             </div>
 
             {/* Alert banner */}
             {stats && stats.bannedUsers > 0 && (
-                <div className="flex items-center gap-3 rounded-lg border border-red-100 bg-red-50/60 px-4 py-3">
-                    <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-                    <p className="text-sm text-slate-700">
-                        <span className="font-semibold text-red-600">{stats.bannedUsers}</span> user{stats.bannedUsers > 1 ? "s are" : " is"} currently banned.
+                <div className="flex items-center gap-3 rounded-lg border border-red-100 dark:border-red-900/50 bg-red-50/60 dark:bg-red-900/20 px-4 py-3">
+                    <AlertCircle className="w-4 h-4 text-red-500 dark:text-red-400 shrink-0" />
+                    <p className="text-sm text-slate-700 dark:text-slate-300">
+                        <span className="font-semibold text-red-600 dark:text-red-400">{stats.bannedUsers}</span> user{stats.bannedUsers > 1 ? "s are" : " is"} currently banned.
                     </p>
-                    <Link href="/admindashboard/users" className="ml-auto text-xs font-medium text-red-600 hover:text-red-700 transition-colors">
+                    <Link href="/admindashboard/users" className="ml-auto text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors">
                         Review →
                     </Link>
                 </div>
@@ -225,13 +225,13 @@ export default function AdminHome() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                     {QUICK.map(({ label, href, icon: Icon, desc }) => (
                         <Link key={href} href={href}
-                            className="flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50/50 group transition-colors duration-150">
-                            <Icon className="w-4 h-4 text-slate-400 group-hover:text-slate-700 transition-colors shrink-0" />
+                            className="flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-200 dark:hover:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 group transition-colors duration-150">
+                            <Icon className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors shrink-0" />
                             <div className="flex-1 min-w-0">
-                                <span className="text-[13px] font-medium text-slate-700 block">{label}</span>
-                                <span className="text-[11px] text-slate-400 block truncate">{desc}</span>
+                                <span className="text-[13px] font-medium text-slate-700 dark:text-slate-200 block">{label}</span>
+                                <span className="text-[11px] text-slate-400 dark:text-slate-500 block truncate">{desc}</span>
                             </div>
-                            <ArrowRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all duration-150 shrink-0" />
+                            <ArrowRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover:text-slate-600 dark:group-hover:text-slate-300 group-hover:translate-x-0.5 transition-all duration-150 shrink-0" />
                         </Link>
                     ))}
                 </div>
@@ -240,7 +240,7 @@ export default function AdminHome() {
             {/* System info */}
             <section>
                 <SectionHeading>System</SectionHeading>
-                <div className="rounded-lg border border-slate-100 bg-white p-5">
+                <div className="rounded-lg border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-xs">
                         {[
                             ["Platform",      "EpiLanka v2.0"],
@@ -249,8 +249,8 @@ export default function AdminHome() {
                             ["Status",        loading ? "Loading…" : "Operational"],
                         ].map(([k, v]) => (
                             <div key={k}>
-                                <span className="text-slate-400 block mb-1">{k}</span>
-                                <span className="text-slate-800 font-medium flex items-center gap-1.5">
+                                <span className="text-slate-400 dark:text-slate-500 block mb-1">{k}</span>
+                                <span className="text-slate-800 dark:text-slate-200 font-medium flex items-center gap-1.5">
                                     {k === "Status" && !loading && (
                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
                                     )}
@@ -263,7 +263,7 @@ export default function AdminHome() {
             </section>
 
             {loading && (
-                <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                <div className="flex items-center gap-2 text-[11px] text-slate-400 dark:text-slate-500">
                     <Loader2 className="w-3 h-3 animate-spin" />
                     Loading metrics…
                 </div>

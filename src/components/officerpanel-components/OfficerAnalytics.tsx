@@ -21,7 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getCachedData, setCachedData, getCacheAge } from "@/lib/analyticsCache";
-
+import CustomChartBuilder from "./CustomChartBuilder";
 type District = {
     district_id: number;
     district_name: string;
@@ -314,8 +314,7 @@ export default function AnalyticsPage() {
             .sort((a, b) => a.order - b.order)
             .slice(-16);
     }, [reports, currentIsoYear, currentIsoWeek]);
-
-    const thresholdChartData = useMemo(() => {
+    useMemo(() => {
         const latestActualByDisease = new Map<number, { actual: number; order: number }>();
 
         reports.forEach((row) => {
@@ -335,7 +334,6 @@ export default function AnalyticsPage() {
             latest_actual: latestActualByDisease.get(row.disease_id)?.actual ?? 0,
         }));
     }, [thresholds, reports]);
-
     const diseasePatternData = useMemo(() => {
         const currentOrder = currentIsoYear * 100 + currentIsoWeek;
         const totals = new Map<number, number>();
@@ -374,12 +372,10 @@ export default function AnalyticsPage() {
             .sort((a, b) => String(a.period).localeCompare(String(b.period)))
             .slice(-16);
     }, [historyRows, currentIsoYear, currentIsoWeek]);
-
-    const patternKeys = useMemo(() => {
+    useMemo(() => {
         if (!diseasePatternData.length) return [];
         return Object.keys(diseasePatternData[0]).filter((key) => key !== "period");
     }, [diseasePatternData]);
-
     const weekOptions = useMemo<WeekOption[]>(() => {
         const uniqueWeeks = new Map<string, WeekOption>();
 
@@ -824,68 +820,11 @@ export default function AnalyticsPage() {
                 </CardContent>
             </Card>
 
-            <Card className="border-black/15 bg-white text-black dark:border-white/20 dark:bg-black dark:text-white">
-                <CardHeader>
-                    <CardTitle>Threshold Analytics</CardTitle>
-                    <CardDescription className="text-black/65 dark:text-white/65">
-                        Compare latest actual values against configured lower, upper, and outbreak thresholds.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="h-80">
-                    {thresholdChartData.length === 0 ? (
-                        <p className="text-sm text-black/60 dark:text-white/60">No threshold data found for current filter.</p>
-                    ) : (
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={thresholdChartData}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="disease" />
-                                <YAxis />
-                                <Tooltip />
-                                <Legend />
-                                <Bar dataKey="lower" fill="#60a5fa" name="Lower Threshold" />
-                                <Bar dataKey="upper" fill="#fbbf24" name="Upper Threshold" />
-                                <Bar dataKey="outbreak" fill="#ef4444" name="Outbreak Threshold" />
-                                <Bar dataKey="latest_actual" fill="#22c55e" name="Latest Actual" />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    )}
-                </CardContent>
-            </Card>
-
-            <Card className="border-black/15 bg-white text-black dark:border-white/20 dark:bg-black dark:text-white">
-                <CardHeader>
-                    <CardTitle>Disease History Patterns</CardTitle>
-                    <CardDescription className="text-black/65 dark:text-white/65">
-                        Weekly patterns for top diseases by total actual count, up to current week.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="h-80">
-                    {diseasePatternData.length === 0 || patternKeys.length === 0 ? (
-                        <p className="text-sm text-black/60 dark:text-white/60">Not enough report history for pattern analytics.</p>
-                    ) : (
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={diseasePatternData}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="period" />
-                                <YAxis />
-                                <Tooltip />
-                                <Legend />
-                                {patternKeys.map((key, index) => (
-                                    <Area
-                                        key={key}
-                                        type="monotone"
-                                        dataKey={key}
-                                        stroke={["#2563eb", "#f97316", "#22c55e", "#a855f7"][index % 4]}
-                                        strokeWidth={2}
-                                        fillOpacity={0.14}
-                                        fill={["#2563eb", "#f97316", "#22c55e", "#a855f7"][index % 4]}
-                                    />
-                                ))}
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    )}
-                </CardContent>
-            </Card>
+            <CustomChartBuilder 
+                reports={reports} 
+                historyRows={historyRows} 
+                diseases={diseases} 
+            />
         </div>
     );
 }
