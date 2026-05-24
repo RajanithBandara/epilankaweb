@@ -19,7 +19,7 @@ export async function PUT(
     const api = makeAdminApi(jwt);
     const body = await request.json();
     try {
-        const res = await api.put(`/admin/notifications/${id}`, body);
+        const res = await api.put(`/notifications/${id}`, body);
         return NextResponse.json(res.data);
     } catch (e: unknown) {
         const err = e as { response?: { data?: unknown; status?: number } };
@@ -36,7 +36,7 @@ export async function DELETE(
     const jwt = getJwt(request);
     const api = makeAdminApi(jwt);
     try {
-        const res = await api.delete(`/admin/notifications/${id}`);
+        const res = await api.delete(`/notifications/${id}`);
         return NextResponse.json(res.data);
     } catch (e: unknown) {
         const err = e as { response?: { data?: unknown; status?: number } };

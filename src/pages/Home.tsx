@@ -6,6 +6,7 @@ import StatSection from "@/components/homepage-components/StatSection";
 import AboutSection from "@/components/homepage-components/AboutSection";
 import FeaturesSection from "@/components/homepage-components/FeaturesSection";
 import CtaSection from "@/components/homepage-components/CtaSection";
+import UploadedReportsSection from "@/components/homepage-components/UploadedReportsSection";
 import EpiGuardAssistantPopup from "@/components/homepage-components/EpiGuardAssistantPopup";
 import dynamic from "next/dynamic";
 import { getGsap } from "@/lib/gsap";
@@ -116,25 +117,28 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Scrollable content */}
-      <div className="relative z-10">
-        <HeroSection />
-        {/* Floating sections container */}
-        <div className="relative pb-32 space-y-24 pt-12">
-          <div data-home-scroll-section className="will-change-transform">
-            <StatSection />
-          </div>
-          <div data-home-scroll-section className="will-change-transform">
-            <AboutSection />
-          </div>
-          <div data-home-scroll-section className="will-change-transform">
-            <FeaturesSection />
-          </div>
-          <div data-home-scroll-section className="will-change-transform">
-            <CtaSection />
-          </div>
-        </div>
-      </div>
+       {/* Scrollable content */}
+       <div className="relative z-10">
+         <HeroSection />
+         {/* Floating sections container */}
+         <div className="relative pb-32 space-y-24 pt-12">
+           <div data-home-scroll-section className="will-change-transform">
+             <StatSection />
+           </div>
+           <div data-home-scroll-section className="will-change-transform">
+             <AboutSection />
+           </div>
+           <div data-home-scroll-section className="will-change-transform">
+             <FeaturesSection />
+           </div>
+           <div data-home-scroll-section className="will-change-transform">
+             <CtaSection />
+           </div>
+           <div data-home-scroll-section className="will-change-transform">
+             <UploadedReportsSection />
+           </div>
+         </div>
+       </div>
     </main>
   );
 }

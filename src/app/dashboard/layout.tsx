@@ -4,6 +4,7 @@ import {
   Home,
   Map,
   FileText,
+  FilePlus,
   Settings,
   LogOut,
   User,
@@ -30,7 +31,8 @@ type NavItem = {
 const navItems: NavItem[] = [
   { label: "Home", href: "/dashboard", icon: Home },
   { label: "Map", href: "/dashboard/map", icon: Map },
-  { label: "Reports", href: "/dashboard/report", icon: FileText },
+  { label: "Submit Report", href: "/dashboard/report", icon: FilePlus },
+  { label: "Reports", href: "/dashboard/reports", icon: FileText },
   { label: "EpiGuard AI", href: "/dashboard/takecare", icon: Brain },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
@@ -292,7 +294,7 @@ export default function DashboardLayout({
               borderColor: "var(--dash-sidebar-border)",
             }}
           >
-            <div className="h-16 grid grid-cols-6 gap-1 p-1.5">
+            <div className="h-16 grid grid-cols-7 gap-1 p-1.5">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;

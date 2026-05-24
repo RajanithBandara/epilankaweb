@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const api = makeAdminApi(jwt);
     const { searchParams } = request.nextUrl;
     try {
-        const res = await api.get('/admin/notifications', {
+        const res = await api.get('/notifications/', {
             params: {
                 skip: searchParams.get('skip') ?? 0,
                 limit: searchParams.get('limit') ?? 50,
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     const api = makeAdminApi(jwt);
     const body = await request.json();
     try {
-        const res = await api.post('/admin/notifications', body);
+        const res = await api.post('/notifications/', body);
         return NextResponse.json(res.data, { status: 201 });
     } catch (e: unknown) {
         const err = e as { response?: { data?: unknown; status?: number } };

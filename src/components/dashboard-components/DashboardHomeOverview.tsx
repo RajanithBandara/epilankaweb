@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useLocation } from '@/contexts/LocationContext';
 import HistoricalTrendChart from './HistoricalTrendChart';
+import RiskAlertBanner from './RiskAlertBanner';
 import { getDashboardCache, setDashboardCache } from '@/lib/dashboardCache';
 
 type RiskLevel = 'safe' | 'low' | 'medium' | 'high';
@@ -245,6 +246,9 @@ export default function DashboardHomeOverview() {
                     <span>{error || reportsError}</span>
                 </div>
             )}
+
+            {/* ── CERI Risk Alert Banner ──────────────────────── */}
+            <RiskAlertBanner />
 
             {/* ── Stat cards ───────────────────────────────── */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

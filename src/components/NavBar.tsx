@@ -25,6 +25,7 @@ function NavBar() {
         { href: '/', label: 'Home' },
         { href: '/map', label: 'Map' },
         { href: '/epiguard', label: 'EpiGuard' },
+        { href: '/reports', label: 'Reports' },
     ];
 
     const loginOptions = [

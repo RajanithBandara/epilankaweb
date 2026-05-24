@@ -669,7 +669,7 @@ export default function EpiGuardChat() {
     if (loadingAuth || loadingChats) {
         return (
             <div className="flex flex-col items-center justify-center h-full w-full py-16 text-center z-10">
-                <div className="w-24 h-24 mx-auto relative mb-4">
+                <div className="w-18 h-18 mx-auto relative mb-4">
                     <Lottie animationData={flyingGlobe} loop={true} className="w-full h-full" />
                     <div className="absolute inset-0 flex items-center justify-center">
                         <Bot className="h-8 w-8 text-[#67e8f9] animate-pulse" />
@@ -714,7 +714,7 @@ export default function EpiGuardChat() {
                     <div className="w-40 h-40 rounded-[2.5rem] bg-white/10 border border-white/20 backdrop-blur-md flex items-center justify-center shadow-2xl transition-all duration-500 group-hover:scale-105 group-hover:rotate-3 relative z-10 group-hover:bg-white/20 group-hover:border-[#67e8f9]/50">
                         <Bot className="h-20 w-20 text-[#67e8f9]" />
                     </div>
-                    <div className="absolute -inset-12 z-0">
+                    <div className="absolute -inset-6 z-0">
                         <Lottie animationData={flyingGlobe} loop={true} className="w-full h-full opacity-60 group-hover:opacity-100 transition-opacity drop-shadow-2xl" />
                     </div>
                 </div>
@@ -839,7 +839,7 @@ export default function EpiGuardChat() {
                 <div className="overflow-y-auto px-4 py-5 space-y-4 lg:px-6 custom-scrollbar">
                     {isNewChat && (
                         <div className="flex flex-col items-center justify-center h-full py-10 px-6 text-center animate-fade-in">
-                            <div className="relative w-28 h-28 mb-4">
+                            <div className="relative w-20 h-20 mb-4">
                                 <Lottie animationData={flyingGlobe} loop={true} className="w-full h-full drop-shadow-lg" />
                             </div>
 

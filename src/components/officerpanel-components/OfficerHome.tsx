@@ -10,6 +10,7 @@ const quickLinks = [
     { label: "Diseases", href: "/officerdashboard/diseases" },
     { label: "Analytics", href: "/officerdashboard/analytics" },
     { label: "Map", href: "/officerdashboard/map" },
+    { label: "Upload Report", href: "/officerdashboard/uploadreports" },
     { label: "Menus", href: "/officerdashboard/menus" },
 ] as const;
 

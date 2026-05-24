@@ -11,6 +11,7 @@ import {
     Activity,
     LogOut,
     Settings,
+    Upload,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -31,7 +32,9 @@ const navItems = [
     { label: "Update Records", href: "/officerdashboard/update-records", icon: FilePenLine },
     { label: "Diseases", href: "/officerdashboard/diseases", icon: Microscope },
     { label: "Reports", href: "/officerdashboard/reports", icon: FilePenLine },
+    { label: "Upload Report", href: "/officerdashboard/uploadreports", icon: Upload },
     { label: "Analytics", href: "/officerdashboard/analytics", icon: BarChart3 },
+    { label: "CERI History", href: "/officerdashboard/ceri-history", icon: Activity },
     { label: "Map", href: "/officerdashboard/map", icon: Map },
     { label: "Notifications", href: "/officerdashboard/notifications", icon: BellRing },
     { label: "Settings", href: "/officerdashboard/settings", icon: Settings },
@@ -41,7 +44,10 @@ const PAGE_TITLES: Record<string, string> = {
     "/officerdashboard": "Officer Dashboard",
     "/officerdashboard/update-records": "Update Records",
     "/officerdashboard/diseases": "Diseases",
+    "/officerdashboard/reports": "Reports",
+    "/officerdashboard/uploadreports": "Upload Report",
     "/officerdashboard/analytics": "Analytics",
+    "/officerdashboard/ceri-history": "CERI History",
     "/officerdashboard/map": "Map",
     "/officerdashboard/notifications": "Notifications",
     "/officerdashboard/settings": "Settings",
