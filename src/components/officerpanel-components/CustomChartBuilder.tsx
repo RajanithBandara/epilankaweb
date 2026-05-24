@@ -86,8 +86,8 @@ interface CustomChartBuilderProps {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const COLORS = [
-    "#6366f1", "#f97316", "#22c55e", "#eab308", "#ef4444",
-    "#2563eb", "#ec4899", "#14b8a6", "#8b5cf6", "#f43f5e",
+    "#4b4b4b", "#5f5f5f", "#737373", "#878787",
+    "#9b9b9b", "#afafaf", "#c3c3c3", "#d7d7d7",
 ];
 
 const CHART_TYPE_OPTIONS: { value: ChartType; label: string; icon: React.ReactNode; hint: string }[] = [
@@ -160,8 +160,8 @@ function Pill({
                 border transition-all duration-150 select-none
                 ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}
                 ${selected
-                    ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
-                    : "bg-white dark:bg-neutral-900 border-black/15 dark:border-white/15 text-black/75 dark:text-white/75 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300"
+                    ? "bg-black border-black text-white shadow-sm dark:bg-white dark:border-white dark:text-black"
+                    : "bg-white dark:bg-black border-black/15 dark:border-white/20 text-black/70 dark:text-white/70 hover:border-black/40 hover:text-black dark:hover:border-white/40 dark:hover:text-white"
                 }
             `}
         >
@@ -483,9 +483,19 @@ export default function CustomChartBuilder({
 
         const axes = (
             <>
-                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" strokeOpacity={0.08} />
-                <XAxis dataKey="period" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" strokeOpacity={0.12} />
+                <XAxis
+                    dataKey="period"
+                    tick={{ fontSize: 11, fill: "currentColor" }}
+                    axisLine={{ stroke: "currentColor", strokeOpacity: 0.25 }}
+                    tickLine={{ stroke: "currentColor", strokeOpacity: 0.2 }}
+                />
+                <YAxis
+                    tick={{ fontSize: 11, fill: "currentColor" }}
+                    axisLine={{ stroke: "currentColor", strokeOpacity: 0.25 }}
+                    tickLine={{ stroke: "currentColor", strokeOpacity: 0.2 }}
+                    allowDecimals={false}
+                />
                 <Tooltip contentStyle={{ borderRadius: 8, fontSize: 12, padding: "6px 10px" }} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
             </>
@@ -543,8 +553,8 @@ export default function CustomChartBuilder({
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                        <div className="rounded-md bg-indigo-50 dark:bg-indigo-950/50 p-1.5">
-                            <Sparkles className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                        <div className="rounded-md bg-black/10 dark:bg-white/10 p-1.5">
+                            <Sparkles className="h-4 w-4 text-black/70 dark:text-white/80" />
                         </div>
                         <h2 className="text-xl font-bold tracking-tight">Custom Chart Builder</h2>
                     </div>
@@ -561,7 +571,7 @@ export default function CustomChartBuilder({
                         disabled={metaLoading || dataLoading}
                         variant="outline"
                         size="sm"
-                        className="gap-2"
+                        className="gap-2 border-black/20 bg-white text-black hover:bg-black hover:text-white dark:border-white/30 dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black"
                     >
                         <RefreshCw className={`h-3.5 w-3.5 ${dataLoading || metaLoading ? "animate-spin" : ""}`} />
                         Refresh
@@ -569,7 +579,7 @@ export default function CustomChartBuilder({
                     <Button
                         onClick={openSheet}
                         disabled={metaLoading}
-                        className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white"
+                        className="gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
                     >
                         {metaLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                         Add Chart
@@ -590,14 +600,19 @@ export default function CustomChartBuilder({
             {/* Empty state */}
             {widgets.length === 0 && !metaLoading && (
                 <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-black/15 dark:border-white/15 bg-black/[0.015] dark:bg-white/[0.02] py-16 gap-3 text-center">
-                    <div className="rounded-full bg-indigo-50 dark:bg-indigo-950/50 p-3">
-                        <BarChart2 className="h-7 w-7 text-indigo-500 dark:text-indigo-400" />
+                    <div className="rounded-full bg-black/10 dark:bg-white/10 p-3">
+                        <BarChart2 className="h-7 w-7 text-black/60 dark:text-white/80" />
                     </div>
                     <p className="text-sm font-semibold text-black/70 dark:text-white/70">No custom charts yet</p>
                     <p className="text-xs text-black/45 dark:text-white/45 max-w-xs">
                         Create comparison charts across diseases, years, and weeks to spot trends.
                     </p>
-                    <Button onClick={openSheet} variant="default" className="mt-2 gap-2 bg-indigo-600 hover:bg-indigo-700 text-white" size="sm">
+                    <Button
+                        onClick={openSheet}
+                        variant="default"
+                        className="mt-2 gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
+                        size="sm"
+                    >
                         <Plus className="h-3.5 w-3.5" /> Create your first chart
                     </Button>
                 </div>
@@ -608,7 +623,7 @@ export default function CustomChartBuilder({
                 {widgets.map((widget) => (
                     <Card
                         key={widget.id}
-                        className="border-black/10 dark:border-white/10 bg-white dark:bg-neutral-900 shadow-sm hover:shadow-md transition-shadow"
+                        className="border-black/15 bg-white text-black dark:border-white/20 dark:bg-black dark:text-white shadow-sm hover:shadow-md transition-shadow"
                     >
                         <CardHeader className="flex flex-row items-start justify-between gap-2 pb-2 pt-4 px-5">
                             <div className="flex-1 min-w-0 space-y-1.5">
@@ -636,7 +651,7 @@ export default function CustomChartBuilder({
                                  <Button
                                      variant="ghost"
                                      size="icon"
-                                     className="h-7 w-7 shrink-0 text-black/40 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/20"
+                                     className="h-7 w-7 shrink-0 text-black/40 hover:text-black hover:bg-black/5 dark:text-white/40 dark:hover:text-white dark:hover:bg-white/10"
                                      onClick={() => editWidget(widget.id)}
                                      title="Edit chart"
                                  >
@@ -645,7 +660,7 @@ export default function CustomChartBuilder({
                                  <Button
                                      variant="ghost"
                                      size="icon"
-                                     className="h-7 w-7 shrink-0 text-black/40 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50"
+                                     className="h-7 w-7 shrink-0 text-black/40 hover:text-black hover:bg-black/5 dark:text-white/40 dark:hover:text-white dark:hover:bg-white/10"
                                      onClick={() => removeWidget(widget.id)}
                                      title="Remove chart"
                                  >
@@ -664,13 +679,13 @@ export default function CustomChartBuilder({
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                 <SheetContent
                     side="right"
-                    className="w-full sm:max-w-[520px] flex flex-col gap-0 p-0 bg-white dark:bg-neutral-950 border-l border-black/10 dark:border-white/10"
+                    className="w-full sm:max-w-[520px] flex flex-col gap-0 p-0 bg-white dark:bg-black border-l border-black/15 dark:border-white/20"
                 >
                     {/* Header */}
                     <div className="px-6 pt-6 pb-4 border-b border-black/8 dark:border-white/10">
                         <div className="flex items-center gap-2">
-                            <div className="rounded-md bg-indigo-50 dark:bg-indigo-950/50 p-1.5">
-                                <Sparkles className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                            <div className="rounded-md bg-black/10 dark:bg-white/10 p-1.5">
+                                <Sparkles className="h-4 w-4 text-black/70 dark:text-white/80" />
                             </div>
                             <SheetTitle className="text-base font-semibold">
                              {editingWidgetId ? 'Edit chart' : 'Build a custom chart'}
@@ -708,8 +723,8 @@ export default function CustomChartBuilder({
                                             flex flex-col items-center gap-1 py-3 px-2 rounded-lg border text-xs font-medium
                                             transition-all duration-150 cursor-pointer
                                             ${formType === opt.value
-                                                ? "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-500 text-indigo-700 dark:text-indigo-300 shadow-sm"
-                                                : "border-black/12 dark:border-white/12 text-black/65 dark:text-white/65 hover:border-indigo-300 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20"
+                                            ? "bg-black text-white border-black shadow-sm dark:bg-white dark:text-black dark:border-white"
+                                            : "border-black/12 dark:border-white/20 text-black/65 dark:text-white/65 hover:border-black/40 hover:bg-black/5 dark:hover:border-white/40 dark:hover:bg-white/10"
                                             }
                                         `}
                                     >
@@ -760,7 +775,7 @@ export default function CustomChartBuilder({
                                     <button
                                         type="button"
                                         onClick={selectAllDiseases}
-                                        className="text-[10px] uppercase font-semibold tracking-wider text-indigo-600 dark:text-indigo-400 hover:underline"
+                                        className="text-[10px] uppercase font-semibold tracking-wider text-black/70 dark:text-white/70 hover:underline"
                                     >
                                         Select all
                                     </button>
@@ -824,7 +839,7 @@ export default function CustomChartBuilder({
                                         <button
                                             type="button"
                                             onClick={() => selectRecentYears(3)}
-                                            className="text-[10px] uppercase font-semibold tracking-wider text-indigo-600 dark:text-indigo-400 hover:underline"
+                                            className="text-[10px] uppercase font-semibold tracking-wider text-black/70 dark:text-white/70 hover:underline"
                                         >
                                             Last 3
                                         </button>
@@ -832,7 +847,7 @@ export default function CustomChartBuilder({
                                         <button
                                             type="button"
                                             onClick={() => selectRecentYears(5)}
-                                            className="text-[10px] uppercase font-semibold tracking-wider text-indigo-600 dark:text-indigo-400 hover:underline"
+                                            className="text-[10px] uppercase font-semibold tracking-wider text-black/70 dark:text-white/70 hover:underline"
                                         >
                                             Last 5
                                         </button>
@@ -840,7 +855,7 @@ export default function CustomChartBuilder({
                                         <button
                                             type="button"
                                             onClick={selectAllYears}
-                                            className="text-[10px] uppercase font-semibold tracking-wider text-indigo-600 dark:text-indigo-400 hover:underline"
+                                            className="text-[10px] uppercase font-semibold tracking-wider text-black/70 dark:text-white/70 hover:underline"
                                         >
                                             All
                                         </button>
@@ -882,14 +897,14 @@ export default function CustomChartBuilder({
                         <div className="flex items-center justify-between gap-3">
                             <Button
                                 variant="outline"
-                                className="flex-1"
+                                className="flex-1 border-black/20 bg-white text-black hover:bg-black hover:text-white dark:border-white/30 dark:bg-black dark:text-white dark:hover:bg-white dark:hover:text-black"
                                 onClick={() => setIsSheetOpen(false)}
                                 disabled={saving}
                             >
                                 Cancel
                             </Button>
                              <Button
-                                 className="flex-1 gap-2 bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50"
+                                 className="flex-1 gap-2 bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90 disabled:opacity-50"
                                  onClick={handleSave}
                                  disabled={!canSave || saving}
                              >
