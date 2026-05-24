@@ -73,7 +73,7 @@ function HeroSection() {
                 {/* CTA Buttons */}
                 <motion.div
                     {...fadeUp(0.36)}
-                    className="flex flex-col sm:flex-row gap-5 justify-center items-center"
+                    className="flex flex-col sm:flex-row gap-5 justify-center items-center flex-wrap"
                 >
                     <motion.a
                         href="/dashboard"
@@ -97,6 +97,19 @@ function HeroSection() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                             </svg>
                         )}
+                    </motion.a>
+
+                    <motion.a
+                        href="/reports"
+                        className="group relative inline-flex items-center gap-3 border-2 border-white/80 bg-white/0 px-8 py-4 text-base font-bold text-white rounded-xl backdrop-blur-sm hover:bg-white/10 transition-colors duration-300"
+                        whileHover={{ scale: 1.04 }}
+                        whileTap={{ scale: 0.96 }}
+                        transition={{ type: 'spring', stiffness: 320, damping: 24 }}
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6M9 8h6M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z" />
+                        </svg>
+                        Reports
                     </motion.a>
                 </motion.div>
 

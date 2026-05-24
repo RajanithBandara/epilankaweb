@@ -473,7 +473,7 @@ export default function TakeCare() {
         return (
             <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
                 <div className="text-center space-y-6">
-                    <div className="w-24 h-24 mx-auto relative">
+                    <div className="w-18 h-18 mx-auto relative">
                         <Lottie animationData={flyingGlobe} loop={true} className="w-full h-full" />
                         <div className="absolute inset-0 flex items-center justify-center">
                             <Bot className="h-8 w-8 text-(--color-primary) animate-pulse" />
@@ -498,7 +498,7 @@ export default function TakeCare() {
                     <div className="w-40 h-40 rounded-[2.5rem] bg-(--color-primary) flex items-center justify-center shadow-2xl transition-all duration-500 group-hover:scale-105 group-hover:rotate-3 relative z-10">
                         <Bot className="h-20 w-20 text-white" />
                     </div>
-                    <div className="absolute -inset-12 z-0">
+                    <div className="absolute -inset-6 z-0">
                         <Lottie animationData={flyingGlobe} loop={true} className="w-full h-full opacity-60 group-hover:opacity-100 transition-opacity" />
                     </div>
                 </div>
@@ -643,7 +643,7 @@ export default function TakeCare() {
                 >
                     {isNewChat && (
                         <div className="flex flex-col items-center justify-center h-full py-10 px-6 text-center animate-fade-in">
-                            <div className="relative w-28 h-28 mb-4">
+                            <div className="relative w-20 h-20 mb-4">
                                 <Lottie animationData={flyingGlobe} loop={true} className="w-full h-full drop-shadow-lg" />
                             </div>
                             

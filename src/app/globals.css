@@ -602,3 +602,23 @@ body:has(main[data-not-found-page="true"]) {
     animation: none;
     mix-blend-mode: normal;
 }
+
+/* Custom Admin Animations */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+@keyframes shine {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.animate-shake {
+    animation: shake 0.3s ease-in-out;
+}
+
+.animate-shine {
+    animation: shine 1.8s ease-in-out infinite;
+}
