@@ -12,10 +12,18 @@ function parseIntParam(value: string | null, name: string) {
     return parsed;
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(
+    request: NextRequest,
+    context: { params: Promise<{ year: string }> }
+) {
     try {
-        const paramsIn = request.nextUrl.searchParams;
+        const { year } = await context.params;
+        const yearNum = Number(year);
+        if (!Number.isFinite(yearNum) || !Number.isInteger(yearNum)) {
+            return NextResponse.json({ error: "year must be an integer" }, { status: 400 });
+        }
 
+        const paramsIn = request.nextUrl.searchParams;
         const districtId = parseIntParam(paramsIn.get("district_id"), "district_id");
         const diseaseId = parseIntParam(paramsIn.get("disease_id"), "disease_id");
 
@@ -25,22 +33,7 @@ export async function GET(request: NextRequest) {
 
         const officerJwt = (await cookies()).get("appwrite-officer-jwt")?.value;
         const api = makeOfficerApi(officerJwt);
-
-        const response = await api.get("/officer/thresholds", { params });
-        return NextResponse.json(response.data, { status: 200 });
-    } catch (error: unknown) {
-        const err = error as { response?: { data?: { detail?: string; error?: string }; status?: number }; message?: string };
-        const message = err.response?.data?.detail || err.response?.data?.error || err.message || "Failed to fetch thresholds";
-        return NextResponse.json({ error: message }, { status: err.response?.status ?? 500 });
-    }
-}
-
-export async function PATCH(request: NextRequest) {
-    try {
-        const body = await request.json();
-        const officerJwt = (await cookies()).get("appwrite-officer-jwt")?.value;
-        const api = makeOfficerApi(officerJwt);
-        const response = await api.patch("/officer/thresholds", body);
+        const response = await api.get(`/officer/thresholds/year/${yearNum}`, { params });
         return NextResponse.json(response.data, { status: 200 });
     } catch (error: unknown) {
         const err = error as { response?: { data?: { detail?: string; error?: string }; status?: number }; message?: string };
@@ -48,7 +41,7 @@ export async function PATCH(request: NextRequest) {
             err.response?.data?.detail ||
             err.response?.data?.error ||
             err.message ||
-            "Failed to update threshold";
+            "Failed to fetch year thresholds";
         return NextResponse.json({ error: message }, { status: err.response?.status ?? 500 });
     }
 }

@@ -1,8 +1,18 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { MouseEvent, useEffect, useState } from "react";
 import { AlertTriangle, FileText, MapPin, ShieldAlert, Calendar, Search } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Report = {
     report_id: string;
@@ -22,6 +32,10 @@ type Report = {
     score: number;
 };
 
+type ConfirmAction =
+    | { type: "delete"; reportId: string; district: string; title: string; description: string }
+    | { type: "ban"; userId: string; title: string; description: string };
+
 export default function OfficerUserReports() {
     const [reports, setReports] = useState<Report[]>([]);
     const [loading, setLoading] = useState(true);
@@ -30,6 +44,9 @@ export default function OfficerUserReports() {
     const [appliedDistrict, setAppliedDistrict] = useState("");
     const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
     const [banLoading, setBanLoading] = useState<Record<string, boolean>>({});
+    const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+    const [dialogMessage, setDialogMessage] = useState<{ title: string; description: string } | null>(null);
+    const [confirming, setConfirming] = useState(false);
 
     const fetchReports = async (districtFilter: string) => {
         setLoading(true);
@@ -55,9 +72,11 @@ export default function OfficerUserReports() {
     }, [appliedDistrict]);
 
     const handleDeleteReport = async (reportId: string, district: string) => {
-        if (!confirm("Are you sure you want to delete this report?")) return;
         if (!district) {
-            alert("Cannot delete report without a district.");
+            setDialogMessage({
+                title: "Missing district",
+                description: "Cannot delete report without a district.",
+            });
             return;
         }
         
@@ -69,15 +88,16 @@ export default function OfficerUserReports() {
             if (!res.ok) throw new Error("Failed to delete");
             setReports(prev => prev.filter(r => r.report_id !== reportId));
         } catch (err) {
-            alert("Failed to delete report.");
+            setDialogMessage({
+                title: "Delete failed",
+                description: err instanceof Error ? err.message : "Failed to delete report.",
+            });
         } finally {
             setActionLoading(prev => ({ ...prev, [reportId]: false }));
         }
     };
 
     const handleBanUser = async (userId: string) => {
-        if (!confirm("Are you sure you want to ban this user? They will no longer be able to log in.")) return;
-        
         setBanLoading(prev => ({ ...prev, [userId]: true }));
         try {
             const res = await fetch(`/api/officer/users/ban`, {
@@ -86,11 +106,60 @@ export default function OfficerUserReports() {
                 body: JSON.stringify({ user_id: userId })
             });
             if (!res.ok) throw new Error("Failed to ban");
-            alert("User banned successfully.");
+            setDialogMessage({
+                title: "User banned",
+                description: "The user has been banned successfully.",
+            });
         } catch (err) {
-            alert("Failed to ban user.");
+            setDialogMessage({
+                title: "Ban failed",
+                description: err instanceof Error ? err.message : "Failed to ban user.",
+            });
         } finally {
             setBanLoading(prev => ({ ...prev, [userId]: false }));
+        }
+    };
+
+    const requestDelete = (report: Report) => {
+        const district = report.district_info?.district_name || "";
+        if (!district) {
+            setDialogMessage({
+                title: "Missing district",
+                description: "Cannot delete report without a district.",
+            });
+            return;
+        }
+        setConfirmAction({
+            type: "delete",
+            reportId: report.report_id,
+            district,
+            title: "Delete report",
+            description: "This will permanently remove the report from the dashboard.",
+        });
+    };
+
+    const requestBan = (userId: string) => {
+        setConfirmAction({
+            type: "ban",
+            userId,
+            title: "Ban user",
+            description: "They will no longer be able to log in after this action.",
+        });
+    };
+
+    const confirmActionRequest = async (event: MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+        if (!confirmAction) return;
+        setConfirming(true);
+        try {
+            if (confirmAction.type === "delete") {
+                await handleDeleteReport(confirmAction.reportId, confirmAction.district);
+            } else {
+                await handleBanUser(confirmAction.userId);
+            }
+        } finally {
+            setConfirming(false);
+            setConfirmAction(null);
         }
     };
 
@@ -224,7 +293,7 @@ export default function OfficerUserReports() {
                                         <td className="px-5 py-4 align-top text-right">
                                             <div className="flex flex-col items-end gap-2">
                                                 <button 
-                                                    onClick={() => handleDeleteReport(r.report_id, r.district_info?.district_name || "")}
+                                                    onClick={() => requestDelete(r)}
                                                     disabled={actionLoading[r.report_id]}
                                                     className="text-xs font-medium text-red-500 hover:text-red-600 disabled:opacity-50 transition-colors"
                                                 >
@@ -232,7 +301,7 @@ export default function OfficerUserReports() {
                                                 </button>
                                                 {r.user_id && (
                                                     <button 
-                                                        onClick={() => handleBanUser(r.user_id!)}
+                                                        onClick={() => requestBan(r.user_id!)}
                                                         disabled={banLoading[r.user_id]}
                                                         className="text-xs font-medium text-orange-500 hover:text-orange-600 disabled:opacity-50 transition-colors"
                                                     >
@@ -248,6 +317,54 @@ export default function OfficerUserReports() {
                     </table>
                 </div>
             </div>
+            <AlertDialog
+                open={Boolean(confirmAction)}
+                onOpenChange={(open) => {
+                    if (!open && !confirming) {
+                        setConfirmAction(null);
+                    }
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{confirmAction?.title ?? "Confirm action"}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {confirmAction?.description ??
+                                "Please confirm this action. It may affect the selected report or user."}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={confirming}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmActionRequest} disabled={confirming}>
+                            {confirming
+                                ? "Working..."
+                                : confirmAction?.type === "delete"
+                                    ? "Delete report"
+                                    : "Ban user"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog
+                open={Boolean(dialogMessage)}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setDialogMessage(null);
+                    }
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{dialogMessage?.title ?? "Notice"}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {dialogMessage?.description ?? "Please review this message."}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogAction>OK</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </section>
     );
 }

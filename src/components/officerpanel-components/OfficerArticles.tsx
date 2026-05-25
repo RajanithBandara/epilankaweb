@@ -1,8 +1,18 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, MouseEvent, useEffect, useMemo, useState } from "react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type ArticleStatus = "draft" | "published";
 
@@ -54,6 +64,8 @@ export default function OfficerArticlesPage() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<Article | null>(null);
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
 
     const [form, setForm] = useState(DEFAULT_FORM);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -142,9 +154,6 @@ export default function OfficerArticlesPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (typeof window !== "undefined" && !window.confirm("Delete this article?")) {
-            return;
-        }
         setError(null);
         setSuccess(null);
         setSaving(true);
@@ -159,6 +168,22 @@ export default function OfficerArticlesPage() {
             setError(err instanceof Error ? err.message : "Failed to delete article");
         } finally {
             setSaving(false);
+        }
+    };
+
+    const requestDelete = (article: Article) => {
+        setDeleteTarget(article);
+    };
+
+    const confirmDelete = async (event: MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+        if (!deleteTarget) return;
+        setConfirmingDelete(true);
+        try {
+            await handleDelete(deleteTarget.id);
+        } finally {
+            setConfirmingDelete(false);
+            setDeleteTarget(null);
         }
     };
 
@@ -350,7 +375,7 @@ export default function OfficerArticlesPage() {
                                                     </button>
                                                     <button
                                                         type="button"
-                                                        onClick={() => void handleDelete(a.id)}
+                                                        onClick={() => requestDelete(a)}
                                                         disabled={saving}
                                                         className="rounded border border-red-500/40 px-2 py-1 text-xs text-red-600 disabled:opacity-60 dark:text-red-300"
                                                     >
@@ -366,6 +391,31 @@ export default function OfficerArticlesPage() {
                     </div>
                 </CardContent>
             </Card>
+            <AlertDialog
+                open={Boolean(deleteTarget)}
+                onOpenChange={(open) => {
+                    if (!open && !confirmingDelete) {
+                        setDeleteTarget(null);
+                    }
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete article</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {deleteTarget
+                                ? `Delete "${deleteTarget.title}"? This removes the article from the dashboard and cannot be undone.`
+                                : "Delete this article? This action cannot be undone."}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={confirmingDelete}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} disabled={confirmingDelete}>
+                            {confirmingDelete ? "Deleting..." : "Delete"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
