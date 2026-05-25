@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Manrope } from "next/font/google";
 import "./globals.css";
 import NavbarHandler from "@/app/NavbarHandler";
-import NavBar from "@/components/NavBar";
+import NavBar from "@/components/layout/NavBar";
 import { LoadingProvider } from "@/contexts/LoadingContext";
 import { AuthProvider } from "@/contexts/AuthContext";
-import PageTransition from "@/components/PageTransition";
+import PageTransition from "@/components/layout/PageTransition";
 import FooterHandler from "./FooterHandler";
-import Footer from "@/components/Footer";
+import Footer from "@/components/layout/Footer";
 
 const inter = Inter({
   variable: "--font-inter",

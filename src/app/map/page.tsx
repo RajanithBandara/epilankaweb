@@ -7,7 +7,7 @@ import Lenis from 'lenis';
 import { ShieldCheck } from 'lucide-react';
 
 // Dynamically import MapComponent to prevent SSR "window is not defined" issues
-const MapComponent = dynamic(() => import('@/components/MapComponent'), {
+const MapComponent = dynamic(() => import('@/components/shared/MapComponent'), {
     ssr: false,
     loading: () => (
         <div className="flex items-center justify-center w-full h-full">

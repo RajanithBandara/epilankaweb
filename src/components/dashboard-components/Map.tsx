@@ -292,15 +292,21 @@ export default function MapComponent() {
     const area = locationData?.nearest_area;
     const riskList = useMemo(() => {
         if (!area) return [];
-        return Object.values(area.risk_levels).sort((a, b) => {
-            const p: Record<RiskLevel, number> = { high: 3, medium: 2, low: 1, safe: 0 };
-            return p[b.level] - p[a.level];
-        });
+        return Object.values(area.risk_levels)
+            .filter((d) => d.count > 0)
+            .sort((a, b) => {
+                const p: Record<RiskLevel, number> = { high: 3, medium: 2, low: 1, safe: 0 };
+                if (p[b.level] !== p[a.level]) return p[b.level] - p[a.level];
+                return b.count - a.count;
+            });
     }, [area]);
 
     const overallRisk = useMemo(() => {
         if (!area) return "safe" as RiskLevel;
-        return getMaxRiskLevel(area.risk_levels);
+        const active = Object.fromEntries(
+            Object.entries(area.risk_levels).filter(([, d]) => d.count > 0)
+        );
+        return getMaxRiskLevel(active);
     }, [area]);
 
     const circleGeoJson = (center: [number, number], radiusMeters: number) => {
@@ -386,9 +392,15 @@ export default function MapComponent() {
         if (locationData.nearest_area) {
             const a = locationData.nearest_area;
             const areaCoords: [number, number] = [a.longitude, a.latitude];
-            const maxRisk = getMaxRiskLevel(a.risk_levels);
+            const activeRisks = Object.values(a.risk_levels).filter(r => r.count > 0);
+            const activeRiskLookup = Object.fromEntries(
+                Object.entries(a.risk_levels).filter(([, r]) => r.count > 0)
+            );
+            const maxRisk = getMaxRiskLevel(activeRiskLookup);
             const markerColor = getSeverityConfig(maxRisk).color;
-            const riskListHtml = Object.values(a.risk_levels).map(r => `<div style="font-size:11px; margin-bottom:2px;">• ${r.disease_name}: <b>${r.level}</b></div>`).join('');
+            const riskListHtml = activeRisks.length > 0
+                ? activeRisks.map(r => `<div style="font-size:11px; margin-bottom:2px;">• ${r.disease_name}: <b>${r.level}</b> (${r.count})</div>`).join('')
+                : '<div style="font-size:11px; color:#059669;">No projected cases this week</div>';
             const areaPopupHtml = `
                 <div style="font-family: inherit; margin: -4px; width: 160px;">
                     <div style="font-weight:700; font-size: 14px; margin-bottom: 2px; color: #0f172a;">${a.district_name}</div>

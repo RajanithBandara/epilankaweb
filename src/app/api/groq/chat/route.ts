@@ -77,6 +77,50 @@ function buildDiseaseContextBlock(ctx: DiseaseContext): string {
     return lines.join("\n");
 }
 
+// ── Article context fetcher (officer-published health articles) ──────────────
+
+type ArticleEntry = {
+    id: string;
+    slug: string;
+    title: string;
+    summary: string;
+    tags: string[];
+    category: string;
+};
+
+async function fetchArticleContext(): Promise<ArticleEntry[]> {
+    try {
+        const res = await fetch(`${FASTAPI_BASE}/articles/summaries?limit=30`, {
+            headers: { "x-api-key": API_SECRET_KEY },
+            signal: AbortSignal.timeout(3000),
+        });
+        if (!res.ok) return [];
+        const data = (await res.json()) as { articles?: ArticleEntry[] };
+        return Array.isArray(data.articles) ? data.articles : [];
+    } catch {
+        return [];
+    }
+}
+
+function buildArticleContextBlock(articles: ArticleEntry[]): string {
+    if (articles.length === 0) return "";
+    const lines: string[] = [
+        `[EPILANKA HEALTH ARTICLES — published by health officers]`,
+        `Reference these articles when their topic matches the user's question.`,
+        `When you cite one, mention its title naturally in the answer.`,
+        ``,
+    ];
+    for (const a of articles) {
+        const tags = a.tags.length > 0 ? ` (tags: ${a.tags.join(", ")})` : "";
+        lines.push(`Title: ${a.title}${tags}`);
+        lines.push(`  Category: ${a.category}`);
+        lines.push(`  Summary: ${a.summary}`);
+        lines.push(``);
+    }
+    lines.push(`[END HEALTH ARTICLES]`);
+    return lines.join("\n");
+}
+
 // ── Base system prompt ────────────────────────────────────────────────────────
 
 const BASE_SYSTEM_PROMPT = `You are EpiGuard, an expert AI health assistant for EpiLanka — a public health monitoring platform in Sri Lanka.
@@ -122,11 +166,16 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        // Fetch live disease context from the EpiLanka database (non-blocking fallback)
-        const diseaseCtx = await fetchDiseaseContext();
-        const contextBlock = diseaseCtx ? buildDiseaseContextBlock(diseaseCtx) : "";
-        const systemPrompt = contextBlock
-            ? `${contextBlock}\n\n${BASE_SYSTEM_PROMPT}`
+        // Fetch live disease + article context in parallel; both fall back to empty
+        const [diseaseCtx, articleCtx] = await Promise.all([
+            fetchDiseaseContext(),
+            fetchArticleContext(),
+        ]);
+        const diseaseBlock = diseaseCtx ? buildDiseaseContextBlock(diseaseCtx) : "";
+        const articleBlock = buildArticleContextBlock(articleCtx);
+        const contextBlocks = [diseaseBlock, articleBlock].filter(Boolean).join("\n\n");
+        const systemPrompt = contextBlocks
+            ? `${contextBlocks}\n\n${BASE_SYSTEM_PROMPT}`
             : BASE_SYSTEM_PROMPT;
 
         const groqResponse = await fetch(GROQ_API_URL, {
