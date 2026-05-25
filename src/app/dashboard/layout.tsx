@@ -13,6 +13,8 @@ import {
   Brain,
   Newspaper,
   Telescope,
+  Menu,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -55,6 +57,22 @@ export default function DashboardLayout({
   const displayName = user?.name || user?.email?.split("@")[0] || "User";
   const avatarLetter = displayName ? displayName[0].toUpperCase() : null;
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const prev = document.body.style.overflow;
+    if (mobileNavOpen) {
+      document.body.style.overflow = "hidden";
+    }
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileNavOpen]);
 
   const userPrefs = (user?.prefs ?? {}) as Record<string, unknown>;
   const googleImageCandidates = [
@@ -120,39 +138,64 @@ export default function DashboardLayout({
           style={{ background: "var(--dash-bg)" }}
         >
         <div className="relative z-10 h-full min-h-0 lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+          {/* Mobile drawer overlay */}
+          {mobileNavOpen && (
+            <button
+              type="button"
+              aria-label="Close menu"
+              onClick={() => setMobileNavOpen(false)}
+              className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+            />
+          )}
+
           <aside
-            className="hidden lg:flex flex-col h-dvh border-r"
+            className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] flex flex-col border-r transition-transform duration-300 ease-out lg:static lg:translate-x-0 lg:w-auto lg:max-w-none lg:h-dvh lg:flex ${
+              mobileNavOpen ? "translate-x-0" : "-translate-x-full"
+            }`}
             style={{
               background: "var(--dash-sidebar-bg)",
               borderColor: "var(--dash-sidebar-border)",
             }}
           >
             <div
-              className="px-5 pt-5 pb-4 shrink-0 border-b"
+              className="px-5 pt-5 pb-4 shrink-0 border-b flex items-center justify-between gap-3"
               style={{ borderColor: "var(--dash-sidebar-border)" }}
             >
-              <Link href="/" className="flex items-center gap-3">
+              <Link href="/" className="flex items-center gap-3 min-w-0">
                 <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold"
+                  className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold shrink-0"
                   style={{ background: "var(--color-primary)", color: "#fff" }}
                 >
                   E
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p
-                    className="text-sm font-semibold"
+                    className="text-sm font-semibold truncate"
                     style={{ color: "var(--dash-text-primary)" }}
                   >
                     EpiLanka
                   </p>
                   <p
-                    className="text-[11px]"
+                    className="text-[11px] truncate"
                     style={{ color: "var(--dash-text-muted)" }}
                   >
                     Disease Intelligence
                   </p>
                 </div>
               </Link>
+              <button
+                type="button"
+                onClick={() => setMobileNavOpen(false)}
+                aria-label="Close menu"
+                className="lg:hidden h-8 w-8 rounded-lg border flex items-center justify-center shrink-0"
+                style={{
+                  borderColor: "var(--dash-card-border)",
+                  color: "var(--dash-text-secondary)",
+                  background: "var(--dash-card-bg)",
+                }}
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
 
             <div className="px-3 pt-3 pb-2 shrink-0">
@@ -274,9 +317,57 @@ export default function DashboardLayout({
             </div>
           </aside>
 
-          <main className="min-w-0 min-h-0 h-full flex flex-col px-3 sm:px-4 lg:px-5 pb-28 lg:pb-5 pt-3 lg:pt-5">
+          <main className="min-w-0 min-h-0 h-full flex flex-col px-3 sm:px-4 lg:px-5 pb-3 lg:pb-5 pt-3 lg:pt-5">
+            {/* Mobile top bar */}
+            <div
+              className="lg:hidden mb-3 flex items-center gap-2 rounded-xl border px-2.5 py-2"
+              style={{
+                background: "var(--dash-sidebar-bg)",
+                borderColor: "var(--dash-sidebar-border)",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setMobileNavOpen(true)}
+                aria-label="Open menu"
+                className="h-10 w-10 rounded-lg border flex items-center justify-center"
+                style={{
+                  borderColor: "var(--dash-card-border)",
+                  color: "var(--dash-text-secondary)",
+                  background: "var(--dash-card-bg)",
+                }}
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+
+              <Link href="/" className="flex items-center gap-2 min-w-0 flex-1">
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0"
+                  style={{ background: "var(--color-primary)", color: "#fff" }}
+                >
+                  E
+                </div>
+                <p
+                  className="text-sm font-semibold truncate"
+                  style={{ color: "var(--dash-text-primary)" }}
+                >
+                  EpiLanka
+                </p>
+              </Link>
+
+              <NotificationBell />
+              <AnimatedThemeToggler
+                className="h-10 w-10 rounded-lg border flex items-center justify-center"
+                style={{
+                  borderColor: "var(--dash-card-border)",
+                  color: "var(--dash-text-secondary)",
+                  background: "var(--dash-card-bg)",
+                }}
+              />
+            </div>
+
             <section
-              className="max-w-7xl mx-auto w-full min-h-0 h-full rounded-2xl border overflow-hidden flex flex-col"
+              className="max-w-7xl mx-auto w-full min-h-0 flex-1 rounded-2xl border overflow-hidden flex flex-col"
               style={{
                 background: "var(--dash-panel-bg)",
                 borderColor: "var(--dash-panel-border)",
@@ -287,49 +378,6 @@ export default function DashboardLayout({
               </div>
             </section>
           </main>
-        </div>
-
-        {/* Mobile bottom nav */}
-        <div className="lg:hidden fixed inset-x-0 bottom-0 z-50 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2">
-          <nav
-            className="rounded-xl border overflow-hidden"
-            style={{
-              background: "var(--dash-sidebar-bg)",
-              borderColor: "var(--dash-sidebar-border)",
-            }}
-          >
-            <div className="h-16 grid grid-cols-9 gap-1 p-1.5">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href;
-                return (
-                  <Link key={item.href} href={item.href} className="min-w-0">
-                    <div
-                      className="h-full rounded-lg flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium"
-                      style={
-                        isActive
-                          ? { background: "var(--color-primary)", color: "#fff" }
-                          : { color: "var(--dash-text-muted)" }
-                      }
-                    >
-                      <Icon className="h-[15px] w-[15px]" />
-                      {item.label}
-                    </div>
-                  </Link>
-                );
-              })}
-              <div className="h-full flex items-center justify-center">
-                <AnimatedThemeToggler
-                  className="h-9 w-9 rounded-lg border flex items-center justify-center"
-                  style={{
-                    borderColor: "var(--dash-card-border)",
-                    color: "var(--dash-text-secondary)",
-                    background: "var(--dash-card-bg)",
-                  }}
-                />
-              </div>
-            </div>
-          </nav>
         </div>
       </div>
       </LocationProvider>

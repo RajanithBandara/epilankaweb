@@ -5,7 +5,7 @@ import { makeOfficerApi } from "@/lib/officerApi";
 
 // Allow up to 10 minutes for this endpoint — bulk-recomputing every
 // (district × disease × week) row across the year can take a while.
-export const maxDuration = 600;
+export const maxDuration = 290;
 
 export async function POST(request: NextRequest) {
     try {
