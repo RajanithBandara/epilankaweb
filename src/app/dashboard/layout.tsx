@@ -114,7 +114,7 @@ export default function DashboardLayout({
       <NotificationToast />
       <LocationProvider>
         <div
-          className="relative h-dvh w-full overflow-hidden"
+          className="relative h-dvh w-full overflow-hidden dashboard-cursor-scope"
           style={{ background: "var(--dash-bg)" }}
         >
         <div className="relative z-10 h-full min-h-0 lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">

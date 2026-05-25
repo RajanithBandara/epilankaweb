@@ -288,7 +288,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
 
     return (
-        <div className="flex min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+        <div className="flex min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 dashboard-cursor-scope">
 
             {/* Desktop sidebar */}
             <aside className="hidden md:flex w-60 shrink-0 bg-black border-r border-white/10 flex-col sticky top-0 h-screen">

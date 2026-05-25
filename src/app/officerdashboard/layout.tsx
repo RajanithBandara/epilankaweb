@@ -121,7 +121,7 @@ export default function OfficerLayout({ children }: { children: React.ReactNode 
     }
 
     return (
-        <div className="h-screen bg-white text-black dark:bg-black dark:text-white">
+        <div className="h-screen bg-white text-black dark:bg-black dark:text-white dashboard-cursor-scope">
             <div className="flex h-full pb-16 lg:pb-0">
                 <aside className="hidden h-screen w-72 shrink-0 border-r border-white/10 bg-black text-white lg:sticky lg:top-0 lg:flex lg:flex-col dark:border-white/15 dark:bg-black dark:text-white">
                     <div className="flex h-14 items-center gap-3 px-4">

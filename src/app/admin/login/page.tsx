@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import { ShieldCheck, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, Home } from "lucide-react";
 import { AppwriteException } from "appwrite";
 import { account } from "@/lib/appwrite";
 
@@ -141,6 +142,16 @@ export default function AdminLogin() {
 
         {/* Right Side Panel - The Sleek Login Form */}
         <div className="col-span-12 lg:col-span-7 flex flex-col justify-center p-8 sm:p-12 md:p-16">
+          <div className="mb-6 flex justify-end">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-semibold text-white/70 transition-colors hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
+            >
+              <Home className="h-4 w-4" />
+              Back to Home
+            </Link>
+          </div>
+
           {/* Title Header for mobile (branding shown as badge) */}
           <div className="mb-8 space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0EA5A4]/10 border border-[#0EA5A4]/20 text-[#0EA5A4] text-xs font-semibold uppercase tracking-wider">
