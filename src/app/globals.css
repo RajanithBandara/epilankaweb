@@ -31,6 +31,23 @@
     }
 }
 
+/* ── Cursor scopes for Home + Dashboards ───────────────────────────── */
+.home-cursor-scope button,
+.home-cursor-scope a,
+.home-cursor-scope [role="button"],
+.dashboard-cursor-scope button,
+.dashboard-cursor-scope a,
+.dashboard-cursor-scope [role="button"] {
+    cursor: pointer;
+}
+
+.home-cursor-scope button:disabled,
+.home-cursor-scope [aria-disabled="true"],
+.dashboard-cursor-scope button:disabled,
+.dashboard-cursor-scope [aria-disabled="true"] {
+    cursor: not-allowed;
+}
+
 /* ── Dashboard Shared Utilities ─────────────────────────────────── */
 
 .card-panel {

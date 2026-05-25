@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import AreaReportsList from '@/components/AreaReportsList';
+import AreaReportsList from '@/components/shared/AreaReportsList';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Mock the AuthContext

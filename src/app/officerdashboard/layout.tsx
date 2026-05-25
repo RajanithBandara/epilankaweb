@@ -12,6 +12,7 @@ import {
     LogOut,
     Settings,
     Upload,
+    Newspaper,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -31,6 +32,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
     { label: "Update Records", href: "/officerdashboard/update-records", icon: FilePenLine },
     { label: "Diseases", href: "/officerdashboard/diseases", icon: Microscope },
+    { label: "Articles", href: "/officerdashboard/articles", icon: Newspaper },
     { label: "Reports", href: "/officerdashboard/reports", icon: FilePenLine },
     { label: "Upload Report", href: "/officerdashboard/uploadreports", icon: Upload },
     { label: "Analytics", href: "/officerdashboard/analytics", icon: BarChart3 },
@@ -44,6 +46,7 @@ const PAGE_TITLES: Record<string, string> = {
     "/officerdashboard": "Officer Dashboard",
     "/officerdashboard/update-records": "Update Records",
     "/officerdashboard/diseases": "Diseases",
+    "/officerdashboard/articles": "Articles",
     "/officerdashboard/reports": "Reports",
     "/officerdashboard/uploadreports": "Upload Report",
     "/officerdashboard/analytics": "Analytics",
@@ -118,7 +121,7 @@ export default function OfficerLayout({ children }: { children: React.ReactNode 
     }
 
     return (
-        <div className="h-screen bg-white text-black dark:bg-black dark:text-white">
+        <div className="h-screen bg-white text-black dark:bg-black dark:text-white dashboard-cursor-scope">
             <div className="flex h-full pb-16 lg:pb-0">
                 <aside className="hidden h-screen w-72 shrink-0 border-r border-white/10 bg-black text-white lg:sticky lg:top-0 lg:flex lg:flex-col dark:border-white/15 dark:bg-black dark:text-white">
                     <div className="flex h-14 items-center gap-3 px-4">

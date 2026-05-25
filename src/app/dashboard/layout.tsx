@@ -11,6 +11,7 @@ import {
   CalendarDays,
   ChevronRight,
   Brain,
+  Newspaper,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -31,6 +32,7 @@ type NavItem = {
 const navItems: NavItem[] = [
   { label: "Home", href: "/dashboard", icon: Home },
   { label: "Map", href: "/dashboard/map", icon: Map },
+  { label: "Articles", href: "/dashboard/articles", icon: Newspaper },
   { label: "Submit Report", href: "/dashboard/report", icon: FilePlus },
   { label: "Reports", href: "/dashboard/reports", icon: FileText },
   { label: "EpiGuard AI", href: "/dashboard/takecare", icon: Brain },
@@ -112,7 +114,7 @@ export default function DashboardLayout({
       <NotificationToast />
       <LocationProvider>
         <div
-          className="relative h-dvh w-full overflow-hidden"
+          className="relative h-dvh w-full overflow-hidden dashboard-cursor-scope"
           style={{ background: "var(--dash-bg)" }}
         >
         <div className="relative z-10 h-full min-h-0 lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
@@ -294,7 +296,7 @@ export default function DashboardLayout({
               borderColor: "var(--dash-sidebar-border)",
             }}
           >
-            <div className="h-16 grid grid-cols-7 gap-1 p-1.5">
+            <div className="h-16 grid grid-cols-8 gap-1 p-1.5">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;

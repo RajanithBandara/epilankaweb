@@ -256,7 +256,7 @@ export default function EpiGuardAssistantPopup() {
   if (!mounted) return null;
 
   return createPortal(
-    <div className="pointer-events-none fixed bottom-4 right-4 z-[99] sm:bottom-6 sm:right-6">
+    <div className="pointer-events-none fixed bottom-4 right-4 z-[99] sm:bottom-6 sm:right-6 home-cursor-scope">
       {!open ? (
         <button
           type="button"
@@ -418,4 +418,3 @@ export default function EpiGuardAssistantPopup() {
     document.body
   );
 }
-

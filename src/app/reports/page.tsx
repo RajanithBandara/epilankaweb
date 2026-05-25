@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { FileText, Loader2 } from "lucide-react";
-import dynamic from "next/dynamic";
 
 type UploadedReport = {
     id: string;
@@ -62,16 +61,7 @@ export default function PublicReportsPage() {
 
     return (
         <main className="min-h-screen relative overflow-hidden bg-gradient-to-br from-[#1E3A8A] via-[#1e40af] to-[#0EA5A4] text-white pt-28 pb-20">
-            {/* Lottie animated background */}
-            <div className="absolute inset-0 z-0 flex items-center justify-center opacity-40 pointer-events-none">
-                <iframe 
-                    src="https://lottie.host/embed/e1f871db-2a07-4bc1-b2fe-00ce8e04fb70/wUnAkCWVrw.lottie" 
-                    className="w-full h-full mix-blend-screen scale-[0.8] md:scale-[0.6] border-none"
-                    style={{ background: 'transparent' }}
-                    allow="autoplay"
-                    title="Medical Shield Lottie Background"
-                />
-            </div>
+
 
             {/* Decorative background elements */}
             <div className="absolute inset-0 opacity-10 pointer-events-none z-0">

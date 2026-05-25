@@ -593,6 +593,11 @@ export default function AnalyticsPage() {
 
     return (
         <div className="space-y-4">
+            <CustomChartBuilder
+                reports={reports}
+                historyRows={historyRows}
+                diseases={diseases}
+            />
             <Card className="border-black/15 bg-white text-black dark:border-white/20 dark:bg-black dark:text-white">
                 <CardHeader>
                     <CardTitle>Officer Analytics</CardTitle>
@@ -819,12 +824,6 @@ export default function AnalyticsPage() {
                     </ResponsiveContainer>
                 </CardContent>
             </Card>
-
-            <CustomChartBuilder 
-                reports={reports} 
-                historyRows={historyRows} 
-                diseases={diseases} 
-            />
         </div>
     );
 }

@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, ArrowRight, Lock, Mail, Activity, AlertTriangle, Users } from "lucide-react";
+import { ShieldCheck, ArrowRight, Lock, Mail, Activity, AlertTriangle, Users, Home } from "lucide-react";
 import { AppwriteException } from "appwrite";
 import { motion } from "framer-motion";
 import Image from "next/image";
@@ -202,6 +203,16 @@ export default function OfficerLogin() {
           transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
           className="w-full max-w-[400px] z-10 relative"
         >
+          <div className="mb-4 flex justify-end">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-semibold text-slate-300 transition-colors hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
+            >
+              <Home className="h-4 w-4" />
+              Back to Home
+            </Link>
+          </div>
+
           {/* Mobile-only header */}
           <div className="lg:hidden flex flex-col items-center mb-8 text-center">
             <div
@@ -348,4 +359,3 @@ export default function OfficerLogin() {
     </main>
   );
 }
-

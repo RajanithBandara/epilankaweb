@@ -102,7 +102,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <main ref={pageRef}>
+    <main ref={pageRef} className="home-cursor-scope">
       <EpiGuardAssistantPopup />
 
       {/* Fixed background with hero gradient */}
@@ -142,4 +142,3 @@ export default function HomePage() {
     </main>
   );
 }
-
