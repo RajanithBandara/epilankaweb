@@ -1,7 +1,17 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { MouseEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { FileText, Upload, Loader2, Trash2 } from 'lucide-react';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 type UploadedReport = {
     id: string;
@@ -22,6 +32,9 @@ export default function OfficerUploadReportsPage() {
     const [reports, setReports] = useState<UploadedReport[]>([]);
     const [loadingList, setLoadingList] = useState(true);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<UploadedReport | null>(null);
+    const [dialogMessage, setDialogMessage] = useState<{ title: string; description: string } | null>(null);
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -81,12 +94,7 @@ export default function OfficerUploadReportsPage() {
         }
     };
 
-    const handleDelete = async (report: UploadedReport) => {
-        const confirmed = window.confirm(
-            `Delete this report?\n\n${report.filename || report.file_url}`
-        );
-        if (!confirmed) return;
-
+    const deleteReport = async (report: UploadedReport) => {
         setDeletingId(report.id);
         try {
             const res = await fetch(
@@ -99,9 +107,28 @@ export default function OfficerUploadReportsPage() {
             }
             setReports((prev) => prev.filter((r) => r.id !== report.id));
         } catch (err) {
-            window.alert(err instanceof Error ? err.message : 'Delete failed');
+            setDialogMessage({
+                title: 'Delete failed',
+                description: err instanceof Error ? err.message : 'Delete failed',
+            });
         } finally {
             setDeletingId(null);
+        }
+    };
+
+    const requestDelete = (report: UploadedReport) => {
+        setDeleteTarget(report);
+    };
+
+    const confirmDelete = async (event: MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+        if (!deleteTarget) return;
+        setConfirmingDelete(true);
+        try {
+            await deleteReport(deleteTarget);
+        } finally {
+            setConfirmingDelete(false);
+            setDeleteTarget(null);
         }
     };
 
@@ -277,7 +304,7 @@ export default function OfficerUploadReportsPage() {
                                                 </a>
                                                 <button
                                                     type="button"
-                                                    onClick={() => void handleDelete(r)}
+                                                    onClick={() => requestDelete(r)}
                                                     disabled={deleting}
                                                     className="inline-flex items-center gap-1 rounded-md border border-black/25 px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-black hover:text-white disabled:opacity-50 dark:border-white/25 dark:hover:bg-white dark:hover:text-black"
                                                     aria-label="Delete report"
@@ -298,6 +325,51 @@ export default function OfficerUploadReportsPage() {
                     </div>
                 )}
             </section>
+            <AlertDialog
+                open={Boolean(deleteTarget)}
+                onOpenChange={(open) => {
+                    if (!open && !confirmingDelete) {
+                        setDeleteTarget(null);
+                    }
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete report</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {deleteTarget
+                                ? `Delete ${deleteTarget.filename || deleteTarget.file_url}? This cannot be undone.`
+                                : 'Delete this report? This cannot be undone.'}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={confirmingDelete}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} disabled={confirmingDelete}>
+                            {confirmingDelete ? 'Deleting...' : 'Delete'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog
+                open={Boolean(dialogMessage)}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setDialogMessage(null);
+                    }
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{dialogMessage?.title ?? 'Notice'}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {dialogMessage?.description ?? 'Please review this message.'}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogAction>OK</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </section>
     );
 }

@@ -13,6 +13,7 @@ import {
     Settings,
     Upload,
     Newspaper,
+    Sigma,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -36,6 +37,7 @@ const navItems = [
     { label: "Reports", href: "/officerdashboard/reports", icon: FilePenLine },
     { label: "Upload Report", href: "/officerdashboard/uploadreports", icon: Upload },
     { label: "Analytics", href: "/officerdashboard/analytics", icon: BarChart3 },
+    { label: "Thresholds", href: "/officerdashboard/thresholds", icon: Sigma },
     { label: "CERI History", href: "/officerdashboard/ceri-history", icon: Activity },
     { label: "Map", href: "/officerdashboard/map", icon: Map },
     { label: "Notifications", href: "/officerdashboard/notifications", icon: BellRing },
@@ -50,6 +52,7 @@ const PAGE_TITLES: Record<string, string> = {
     "/officerdashboard/reports": "Reports",
     "/officerdashboard/uploadreports": "Upload Report",
     "/officerdashboard/analytics": "Analytics",
+    "/officerdashboard/thresholds": "Thresholds",
     "/officerdashboard/ceri-history": "CERI History",
     "/officerdashboard/map": "Map",
     "/officerdashboard/notifications": "Notifications",

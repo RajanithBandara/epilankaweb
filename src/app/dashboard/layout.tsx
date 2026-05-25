@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Brain,
   Newspaper,
+  Telescope,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -32,6 +33,7 @@ type NavItem = {
 const navItems: NavItem[] = [
   { label: "Home", href: "/dashboard", icon: Home },
   { label: "Map", href: "/dashboard/map", icon: Map },
+  { label: "Research", href: "/dashboard/research", icon: Telescope },
   { label: "Articles", href: "/dashboard/articles", icon: Newspaper },
   { label: "Submit Report", href: "/dashboard/report", icon: FilePlus },
   { label: "Reports", href: "/dashboard/reports", icon: FileText },
@@ -296,7 +298,7 @@ export default function DashboardLayout({
               borderColor: "var(--dash-sidebar-border)",
             }}
           >
-            <div className="h-16 grid grid-cols-8 gap-1 p-1.5">
+            <div className="h-16 grid grid-cols-9 gap-1 p-1.5">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
