@@ -137,7 +137,7 @@ export default function NotificationPanel({ onClose }: NotificationPanelProps) {
 
     return (
         <>
-            {/* ── keyframes injected once ── */}
+            {/* ── keyframes + responsive panel styles ── */}
             <style>{`
                 @keyframes notif-panel-in {
                     from { opacity: 0; transform: translateX(100%); }
@@ -162,6 +162,74 @@ export default function NotificationPanel({ onClose }: NotificationPanelProps) {
                 .notif-item-animate {
                     animation: notif-item-in 0.22s ease both;
                 }
+
+                /* ─── responsive panel shell ─── */
+                .notif-panel {
+                    position: fixed;
+                    top: 0;
+                    right: 0;
+                    bottom: 0;
+                    z-index: 50;
+                    width: 100%;
+                    max-width: 24rem;
+                    display: flex;
+                    flex-direction: column;
+                    background: var(--dash-card-bg);
+                    border-left: 1px solid var(--dash-card-border);
+                    box-shadow: -12px 0 40px rgba(0, 0, 0, 0.22);
+                    overflow: hidden;
+                }
+
+                /* Tablet & desktop: float as a card with rounded corners */
+                @media (min-width: 640px) {
+                    .notif-panel {
+                        top: 0.875rem;
+                        right: 0.875rem;
+                        bottom: 0.875rem;
+                        max-width: 25rem;
+                        border: 1px solid var(--dash-card-border);
+                        border-radius: 1rem;
+                        box-shadow:
+                            0 24px 60px -12px rgba(0, 0, 0, 0.35),
+                            0 8px 24px -8px rgba(0, 0, 0, 0.25);
+                    }
+                }
+
+                /* Mobile-only grab handle */
+                .notif-grab {
+                    display: block;
+                    width: 2.25rem;
+                    height: 0.3rem;
+                    border-radius: 999px;
+                    background: var(--dash-card-border);
+                    margin: 0.5rem auto 0.25rem;
+                    opacity: 0.7;
+                }
+                @media (min-width: 640px) {
+                    .notif-grab { display: none; }
+                }
+
+                /* Header padding tweaks per breakpoint */
+                .notif-header {
+                    padding: 0.75rem 1rem 0;
+                    background: var(--dash-card-bg);
+                    border-bottom: 1px solid var(--dash-card-border);
+                    flex-shrink: 0;
+                }
+                @media (min-width: 640px) {
+                    .notif-header { padding: 1rem 1.125rem 0; }
+                }
+
+                /* List padding tweaks per breakpoint */
+                .notif-list {
+                    flex: 1;
+                    overflow-y: auto;
+                    padding: 0.625rem;
+                    overscroll-behavior: contain;
+                }
+                @media (min-width: 640px) {
+                    .notif-list { padding: 0.75rem; }
+                }
             `}</style>
 
             {/* ── Backdrop ── */}
@@ -184,33 +252,18 @@ export default function NotificationPanel({ onClose }: NotificationPanelProps) {
                 ref={panelRef}
                 role="dialog"
                 aria-label="Notifications"
+                className="notif-panel"
                 style={{
-                    position: 'fixed',
-                    top: 0,
-                    right: 0,
-                    bottom: 0,
-                    zIndex: 50,
-                    width: '100%',
-                    maxWidth: '22rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    background: 'var(--dash-card-bg)',
-                    borderLeft: '1px solid var(--dash-card-border)',
-                    boxShadow: '-8px 0 40px rgba(0,0,0,0.18)',
                     animation: visible
                         ? 'notif-panel-in 0.28s cubic-bezier(0.22,1,0.36,1) both'
                         : 'notif-panel-out 0.28s cubic-bezier(0.22,1,0.36,1) both',
                 }}
             >
+                {/* Mobile grab handle (hidden on ≥640px) */}
+                <span className="notif-grab" aria-hidden="true" />
+
                 {/* ── Header ── */}
-                <div
-                    style={{
-                        padding: '1rem 1rem 0',
-                        background: 'var(--dash-card-bg)',
-                        borderBottom: '1px solid var(--dash-card-border)',
-                        flexShrink: 0,
-                    }}
-                >
+                <div className="notif-header">
                     {/* Title row */}
                     <div
                         style={{
@@ -241,26 +294,44 @@ export default function NotificationPanel({ onClose }: NotificationPanelProps) {
                                 <h2
                                     style={{
                                         margin: 0,
-                                        fontSize: '0.9rem',
+                                        fontSize: '0.95rem',
                                         fontWeight: 700,
                                         color: 'var(--dash-text-primary)',
                                         letterSpacing: '-0.01em',
+                                        lineHeight: 1.15,
                                     }}
                                 >
                                     Notifications
                                 </h2>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginTop: '0.1rem' }}>
-                                    {/* connection dot */}
+                                <div
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '0.3rem',
+                                        marginTop: '0.25rem',
+                                        padding: '0.1rem 0.45rem',
+                                        borderRadius: '999px',
+                                        background: isConnected
+                                            ? 'rgba(34,197,94,0.12)'
+                                            : 'rgba(245,158,11,0.12)',
+                                        border: `1px solid ${
+                                            isConnected
+                                                ? 'rgba(34,197,94,0.25)'
+                                                : 'rgba(245,158,11,0.25)'
+                                        }`,
+                                    }}
+                                >
                                     {isConnected ? (
-                                        <Wifi style={{ width: '0.7rem', height: '0.7rem', color: 'rgb(34,197,94)' }} />
+                                        <Wifi style={{ width: '0.65rem', height: '0.65rem', color: 'rgb(34,197,94)' }} />
                                     ) : (
-                                        <WifiOff style={{ width: '0.7rem', height: '0.7rem', color: 'rgb(245,158,11)' }} />
+                                        <WifiOff style={{ width: '0.65rem', height: '0.65rem', color: 'rgb(245,158,11)' }} />
                                     )}
                                     <span
                                         style={{
-                                            fontSize: '0.7rem',
+                                            fontSize: '0.65rem',
                                             color: isConnected ? 'rgb(34,197,94)' : 'rgb(245,158,11)',
-                                            fontWeight: 500,
+                                            fontWeight: 600,
+                                            letterSpacing: '0.02em',
                                         }}
                                     >
                                         {isConnected ? 'Live' : 'Reconnecting…'}
@@ -375,7 +446,7 @@ export default function NotificationPanel({ onClose }: NotificationPanelProps) {
                 </div>
 
                 {/* ── List ── */}
-                <div style={{ flex: 1, overflowY: 'auto', padding: '0.625rem' }}>
+                <div className="notif-list">
                     {isLoading ? (
                         /* skeleton shimmer */
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.5rem' }}>
