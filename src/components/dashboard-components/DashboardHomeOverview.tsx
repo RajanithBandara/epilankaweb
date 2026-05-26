@@ -247,9 +247,6 @@ export default function DashboardHomeOverview() {
                 </div>
             )}
 
-            {/* ── CERI Risk Alert Banner ──────────────────────── */}
-            <RiskAlertBanner />
-
             {/* ── Stat cards ───────────────────────────────── */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <StatCard
