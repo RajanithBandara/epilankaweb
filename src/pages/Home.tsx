@@ -134,9 +134,6 @@ export default function HomePage() {
            <div data-home-scroll-section className="will-change-transform">
              <CtaSection />
            </div>
-           <div data-home-scroll-section className="will-change-transform">
-             <UploadedReportsSection />
-           </div>
          </div>
        </div>
     </main>
