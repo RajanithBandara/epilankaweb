@@ -115,16 +115,10 @@ export default function AdminLogin() {
             </span>
           </div>
 
-          {/* Animated Holographic Security Lottie Illustration */}
+          {/* Security Illustration */}
           <div className="relative z-10 my-auto flex flex-col items-center justify-center">
-            <div className="w-56 h-56 relative drop-shadow-[0_0_30px_rgba(14,165,164,0.3)]">
-              <iframe 
-                src="https://lottie.host/embed/e1f871db-2a07-4bc1-b2fe-00ce8e04fb70/wUnAkCWVrw.lottie" 
-                className="w-full h-full mix-blend-screen scale-[1.2] border-none"
-                style={{ background: 'transparent' }}
-                allow="autoplay"
-                title="Security Shield Animation"
-              />
+            <div className="w-40 h-40 relative flex items-center justify-center rounded-full border border-[#0EA5A4]/25 bg-[#0EA5A4]/10 drop-shadow-[0_0_30px_rgba(14,165,164,0.25)]">
+              <ShieldCheck className="h-16 w-16 text-[#0EA5A4]" />
             </div>
             <h2 className="text-xl font-bold tracking-tight text-center mt-6">
               Secure Access Control
