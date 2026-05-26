@@ -233,36 +233,6 @@ export default function DashboardLayout({
             </nav>
 
             <div className="px-3 pb-5 space-y-2 shrink-0">
-              <div className="flex items-center gap-2">
-                <div
-                  className="flex-1 rounded-xl border px-3 py-2.5 flex items-center gap-2"
-                  style={{
-                    background: "var(--dash-card-bg)",
-                    borderColor: "var(--dash-card-border)",
-                  }}
-                >
-                  <CalendarDays
-                    className="h-4 w-4"
-                    style={{ color: "var(--dash-text-muted)" }}
-                  />
-                  <span
-                    className="flex-1 text-xs font-medium"
-                    style={{ color: "var(--dash-text-secondary)" }}
-                  >
-                    {todayLabel}
-                  </span>
-                </div>
-                <NotificationBell />
-                <AnimatedThemeToggler
-                  className="h-10 w-10 rounded-lg border flex items-center justify-center"
-                  style={{
-                    borderColor: "var(--dash-card-border)",
-                    color: "var(--dash-text-secondary)",
-                    background: "var(--dash-card-bg)",
-                  }}
-                />
-              </div>
-
               {/* User info card */}
               <div
                 className="rounded-xl border px-3 py-2.5 flex items-center gap-2.5"
@@ -318,6 +288,54 @@ export default function DashboardLayout({
           </aside>
 
           <main className="min-w-0 min-h-0 h-full flex flex-col px-3 sm:px-4 lg:px-5 pb-3 lg:pb-5 pt-3 lg:pt-5">
+            {/* Desktop Top Bar */}
+            <header
+              className="hidden lg:flex mb-4 items-center justify-between rounded-2xl border px-5 py-3.5 shrink-0 shadow-xs"
+              style={{
+                background: "var(--dash-sidebar-bg)",
+                borderColor: "var(--dash-sidebar-border)",
+              }}
+            >
+              {/* Left Side: Dynamic Greeting or Page Title */}
+              <div className="flex items-center gap-3">
+                <div
+                  className="rounded-xl border px-3.5 py-2 flex items-center gap-2"
+                  style={{
+                    background: "var(--dash-card-bg)",
+                    borderColor: "var(--dash-card-border)",
+                  }}
+                >
+                  <CalendarDays
+                    className="h-4 w-4 text-blue-500"
+                  />
+                  <span
+                    className="text-xs font-semibold"
+                    style={{ color: "var(--dash-text-secondary)" }}
+                  >
+                    {todayLabel}
+                  </span>
+                </div>
+                <div>
+                  <h1 className="text-sm font-bold tracking-tight" style={{ color: "var(--dash-text-primary)" }}>
+                    Disease Intelligence Dashboard
+                  </h1>
+                </div>
+              </div>
+
+              {/* Right Side: Separate Notification component & Theme Toggler */}
+              <div className="flex items-center gap-3">
+                <NotificationBell />
+                <AnimatedThemeToggler
+                  className="h-10 w-10 rounded-lg border flex items-center justify-center transition-all hover:bg-[rgba(255,255,255,0.05)]"
+                  style={{
+                    borderColor: "var(--dash-card-border)",
+                    color: "var(--dash-text-secondary)",
+                    background: "var(--dash-card-bg)",
+                  }}
+                />
+              </div>
+            </header>
+
             {/* Mobile top bar */}
             <div
               className="lg:hidden mb-3 flex items-center gap-2 rounded-xl border px-2.5 py-2"
