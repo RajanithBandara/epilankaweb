@@ -1,76 +1,131 @@
 # 🦠 EpiWatch Lanka
 
-### Infectious Disease Awareness & Prediction Platform
-A comprehensive web platform for visualizing, analyzing, and predicting infectious disease spread across Sri Lanka using historical epidemiological data. Features separate dashboards for users (public), officers (health professionals), and administrators.
+### *Intelligent Disease Surveillance & Predictive Epidemiological Platform for Sri Lanka*
+
+A state-of-the-art web application for visualizing, auditing, and forecasting infectious disease spread across Sri Lanka using historical epidemiological datasets, geographic mapping, and advanced artificial intelligence models. EpiWatch Lanka delivers tailored dashboards for citizens, medical officers, and system administrators to foster rapid public health coordination.
+
+---
+
+<div align="center">
+
+![EpiWatch Lanka Banner](./public/epiwatch_banner.png)
+
+[![Next.js 16](https://img.shields.io/badge/Next.js-16.2.3-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![React 19](https://img.shields.io/badge/React-19.2.1-20232a?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind CSS 4](https://img.shields.io/badge/Tailwind_CSS-4.0-38B2AC?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Appwrite](https://img.shields.io/badge/Appwrite-Backend-FD366E?style=for-the-badge&logo=appwrite&logoColor=white)](https://appwrite.io/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Database-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![Redis](https://img.shields.io/badge/Redis-Cache-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
+[![Gemini & Groq](https://img.shields.io/badge/AI_Powered-Gemini_%2F_Groq-8E75C2?style=for-the-badge&logo=googlegemini&logoColor=white)](https://ai.google.dev/)
+
+</div>
 
 ---
 
 ## 📖 Overview
 
-EpiWatch Lanka is a modern, intelligent disease surveillance platform designed to help the public, health officers, travelers, and administrators monitor and manage disease trends in Sri Lanka.
-
-### Key Features:
-
-**For Public Users:**
-- District and province-level disease visualizations
-- Interactive maps and heatmaps
-- Historical trend analysis & charts
-- Nearby location health insights
-- Public awareness & health guidelines
-
-**For Health Officers:**
-- Update and manage disease records
-- View analytics and officer-specific dashboards
-- Manage notifications and alerts
-- Generate reports on disease data
-
-**For Administrators:**
-- Manage users, officers, and accounts
-- System-wide analytics and monitoring
-- Historical data management
-- Settings and configuration
+**EpiWatch Lanka** is an advanced digital health infrastructure designed to support Sri Lankan healthcare authorities and the general public. Built on Next.js 16 (App Router) and React 19, the platform leverages real-time caching, geographical analytics, and AI reasoning models to demystify complex epidemiological data and enable rapid, localized, and intelligent health actions.
 
 ---
 
-## 🏗️ Tech Stack
+## 🏗️ System Architecture
 
-### **Frontend & Backend**
-- **Framework:** [Next.js 16.2.3](https://nextjs.org/) (App Router)
-- **Library:** [React 19.2.1](https://react.dev/)
-- **Language:** [TypeScript 5](https://www.typescriptlang.org/)
-- **Styling:** [Tailwind CSS 4](https://tailwindcss.com/), [Framer Motion](https://www.framer.com/motion/), [GSAP](https://gsap.com/), [Lucide React Icons](https://lucide.dev/)
+The following diagram illustrates the flow of data, API triggers, and client interactions across the EpiWatch Lanka ecosystem:
 
-### **Services & Databases**
-- **Authentication & Backend:** [Appwrite](https://appwrite.io/)
-- **Authentication (Google):** [Firebase](https://firebase.google.com/)
-- **Database (NoSQL):** [MongoDB](https://www.mongodb.com/)
-- **Caching/Real-time:** [Redis](https://redis.io/), [Socket.IO](https://socket.io/)
-- **AI/ML Services:** [Groq](https://groq.com/), [Gemini API](https://ai.google.dev/)
-- **Maps & Location:** [TomTom Maps SDK](https://developer.tomtom.com/), [Leaflet.js](https://leafletjs.org/)
+```mermaid
+graph TD
+    %% Base Styling Definitions
+    classDef client fill:#1E3A8A,stroke:#3b82f6,stroke-width:2px,color:#ffffff;
+    classDef api fill:#0f172a,stroke:#334155,stroke-width:2px,color:#f1f5f9;
+    classDef db fill:#0EA5A4,stroke:#14b8a6,stroke-width:2px,color:#ffffff;
+    classDef service fill:#7c3aed,stroke:#a78bfa,stroke-width:2px,color:#ffffff;
+    classDef roles fill:#f59e0b,stroke:#f59e0b,stroke-width:2px,color:#0f172a;
 
-### **UI Components & Libraries**
-- **Component Library:** [Radix UI](https://www.radix-ui.com/)
-- **Charts:** [Recharts](https://recharts.org/)
-- **Animations:** [Lottie React](https://github.com/LottieFiles/lottie-react)
-- **Image Processing:** [React Image Crop](https://react-image-crop.netlify.app/)
-- **PDF Generation:** [jsPDF](https://github.com/parallax/jsPDF), [jsPDF AutoTable](https://github.com/simonbengtsson/jspdf-autotable)
-- **Date Handling:** [date-fns](https://date-fns.org/)
-- **HTTP Client:** [Axios](https://axios-http.com/)
+    %% Subgraphs
+    subgraph Users ["🌐 Client Portals"]
+        Public["Public Dashboard"]
+        Officer["Officer Dashboard"]
+        Admin["Admin Panel"]
+    end
+    class Public,Officer,Admin roles;
+
+    subgraph AppServer ["⚡ Next.js App Router Core (Frontend/Backend)"]
+        Pages["Client Pages & Shared Components (React 19 + Tailwind 4)"]
+        APIRoutes["Next.js API Handlers (/api/*)"]
+    end
+    class Pages client;
+    class APIRoutes api;
+
+    subgraph DataStorage ["💾 Database & Cache Layer"]
+        AppwriteDB["Appwrite Storage & Realtime Auth"]
+        MongoDB["MongoDB (Historical Epidemiology Data)"]
+        RedisCache["Redis (High-speed Analytics Caching)"]
+    end
+    class AppwriteDB,MongoDB,RedisCache db;
+
+    subgraph ExtIntegrations ["🤖 AI & Third-Party Services"]
+        TomTom["TomTom & Leaflet Mapping SDKs"]
+        FirebaseOAuth["Firebase OAuth (Google Sign-In)"]
+        GroqGemini["Groq & Gemini AI (Epidemiological Insights)"]
+        SocketIO["Socket.IO (Real-time Alert Broadcasts)"]
+    end
+    class TomTom,FirebaseOAuth,GroqGemini,SocketIO service;
+
+    %% Flow Tracing
+    Public & Officer & Admin --> Pages
+    Pages -->|HTTP / Axios| APIRoutes
+    
+    APIRoutes -->|Authentication / Storage| AppwriteDB
+    APIRoutes -->|Epidemiological Data| MongoDB
+    APIRoutes -->|Cache Read/Write| RedisCache
+    
+    APIRoutes -->|Mapping & GIS| TomTom
+    APIRoutes -->|SSO Google Auth| FirebaseOAuth
+    APIRoutes -->|Inference APIs| GroqGemini
+    APIRoutes -->|Realtime Channels| SocketIO
+```
 
 ---
 
-## ⚙️ Requirements
+## 🔑 Key Platform Capabilities
 
-- **Node.js:** v20 or higher
-- **Package Manager:** npm
-- **External Accounts & Services:**
-  - Appwrite (self-hosted or cloud)
-  - MongoDB Atlas
-  - Redis instance
-  - Firebase project for OAuth
-  - TomTom Developer account
-  - Groq API key
-  - Google Maps API (TomTom alternative)
+The ecosystem is designed with modular functionality, optimized specifically for three core user roles:
+
+### 1. Public Portal 🌐
+* **Interactive Spatial Maps:** Real-time rendering of disease-spread hotspots, province and district density maps, and interactive Leaflet/TomTom GIS mapping.
+* **Proximity Health Audits:** Geolocation lookup indicating nearby medical resources, local risk grades, and active local outbreaks.
+* **Epidemiological History:** Detailed data filters with rich charts (via Recharts) displaying historical disease trends.
+* **Intelligent Guidelines:** Health precautions dynamically compiled by AI based on local coordinates and current seasons.
+
+### 2. Officer Dashboard 🩺
+* **Frictionless Data Entry:** Secure interfaces to easily report, catalog, and index new infectious disease cases.
+* **Incident Analytics:** Specialized control panels presenting statistics on localized rates, transmission vectors, and healing statuses.
+* **Automated PDF Exporting:** Instant generation of professional, data-dense epidemiological reports using `jsPDF` and `jsPDF-AutoTable` layouts.
+* **Alert Broadcast Management:** Fast drafts and triggers for emergency health alerts, dispatchable to affected public circles.
+
+### 3. Administrator Console 🛡️
+* **Identity Governance:** Unified systems to register, audit, activate, or suspend standard users, health officers, and additional admins.
+* **System Operations Monitor:** Central control logs providing insights on endpoint latencies, database loads, and API consumption.
+* **Historical Data Backfill:** Heavy-duty pipeline tools allowing administrative bulk imports of massive legacy CSV/JSON datasets.
+* **Feature Flags:** Instant toggle switches for caching parameters, rate limit thresholds, and platform-wide notifications.
+
+---
+
+## ⚙️ Technical Architecture Deep Dive
+
+EpiWatch Lanka uses a highly specialized technical stack chosen to ensure performance, visual premium rendering, and reliable scalability:
+
+* **Next.js 16 (App Router):** Enables static generation for critical public safety pages, Server-Side Rendering (SSR) for real-time dashboards, and integrated route handlers to manage secure backend APIs.
+* **React 19 (Concurrent Mode):** Employs state-of-the-art concurrent execution, optimizing page response, virtual DOM updates, and reducing user input latency.
+* **Tailwind CSS 4:** Features a Lightning CSS engine delivering ultra-fast compile times, native cascading variable structures, and premium responsive layouts.
+* **Framer Motion & GSAP (GreenSock):** Powers immersive micro-interactions, smooth spring-based page transitions, and complex timeline-driven animations that respond to scroll triggers.
+* **Lenis Smooth Scroll:** Delivers sleek, buttery-smooth scrolling behavior across various desktop and mobile viewports.
+* **Three.js / WebGL:** Facilitates high-performance interactive 3D visual environments (e.g., globe and network visualizations) that make the application stand out.
+* **Appwrite (Client & Node SDK):** Offloads user session tracking, secure storage files, and real-time pub-sub notifications.
+* **MongoDB & Redis Caching:** Combines horizontal document data structures (MongoDB) for deep historical query speeds with in-memory key-value caching (Redis via `ioredis`) to ensure sub-millisecond response rates.
+* **TomTom Maps & Leaflet:** Merges TomTom's Enterprise-level geocoding engines with Leaflet’s client-side performance to map complex geographical polygons.
+* **Groq & Gemini AI Orchestration:** Employs Groq (for fast Llama-3 parsing of reports) and Gemini-1.5 APIs (for deep epidemiological reasoning) to generate personalized, localized health advice.
 
 ---
 
@@ -88,46 +143,34 @@ npm install
 ```
 
 ### 3. Environment Setup
-Create a `.env` file in the root directory with the following variables:
+Create a `.env` file in the root directory and configure the variables as detailed below:
 
-```env
-# API Configuration
-NEXT_PUBLIC_API_URL=https://api.epilanka.app
-SECRET_KEY=your_secret_key
-INTERNAL_API_KEY=your_internal_api_key
+| Environment Variable | Required | Description | Example / Recommended Value |
+| :--- | :---: | :--- | :--- |
+| `NEXT_PUBLIC_API_URL` | **Yes** | The base URL of the EpiWatch API server | `https://api.epilanka.app` or `http://localhost:3000` |
+| `SECRET_KEY` | **Yes** | Secret seed used for encrypting local session tokens | *Generate a random cryptographically secure string* |
+| `INTERNAL_API_KEY` | **Yes** | API authentication token shared between microservices | *High-entropy token string* |
+| `NEXT_PUBLIC_TOMTOM_API_KEY` | **Yes** | API token from TomTom Developer Portal for Maps rendering | *Get from developer.tomtom.com* |
+| `NEXT_PUBLIC_APPWRITE_PROJECT_ID` | **Yes** | Target project ID inside Appwrite Console | `your_appwrite_project_id` |
+| `NEXT_PUBLIC_APPWRITE_PROJECT_NAME`| No | Human-readable name of the Appwrite project | `epilanka` |
+| `NEXT_PUBLIC_APPWRITE_ENDPOINT` | **Yes** | Appwrite REST endpoint URL | `https://cloud.appwrite.io/v1` or local endpoint |
+| `MONGODB_URI` | **Yes** | MongoDB Atlas connection string | `mongodb+srv://<user>:<password>@cluster.mongodb.net/` |
+| `MONGODB_DB_NAME` | **Yes** | Primary Mongo database name | `epilanka` |
+| `REDIS_PUBLIC_URL` | **Yes** | Connection URL for Redis caching (Upstash, RedisLabs, or local) | `redis://default:password@host:port` |
+| `GROQ_API_KEY` | **Yes** | Token for Groq AI inference API (used for high-speed insights) | `gsk_...` |
+| `GEMINI_API_KEY` | **Yes** | Token for Google Gemini API (used for reasoning & guidelines) | *Get from Google AI Studio* |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | **Yes** | Firebase web configuration API Key for Google OAuth sign-in | `AIzaSy...` |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | **Yes** | Firebase project ID | `epilanka-firebase` |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | **Yes** | Firebase Auth domain for callback redirects | `epilanka.firebaseapp.com` |
 
-# TomTom Maps
-NEXT_PUBLIC_TOMTOM_API_KEY=your_tomtom_api_key
-
-# Appwrite Configuration
-NEXT_PUBLIC_APPWRITE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_APPWRITE_PROJECT_NAME=epilanka
-NEXT_PUBLIC_APPWRITE_ENDPOINT=https://sgp.cloud.appwrite.io/v1
-
-# MongoDB
-MONGODB_URI=your_mongodb_connection_string
-MONGODB_DB_NAME=epilanka
-
-# Redis
-REDIS_PUBLIC_URL=your_redis_connection_string
-
-# AI Service
-GROQ_API_KEY=your_groq_api_key
-GEMINI_API_KEY=your_gemini_api_key
-
-# Firebase OAuth (If used for separate frontend integration)
-NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_firebase_project_id
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
-```
-
-*Note: Ensure you use `.env` for local development. Do not commit sensitive keys to version control.*
+> [!WARNING]
+> Keep your `.env` file secure. Never commit your secrets or environment configuration to GitHub or any public version control system.
 
 ### 4. Run the development server
 ```bash
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
+Open [http://localhost:3000](http://localhost:3000) inside your browser to access the local development environment.
 
 ---
 
@@ -135,12 +178,12 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to see the a
 
 | Script | Command | Description |
 | :--- | :--- | :--- |
-| `npm run dev` | `next dev` | Starts the Next.js development server with hot reload |
-| `npm run build` | `next build` | Builds the application for production |
-| `npm run start` | `next start` | Runs the production server |
-| `npm run lint` | `eslint` | Runs ESLint to check code quality and style |
-| `npm run test` | `npm run lint` | Currently mapped to linting (TODO: Add unit/integration tests) |
-| `npm run prepare` | `husky` | Sets up Husky git hooks |
+| `npm run dev` | `next dev` | Starts the Next.js development server with hot module replacement |
+| `npm run build` | `next build` | Compiles the production application bundle with optimized caching |
+| `npm run start` | `next start` | Runs the production-optimized Next.js build locally |
+| `npm run lint` | `eslint` | Invokes ESLint to audit static code quality, types, and standards |
+| `npm run test` | `jest` | Executes unit and integration test suites using Jest |
+| `npm run prepare` | `husky` | Installs and configures Git Husky pre-commit hooks |
 
 ---
 
@@ -148,235 +191,76 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to see the a
 
 ```
 src/
-├── app/                           # Next.js App Router
-│   ├── (public routes)/
-│   │   ├── page.tsx              # Home page
-│   │   ├── login/                # User login
-│   │   ├── signup/               # User registration
-│   │   ├── map/                  # Interactive disease map
-│   │   ├── safety/               # Safety information
-│   │   └── reset-password/       # Password reset
-│   │
-│   ├── dashboard/                # User Dashboard
-│   │   ├── page.tsx
-│   │   ├── layout.tsx
-│   │   ├── map/                  # User's local map view
-│   │   ├── report/               # Report submissions
-│   │   ├── settings/             # User settings
-│   │   └── takecare/             # Health guidelines
-│   │
-│   ├── officerdashboard/         # Officer Panel
-│   │   ├── page.tsx
-│   │   ├── layout.tsx
-│   │   ├── analytics/            # Disease analytics
-│   │   ├── diseases/             # Manage disease records
-│   │   ├── map/                  # Officer view map
-│   │   ├── notifications/        # Alerts & notifications
-│   │   ├── reports/              # View user reports
-│   │   ├── settings/             # Officer settings
-│   │   └── update-records/       # Update disease data
-│   │
-│   ├── admindashboard/           # Admin Panel
-│   │   ├── page.tsx
-│   │   ├── layout.tsx
-│   │   ├── users/                # Manage users
-│   │   ├── officers/             # Manage officers
-│   │   ├── admins/               # Manage admins
-│   │   ├── historydata/          # Historical data management
-│   │   └── tables/               # Data tables
-│   │
-│   ├── api/                      # Backend API Routes
-│   │   ├── auth/                 # Authentication endpoints
-│   │   ├── admin/                # Admin endpoints
-│   │   ├── officer/              # Officer endpoints
-│   │   ├── login/                # Login API
-│   │   ├── signup/               # Signup API
-│   │   ├── profile/              # User profile endpoints
-│   │   ├── profilepic/           # Profile picture upload
-│   │   ├── user-reports/         # User report submissions
-│   │   ├── reports/              # View reports
-│   │   ├── change-password/      # Password change
-│   │   ├── settings/             # Settings endpoints
-│   │   ├── extract-disease-info/ # Disease data extraction
-│   │   ├── groq/                 # AI integration with Groq
-│   │   ├── nearestlocation/      # Find nearest health facility
-│   │   └── public/               # Public data endpoints
-│   │
-│   ├── admin/                    # Admin routes
-│   │   └── login/                # Admin login page
-│   │
-│   ├── officer/                  # Officer routes
-│   │   └── login/                # Officer login page
-│   │
-│   ├── auth/                     # Authentication
-│   │   └── oauth/                # OAuth handlers
-│   │
-│   ├── layout.tsx                # Root layout
-│   ├── page.tsx                  # Home page
-│   ├── globals.css               # Global styles
-│   ├── NavbarHandler.tsx         # Navigation bar wrapper
-│   ├── FooterHandler.tsx         # Footer wrapper
-│   ├── not-found.tsx             # 404 page
-│   └── favicon.ico
-│
-├── components/                   # Reusable React Components
-│   ├── ui/                       # Core UI components (buttons, inputs, etc.)
-│   ├── adminpanel-components/    # Admin-specific components
-│   ├── officerpanel-components/  # Officer-specific components
-│   ├── dashboard-components/     # Dashboard components
-│   ├── homepage-components/      # Home page components
-│   ├── NavBar.tsx               # Navigation component
-│   ├── Footer.tsx               # Footer component
-│   ├── MapComponent.tsx         # Reusable map component
-│   ├── AuthPage.tsx             # Authentication layout
-│   ├── AreaReportsList.tsx      # Report listing component
-│   ├── ForgotPasswordModal.tsx  # Password reset modal
-│   ├── LoadingScreen.tsx        # Loading state UI
-│   └── PageTransition.tsx       # Page transition animations
-│
-├── contexts/                     # React Context Providers
-│   ├── AuthContext.tsx          # Authentication state
-│   ├── LoadingContext.tsx       # Loading state management
-│   ├── LocationContext.tsx      # Location data provider
-│   └── NotificationContext.tsx  # Notification state
-│
-├── hooks/                        # Custom React Hooks
-│   ├── useAsyncLoading.ts       # Loading state hook
-│   └── useNotifications.ts      # Notification management hook
-│
-├── lib/                          # Utility Libraries & Configs
-│   ├── api.ts                   # Axios API client
-│   ├── adminApi.ts              # Admin API functions
-│   ├── officerApi.ts            # Officer API functions
-│   ├── appwrite.ts              # Appwrite config
-│   ├── firebase.ts              # Firebase config
-│   ├── mongodb.ts               # MongoDB connection
-│   ├── redis.ts                 # Redis client
-│   ├── analyticsCache.ts        # Analytics caching
-│   ├── dashboardCache.ts        # Dashboard caching
-│   ├── gsap.ts                  # GSAP animations config
-│   └── utils.ts                 # Utility functions
-│
-├── types/                        # TypeScript Type Definitions
-│   └── historydata.ts           # Historical data types
-│
-├── controllers/                  # API Controllers
-│   └── diseaseDetailsController.ts # Disease data handler
-│
-├── constants/                    # Global Constants
-│   ├── theme.ts                 # Theme configuration
-│   └── flyingGlobeLottie.json  # Lottie animation
-│
-└── styles/                       # Global Styles
-    └── theme.css               # Theme styling
+├── app/                           # Next.js App Router Pages, Layouts, and API endpoints
+│   ├── (public routes)/           # Unauthenticated public portals (Home, Interactive Maps, Safety guides)
+│   ├── dashboard/                 # Standard authenticated public user workspace & profile tools
+│   ├── officerdashboard/          # Specialized epidemiological portal for health officers to record data
+│   ├── admindashboard/            # Super-admin governance console for user management & system status
+│   └── api/                       # Modular backend routes (Auth, Reports, Location tracking, AI controllers)
+├── components/                    # Highly optimized, reusable UI & domain-specific components
+│   ├── ui/                        # Low-level primitive design tokens (Buttons, Inputs, Modals, Tabs via Radix)
+│   ├── adminpanel-components/     # Specialized Admin chart cards, tables, and moderation controls
+│   ├── officerpanel-components/   # Interfaces for Case uploads, Notification drafting, and Audit tables
+│   ├── dashboard-components/      # Public-user metrics, reports feeds, and local alerts panels
+│   └── homepage-components/       # High-performance hero screens, dynamic scroll-cards, and footers
+├── contexts/                      # React Context Providers managing global application state
+│   ├── AuthContext.tsx            # Session state, login credentials orchestration via Appwrite & Firebase
+│   └── LocationContext.tsx        # Geolocation lookup and coordinate tracking providers
+├── hooks/                         # Optimized custom React hooks for stateful utility management
+├── lib/                           # Central configuration & connection clients
+│   ├── appwrite.ts                # Client instances for Appwrite storage and authentication
+│   ├── mongodb.ts                 # Reusable MongoDB client wrapper with database pooling
+│   ├── redis.ts                   # Caching connection logic utilizing ioredis
+│   └── gsap.ts                    # Global GSAP ScrollTrigger configuration presets
+├── types/                         # Centralized TypeScript custom interface & type definitions
+├── controllers/                   # Backend Business Logic controllers for processing data
+└── styles/                        # CSS styles (Theme declarations, animations, Global CSS resets)
 ```
 
 ---
 
-## 🔐 User Roles & Access
+## 🎨 Design System & Theme Tokens
 
-### 1. **Public Users**
-- Browse disease information
-- View interactive maps
-- Submit health reports
-- Access health guidelines
-- View nearest health facilities
+EpiWatch Lanka features a premium, clean slate-based visual theme configured using Tailwind CSS variables (defined in `src/styles/theme.css` and `src/constants/theme.ts`):
 
-### 2. **Health Officers**
-- Update disease records
-- View analytics and trends
-- Manage notifications
-- Generate reports
-- Access officer-specific dashboards
-
-### 3. **Administrators**
-- Manage all users and officers
-- System-wide analytics
-- Historical data management
-- Access to all platform features
+* **Primary Color (Sapphire Blue):** `#1E3A8A` (CSS: `--color-primary`) — Symbolizes authority, reliability, and scientific medical precision. Applied to core navigational elements, active anchors, and primary CTA buttons.
+* **Secondary Color (Emerald Teal):** `#0EA5A4` (CSS: `--color-secondary`) — Represents hope, safety, and health. Used to mark success signals, highlights, secondary widgets, and guidelines.
+* **System Status Tones:**
+  * **Danger/Alert:** `#DC2626` — High severity alerts.
+  * **Warning:** `#F97316` — Moderate severity advisories.
+  * **Success:** `#16A34A` — Resolved cases and verified data status.
+* **Adaptive Surface System:**
+  * **Light Mode:** Canvas Background: `#F8FAFC`, Dashboard Surface: `#FFFFFF`, Borders: `#E2E8F0`
+  * **Dark Mode:** Canvas Background: `#0F172A`, Dashboard Surface: `#1E293B`, Borders: `#334155`
+* **Border Radii Guidelines:** `sm: 6px` (utility items), `md: 8px` (buttons/inputs), `lg: 12px` (standard dashboard cards), `xl: 16px` (main dynamic containers).
 
 ---
 
-## 🎨 Design Theme
+## 🧪 Testing & Code Quality
 
-The application follows a **Wine Red + Black + White** color scheme:
-- **Primary Color:** Wine Red (`#A41111`)
-- **Dark Accent:** Deep Red (`#8B0000`)
-- **Secondary:** Black / Charcoal (`#0D0D0D`, `#1A1A1A`)
-- **Background:** White & Light Grey (`#F5F5F5`, `#FFFFFF`)
+Maintain codebase stability, type security, and code quality using the following triggers:
 
-*Note: Theme configuration can be found in `src/constants/theme.ts` and `src/styles/theme.css`.*
-
----
-
-## 📈 Future Roadmap / TODOs
-
-- [ ] Implement comprehensive unit and integration tests (Jest, Playwright).
-- [ ] Add more detailed epidemiological predictive models.
-- [ ] Enhance real-time notification system with Socket.IO.
-- [ ] Expand health facility database for all provinces.
-- [ ] Add multi-language support (Sinhala, Tamil).
-
----
-
-## 📊 Key Features Implemented
-
-- ✅ Multi-role authentication system (Public, Officer, Admin)
-- ✅ Interactive disease mapping with TomTom and Leaflet
-- ✅ Real-time disease data visualization
-- ✅ User reporting system
-- ✅ Officer and Admin dashboards
-- ✅ Analytics and trend analysis with charts
-- ✅ Social features (Reports, Notifications)
-- ✅ Profile management and settings
-- ✅ Responsive design for mobile and desktop
-- ✅ Image upload and processing
-- ✅ PDF report generation
-- ✅ Caching layer with Redis
-- ✅ Real-time updates with Socket.IO (prepared)
-- ✅ AI integration for disease insights (Groq, Gemini)
-
----
-
-## 🚀 Deployment
-
-### Build for Production
 ```bash
+# Perform static code analysis and linting audits
+npm run lint
+
+# Execute Jest unit and integration tests
+npm run test
+
+# Run a full production compilation build test
 npm run build
 ```
-
-### Start Production Server
-```bash
-npm start
-```
-
-The application is optimized for deployment on:
-- Vercel (recommended for Next.js)
-- Docker containers
-- Traditional Node.js hosting
-
----
-
-## 🧪 Testing & Quality
-
-Currently, code quality is maintained through:
-```bash
-npm run lint    # ESLint validation
-npm run build   # Build verification
-npm run test    # Maps to npm run lint
-```
-
-**Note:** Comprehensive test suites (Jest, Playwright) are planned for future releases.
 
 ---
 
 ## 📄 License
 
-TODO: Add license information (e.g., MIT, Apache 2.0).
+This project is licensed under the **MIT License**. Feel free to use, modify, and distribute this platform as needed to foster open-source epidemiological solutions.
 
 ---
 
 ## 📞 Support & Contributing
 
-For bug reports, feature requests, or contributions, please open an issue or submit a pull request on the repository.
-
+For bug reports, feature suggestions, or direct contributions:
+1. Open a bug report/feature request in the **Issues** section.
+2. Fork the repository, create a descriptive feature branch (`feature/amazing-capability`), commit your changes, and open a **Pull Request**.
